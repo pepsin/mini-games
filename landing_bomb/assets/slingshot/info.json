@@ -1,0 +1,19 @@
+{
+  "name": "slingshot",
+  "type": "static",
+  "description": "弹弓主体",
+  "file": "slingshot.png",
+  "size": {
+    "width": 64,
+    "height": 96
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 1.0
+  },
+  "parts": {
+    "leftTip": { "x": -18, "y": -50 },
+    "rightTip": { "x": 18, "y": -50 },
+    "base": { "x": 0, "y": 0 }
+  }
+}

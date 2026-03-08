@@ -1,0 +1,21 @@
+{
+  "name": "bomb",
+  "type": "animation",
+  "description": "炸弹人降落动画",
+  "fps": 8,
+  "loop": true,
+  "frames": [
+    { "file": "frame_01.png", "duration": 125 },
+    { "file": "frame_02.png", "duration": 125 },
+    { "file": "frame_03.png", "duration": 125 },
+    { "file": "frame_04.png", "duration": 125 }
+  ],
+  "size": {
+    "width": 64,
+    "height": 64
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.5
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "flower",
+  "type": "animation",
+  "description": "花朵状态动画，包含存活和死亡状态",
+  "fps": 4,
+  "loop": true,
+  "states": {
+    "alive": {
+      "frames": [
+        { "file": "alive_01.png", "duration": 250 },
+        { "file": "alive_02.png", "duration": 250 },
+        { "file": "alive_03.png", "duration": 250 },
+        { "file": "alive_02.png", "duration": 250 }
+      ]
+    },
+    "dead": {
+      "frames": [
+        { "file": "dead.png", "duration": 1000 }
+      ]
+    }
+  },
+  "colors": [
+    { "id": "red", "tint": "#FF5252" },
+    { "id": "pink", "tint": "#FF4081" },
+    { "id": "orange", "tint": "#FFAB40" },
+    { "id": "purple", "tint": "#E040FB" }
+  ],
+  "size": {
+    "width": 48,
+    "height": 64
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.8
+  }
+}

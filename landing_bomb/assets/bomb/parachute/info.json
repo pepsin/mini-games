@@ -1,0 +1,14 @@
+{
+  "name": "parachute",
+  "type": "static",
+  "description": "降落伞，随炸弹一起下落",
+  "file": "parachute.png",
+  "size": {
+    "width": 96,
+    "height": 96
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.8
+  }
+}
