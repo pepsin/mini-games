@@ -1,21 +1,34 @@
-// Input Handling Module
+// Input Handling Module - Node-based version
 
 const { W, H, toGame } = require('./config.js');
-const { isGameStarted, isGameOver, resetGame } = require('./gameState.js');
-const { createProjectile } = require('./entities/projectile.js');
-const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag } = require('./entities/slingshot.js');
-const { startWave, resetWaves } = require('./waveSystem.js');
+const { isGameStarted, isGameOver } = require('./gameState.js');
 
-// Game reference for firing
-let gameCallbacks = {};
+// Input callbacks - set by the game
+let inputCallbacks = {
+  onTouchStart: null,
+  onTouchMove: null,
+  onTouchEnd: null,
+  onGameStart: null,
+  onGameReset: null
+};
 
-function registerCallbacks(callbacks) {
-  gameCallbacks = callbacks;
+// Setup input callbacks
+function setupInput(callbacks) {
+  inputCallbacks = { ...inputCallbacks, ...callbacks };
+  
+  wx.onTouchStart(handleTouchStart);
+  wx.onTouchMove(handleTouchMove);
+  wx.onTouchEnd(handleTouchEnd);
+}
+
+// Convert touch to game coordinates
+function getGamePos(touch) {
+  return toGame(touch.clientX, touch.clientY);
 }
 
 // Handle touch start
 function handleTouchStart(e) {
-  const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
+  const gp = getGamePos(e.touches[0]);
   
   if (!isGameStarted()) {
     // Start button check
@@ -23,7 +36,7 @@ function handleTouchStart(e) {
     const btnH = 44;
     if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
         gp.y > H / 2 + 80 && gp.y < H / 2 + 80 + btnH) {
-      gameCallbacks.onGameStart && gameCallbacks.onGameStart();
+      inputCallbacks.onGameStart && inputCallbacks.onGameStart();
     }
     return;
   }
@@ -36,48 +49,38 @@ function handleTouchStart(e) {
     const btnTop = H / 2 - boxH / 2 + boxH * 0.78;
     if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
         gp.y > btnTop && gp.y < btnTop + btnH) {
-      gameCallbacks.onGameReset && gameCallbacks.onGameReset();
+      inputCallbacks.onGameReset && inputCallbacks.onGameReset();
     }
     return;
   }
   
-  // Start dragging
-  setDragging(true);
-  setDragStart(gp);
-  setDragCurrent(gp);
+  // Forward to game callback
+  if (inputCallbacks.onTouchStart) {
+    inputCallbacks.onTouchStart(gp);
+  }
 }
 
 // Handle touch move
 function handleTouchMove(e) {
-  if (!isDragging()) return;
-  setDragCurrent(toGame(e.touches[0].clientX, e.touches[0].clientY));
+  if (!isGameStarted() || isGameOver()) return;
+  
+  const gp = getGamePos(e.touches[0]);
+  if (inputCallbacks.onTouchMove) {
+    inputCallbacks.onTouchMove(gp);
+  }
 }
 
 // Handle touch end
 function handleTouchEnd(e) {
-  if (!isDragging()) return;
+  if (!isGameStarted() || isGameOver()) return;
   
-  const sling = getSlingshot();
-  const dragCurrent = setDragCurrent();
-  
-  const proj = createProjectile(sling, dragCurrent, SLING_CONFIG.maxDrag);
-  if (proj && gameCallbacks.onFire) {
-    gameCallbacks.onFire(proj);
+  if (inputCallbacks.onTouchEnd) {
+    inputCallbacks.onTouchEnd();
   }
-  
-  clearDrag();
-}
-
-// Setup input listeners
-function setupInput() {
-  wx.onTouchStart(handleTouchStart);
-  wx.onTouchMove(handleTouchMove);
-  wx.onTouchEnd(handleTouchEnd);
 }
 
 module.exports = {
   setupInput,
-  registerCallbacks,
   handleTouchStart,
   handleTouchMove,
   handleTouchEnd

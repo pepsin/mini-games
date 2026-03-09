@@ -1,46 +1,46 @@
-// Bob-omb Squad - WeChat Mini Game (Refactored Version)
+// Bob-omb Squad - WeChat Mini Game (Godot-style Scene System)
+// Godot-inspired scene composition system
 
-// Get canvas and context
 const canvas = wx.createCanvas();
 const ctx = canvas.getContext('2d');
 
 // Core modules
-const { W, H, updateScale } = require('./js/config.js');
+const { W, H, GROUND_Y, updateScale, sx, sy, ss, SLING_CONFIG, screenWidth, screenHeight, offsetX, offsetY, scale } = require('./js/config.js');
 const { loadResources, getResource } = require('./js/resources.js');
 const { animationLoader } = require('./js/animationLoader.js');
 
-// Game state - direct array exports
+// Node system
+const { Node, Node2D, CollisionSystem } = require('./js/nodes/index.js');
+
+// Scenes (Godot-style entities)
 const {
-  resetGame, addScore, setGameStarted, setGameOver, setLastTime, incrementFrameCount,
+  BombScene,
+  ProjectileScene,
+  ExplosionScene,
+  ScorePopupScene,
+  FlowerScene,
+  CloudScene,
+  SlingshotScene,
+  SkyScene,
+  SunScene,
+  RainbowScene,
+  WallScene
+} = require('./js/nodes/scenes/index.js');
+
+// Game state modules (for non-entity state)
+const { 
+  setGameStarted, setGameOver, setLastTime, incrementFrameCount,
   getScore, getFrameCount, getLastTime, isGameOver, isGameStarted,
-  getFlowerPositions, damageFlower,
-  bombs, projectiles, explosions, scorePopups, clouds,
-  flowerAlive, flowerFrameIndices
+  addScore
 } = require('./js/gameState.js');
 
-// Wave system
 const {
   startWave, resetWaves, updateWaves, getCurrentWave, getCurrentWaveConfig
 } = require('./js/waveSystem.js');
 
-// Entities
-const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
-const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
-const { drawWall } = require('./js/entities/wall.js');
-const { drawHealthFlowers } = require('./js/entities/flower.js');
-const {
-  updateSlingshotPosition, drawSlingshot, clearDrag, getDragCurrent, isDragging, getSlingshot
-} = require('./js/entities/slingshot.js');
-const { drawBomb, createBomb, updateBomb } = require('./js/entities/bomb.js');
-const { drawProjectile, updateProjectile, isOutOfBounds, checkCollision } = require('./js/entities/projectile.js');
-const {
-  createExplosion, createGroundExplosion, createScorePopup,
-  drawExplosion, drawScorePopup
-} = require('./js/entities/explosion.js');
-
 // UI and Input
 const { drawUI, drawGameOver, drawStartScreen } = require('./js/ui.js');
-const { setupInput, registerCallbacks } = require('./js/inputHandler.js');
+const { setupInput } = require('./js/inputHandler.js');
 
 // Setup canvas size
 const systemInfo = wx.getSystemInfoSync();
@@ -48,45 +48,183 @@ canvas.width = systemInfo.windowWidth;
 canvas.height = systemInfo.windowHeight;
 updateScale();
 
+// Game root node - all game entities are children of this
+const gameRoot = new Node('GameRoot');
+
+// Scene layers (Godot-style)
+const backgroundLayer = new Node2D('BackgroundLayer');
+const gameLayer = new Node2D('GameLayer');
+const uiLayer = new Node2D('UILayer');
+
+gameRoot.addChild(backgroundLayer);
+gameRoot.addChild(gameLayer);
+gameRoot.addChild(uiLayer);
+
+// Background scenes
+let skyScene = null;
+let sunScene = null;
+let rainbowScene = null;
+let wallScene = null;
+
+// Entity containers (as Node2D for transform support)
+const cloudsContainer = new Node2D('CloudsContainer');
+const flowersContainer = new Node2D('FlowersContainer');
+const bombsContainer = new Node2D('BombsContainer');
+const projectilesContainer = new Node2D('ProjectilesContainer');
+const effectsContainer = new Node2D('EffectsContainer');
+
+gameLayer.addChild(cloudsContainer);
+gameLayer.addChild(flowersContainer);
+gameLayer.addChild(bombsContainer);
+gameLayer.addChild(projectilesContainer);
+gameLayer.addChild(effectsContainer);
+
+// Collision system
+const collisionSystem = new CollisionSystem();
+gameRoot.addChild(collisionSystem);
+
+// Game entities
+let slingshot = null;
+let flowers = [];
+
+// Flower positions
+const FLOWER_POSITIONS = [
+  { x: 90, y: GROUND_Y - 10 },
+  { x: 180, y: GROUND_Y - 10 },
+  { x: 270, y: GROUND_Y - 10 },
+  { x: 360, y: GROUND_Y - 10 }
+];
+
 // Initialize game
 function init() {
-  // Initialize clouds
-  const initialClouds = initClouds();
-  clouds.push(...initialClouds);
-  
-  // Load resources and start
-  loadResources().then(() => {
-    console.log('Resources loaded, starting game');
-    updateSlingshotPosition();
+  // Create sky scene (drawn in screen coordinates)
+  skyScene = new SkyScene({
+    canvasWidth: screenWidth,
+    canvasHeight: screenHeight,
+    offsetX: offsetX
   });
   
-  // Setup input callbacks
-  registerCallbacks({
+  // Create background scenes (drawn in game coordinates)
+  sunScene = SunScene.create();
+  rainbowScene = RainbowScene.create();
+  wallScene = WallScene.create();
+  
+  // Create slingshot
+  slingshot = new SlingshotScene({
+    x: SLING_CONFIG.x,
+    y: SLING_CONFIG.y,
+    prongW: SLING_CONFIG.prongW,
+    prongH: SLING_CONFIG.prongH,
+    maxDrag: SLING_CONFIG.maxDrag
+  });
+  gameLayer.addChild(slingshot);
+  
+  // Create flowers
+  flowers = [];
+  for (let i = 0; i < 4; i++) {
+    const flower = FlowerScene.create(i, FLOWER_POSITIONS[i].x, FLOWER_POSITIONS[i].y);
+    flowers.push(flower);
+    flowersContainer.addChild(flower);
+  }
+  
+  // Create clouds
+  for (let i = 0; i < 8; i++) {
+    const cloud = CloudScene.createRandom({
+      width: W,
+      groundY: GROUND_Y
+    });
+    cloudsContainer.addChild(cloud);
+  }
+  
+  // Sort clouds by scale for depth
+  cloudsContainer.children.sort((a, b) => b.baseScale - a.baseScale);
+  
+  // Load resources
+  loadResources().then(() => {
+    console.log('Resources loaded, game ready');
+  });
+  
+  // Setup input with scene-based callbacks
+  setupInput({
+    onTouchStart: (pos) => {
+      if (!isGameStarted() || isGameOver()) return;
+      if (pos.x > W * 0.4) {
+        slingshot.startDrag(pos);
+      }
+    },
+    onTouchMove: (pos) => {
+      slingshot.updateDrag(pos);
+    },
+    onTouchEnd: () => {
+      const dragEnd = slingshot.endDrag();
+      if (dragEnd) {
+        const projectile = ProjectileScene.createFromSlingshot(
+          slingshot, dragEnd, SLING_CONFIG.maxDrag
+        );
+        if (projectile) {
+          projectilesContainer.addChild(projectile);
+        }
+      }
+    },
     onGameStart: () => {
       setGameStarted(true);
       resetGame();
-      resetWaves();
       startWave(1);
     },
     onGameReset: () => {
       resetGame();
-      resetWaves();
       startWave(1);
-    },
-    onFire: (proj) => {
-      if (proj) projectiles.push(proj);
     }
   });
+}
+
+// Reset game state
+function resetGame() {
+  // Clear all dynamic entities
+  bombsContainer.children = [];
+  projectilesContainer.children = [];
+  effectsContainer.children = [];
   
-  setupInput();
+  // Revive flowers
+  flowers.forEach(flower => flower.revive());
+  
+  // Reset slingshot
+  slingshot.clearDrag();
+  
+  // Reset waves
+  resetWaves();
+  
+  // Reset state
+  setGameOver(false);
+  setLastTime(Date.now());
+}
+
+// Get alive flower positions for bomb targeting
+function getAliveFlowerPositions() {
+  const positions = [];
+  flowers.forEach((flower, idx) => {
+    if (flower.isAlive()) {
+      positions.push({ index: idx, x: flower.x, y: flower.y });
+    }
+  });
+  return positions;
+}
+
+// Check if all flowers are dead
+function areAllFlowersDead() {
+  return flowers.every(f => !f.isAlive());
 }
 
 // Update game logic
 function update() {
-  if (isGameOver() || !isGameStarted()) return;
+  if (isGameOver() || !isGameStarted()) {
+    // Still process clouds for background animation
+    cloudsContainer.children.forEach(cloud => cloud.process(16));
+    return;
+  }
   
   const currentTime = Date.now();
-  const deltaTime = currentTime - getLastTime();
+  const deltaTime = Math.min(currentTime - getLastTime(), 50); // Cap at 50ms
   setLastTime(currentTime);
   
   incrementFrameCount();
@@ -98,96 +236,107 @@ function update() {
     animationLoader.update(bombRes, deltaTime);
   }
   
-  // Update flowers
+  // Update flower animations
   if (frameCount % 15 === 0) {
-    for (let i = 0; i < 4; i++) {
-      if (flowerAlive[i]) {
-        flowerFrameIndices[i]++;
-      }
-    }
+    flowers.forEach(flower => flower.nextFrame());
   }
   
-  // Update clouds
-  updateClouds(clouds);
+  // Process all nodes
+  gameRoot.process(deltaTime);
+  gameRoot.physicsProcess(deltaTime);
   
   // Update wave system
-  const waveAction = updateWaves(bombs.length);
+  const waveAction = updateWaves(bombsContainer.children.length);
   if (waveAction.action === 'start_wave') {
     startWave(waveAction.wave);
   } else if (waveAction.action === 'spawn_bomb') {
     const waveConfig = getCurrentWaveConfig();
-    const bomb = createBomb(waveConfig, getCurrentWave());
-    bombs.push(bomb);
+    const bomb = BombScene.create(waveConfig, getCurrentWave());
+    bombsContainer.addChild(bomb);
+    collisionSystem.registerCollider(bomb.collider);
   }
   
-  // Update bombs
-  const flowerPositions = getFlowerPositions();
-  for (let i = bombs.length - 1; i >= 0; i--) {
-    const bomb = bombs[i];
-    updateBomb(bomb, frameCount);
+  // Update bombs - ground collision and flower damage
+  const aliveFlowerPositions = getAliveFlowerPositions();
+  
+  for (let i = bombsContainer.children.length - 1; i >= 0; i--) {
+    const bomb = bombsContainer.children[i];
     
     // Check ground collision
-    if (bomb.y > 820 - bomb.radius) {
-      explosions.push(createGroundExplosion(bomb.x, 815));
-      bombs.splice(i, 1);
+    if (bomb.y > GROUND_Y - bomb.radius) {
+      // Create ground explosion
+      const explosion = ExplosionScene.createGround(bomb.x, GROUND_Y - 5);
+      effectsContainer.addChild(explosion);
       
-      // Find nearest flower
+      // Remove bomb
+      collisionSystem.unregisterCollider(bomb.collider);
+      bomb.queueFree();
+      
+      // Find nearest flower and damage it
       let closestIdx = -1;
       let closestDist = Infinity;
-      for (let f = 0; f < 4; f++) {
-        if (!flowerAlive[f]) continue;
-        const pos = flowerPositions[f];
+      
+      aliveFlowerPositions.forEach(pos => {
         const dist = Math.abs(bomb.x - pos.x);
         if (dist < 50 && dist < closestDist) {
           closestDist = dist;
-          closestIdx = f;
+          closestIdx = pos.index;
         }
-      }
+      });
       
       if (closestIdx >= 0) {
-        damageFlower(closestIdx);
+        flowers[closestIdx].damage();
       }
     }
   }
   
-  // Update projectiles
-  for (let i = projectiles.length - 1; i >= 0; i--) {
-    const p = projectiles[i];
-    updateProjectile(p);
+  // Check projectile-bomb collisions
+  for (let i = projectilesContainer.children.length - 1; i >= 0; i--) {
+    const proj = projectilesContainer.children[i];
     
     // Remove if out of bounds
-    if (isOutOfBounds(p)) {
-      projectiles.splice(i, 1);
+    if (proj.isOutOfBounds({ left: -50, right: W + 50, top: -100, bottom: H + 50 })) {
+      proj.queueFree();
       continue;
     }
     
     // Check collisions with bombs
-    for (let j = bombs.length - 1; j >= 0; j--) {
-      const b = bombs[j];
-      if (checkCollision(p, b)) {
-        p.hits = (p.hits || 0) + 1;
-        const popup = createScorePopup(b.x, b.y, p.hits);
+    for (let j = bombsContainer.children.length - 1; j >= 0; j--) {
+      const bomb = bombsContainer.children[j];
+      
+      const dx = proj.x - bomb.x;
+      const dy = proj.y - bomb.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < proj.radius + bomb.radius + 5) {
+        // Collision!
+        const hits = proj.registerHit();
+        
+        // Create score popup
+        const popup = ScorePopupScene.create(bomb.x, bomb.y, hits);
+        effectsContainer.addChild(popup);
         addScore(popup.totalScore);
-        explosions.push(createExplosion(b.x, b.y, b.bombType));
-        bombs.splice(j, 1);
+        
+        // Create explosion
+        const explosion = ExplosionScene.create(bomb.x, bomb.y, bomb.bombType);
+        effectsContainer.addChild(explosion);
+        
+        // Remove bomb
+        collisionSystem.unregisterCollider(bomb.collider);
+        bomb.queueFree();
+        
+        // Remove projectile if max hits reached
+        if (proj.hits >= proj.maxHits) {
+          proj.queueFree();
+          break;
+        }
       }
     }
   }
   
-  // Update score popups
-  for (let i = scorePopups.length - 1; i >= 0; i--) {
-    scorePopups[i].frame++;
-    if (scorePopups[i].frame >= scorePopups[i].maxFrames) {
-      scorePopups.splice(i, 1);
-    }
-  }
-  
-  // Update explosions
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    explosions[i].frame++;
-    if (explosions[i].frame >= explosions[i].maxFrames) {
-      explosions.splice(i, 1);
-    }
+  // Check game over
+  if (areAllFlowersDead()) {
+    setGameOver(true);
   }
 }
 
@@ -196,26 +345,37 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.globalAlpha = 1;
   
-  // Background
-  drawSky(ctx, canvas);
-  drawSun(ctx);
-  drawRainbow(ctx);
-  clouds.forEach(c => drawCloud(ctx, c));
-  drawWall(ctx);
-  drawHealthFlowers(ctx);
+  // 1. Draw sky (screen coordinates)
+  skyScene.draw(ctx);
   
-  // Game entities
-  const frameCount = getFrameCount();
-  bombs.forEach(b => drawBomb(ctx, b, frameCount));
-  projectiles.forEach(p => drawProjectile(ctx, p));
-  explosions.forEach(e => drawExplosion(ctx, e));
-  scorePopups.forEach(s => drawScorePopup(ctx, s));
+  // 2. Apply game coordinate transform
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
   
-  // Slingshot and UI
-  drawSlingshot(ctx);
+  // 3. Draw background elements (game coordinates)
+  sunScene.draw(ctx);
+  rainbowScene.draw(ctx);
+  cloudsContainer.draw(ctx);
+  
+  // 4. Draw wall
+  wallScene.draw(ctx);
+  
+  // 5. Draw game entities
+  flowersContainer.draw(ctx);
+  bombsContainer.draw(ctx);
+  projectilesContainer.draw(ctx);
+  effectsContainer.draw(ctx);
+  
+  // 6. Draw slingshot
+  slingshot.draw(ctx);
+  
+  ctx.restore();
+  
+  // 7. Draw UI (screen coordinates)
   drawUI(ctx);
   
-  // Screens
+  // 8. Draw screens
   if (isGameOver()) {
     drawGameOver(ctx, canvas);
   } else if (!isGameStarted()) {
