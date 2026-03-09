@@ -296,15 +296,47 @@ const flowerHitRadius = 50;
 // 初始化云朵
 function initClouds() {
   clouds = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     const variants = resources.cloud?.variants ? Object.keys(resources.cloud.variants) : ['small', 'medium', 'large'];
+    
+    // 随机选择云朵类型并设置对应的基础缩放比例
+    // small: 0.3-0.5, medium: 0.5-0.8, large: 0.8-1.2
+    const variant = variants[Math.floor(Math.random() * variants.length)];
+    let baseScale;
+    switch (variant) {
+      case 'small':
+        baseScale = 0.3 + Math.random() * 0.2;  // 0.3 - 0.5
+        break;
+      case 'medium':
+        baseScale = 0.5 + Math.random() * 0.3;  // 0.5 - 0.8
+        break;
+      case 'large':
+        baseScale = 0.8 + Math.random() * 0.4;  // 0.8 - 1.2
+        break;
+      default:
+        baseScale = 0.4 + Math.random() * 0.4;  // 0.4 - 0.8
+    }
+    
+    // 添加小的随机变化，让同类型的云也有大小差异
+    const randomVariation = (Math.random() - 0.5) * 0.15; // ±7.5%
+    const finalScale = Math.max(0.25, Math.min(1.3, baseScale + randomVariation));
+    
+    // 根据尺寸调整速度：越大的云看起来越远，移动越慢
+    const depthFactor = 1 - (finalScale - 0.25) / 1.05 * 0.5; // 0.5 - 1.0
+    
     clouds.push({
       x: Math.random() * W,
-      y: 40 + Math.random() * 120,
-      variant: variants[Math.floor(Math.random() * variants.length)],
-      speed: 0.15 + Math.random() * 0.3
+      y: 30 + Math.random() * 150,
+      variant: variant,
+      scale: finalScale,           // 个体缩放比例
+      baseScale: baseScale,        // 基础类型缩放
+      speed: (0.1 + Math.random() * 0.2) * depthFactor,
+      opacity: 0.6 + finalScale * 0.3  // 越大越不透明
     });
   }
+  
+  // 按尺寸排序，让小云在前面（后绘制），大云在后面（先绘制）
+  clouds.sort((a, b) => b.scale - a.scale);
 }
 
 // --- Drawing Functions ---
@@ -465,6 +497,9 @@ function drawRainbow() {
 }
 
 function drawCloud(cloud) {
+  // 使用云朵自身的缩放比例
+  const scale = cloud.scale || 0.5;
+  
   if (resourcesLoaded && resources.cloud?.variants) {
     animationLoader.setVariant(resources.cloud, cloud.variant);
     const img = resources.cloud.image;
@@ -473,12 +508,13 @@ function drawCloud(cloud) {
       const size = animationLoader.getSize(resources.cloud);
       const anchor = animationLoader.getAnchor(resources.cloud);
       
-      ctx.globalAlpha = 0.9;
+      // 使用云朵个体的缩放比例
+      ctx.globalAlpha = cloud.opacity || 0.9;
       const result = drawImageProportional(
         img,
         cloud.x,
         cloud.y,
-        size.width * 0.5,  // 云朵按 50% 缩放
+        size.width * scale,  // 使用云朵个体缩放
         anchor.x,
         anchor.y
       );
@@ -488,10 +524,8 @@ function drawCloud(cloud) {
     }
   }
   
-  // 使用示意方块 - 使用 config 中的标准尺寸 128x64，按比例缩放
+  // 使用示意方块 - 使用云朵个体缩放
   const colorIdx = CLOUD_VARIANT_COLORS[cloud.variant] || RESOURCE_COLORS.cloud;
-  const scaleMap = { small: 0.4, medium: 0.6, large: 0.8 };
-  const scale = scaleMap[cloud.variant] || 0.6;
   drawPlaceholder(cloud.x, cloud.y, 128 * scale, 64 * scale, 'CLOUD', colorIdx, 0.5, 0.5);
 }
 
