@@ -306,10 +306,22 @@ let dragCurrent = null;
 const maxDrag = 300; // 允许拉到更远的距离，接近屏幕边缘
 
 // 花朵配置
-const healthFlowerColors = ['#FF5252', '#FF4081', '#FFAB40', '#E040FB'];
-const healthFlowerPositions = [90, 180, 270, 360];
 let flowerAlive = [true, true, true, true];
 const flowerHitRadius = 50;
+
+// Get flower positions from config or use defaults
+function getFlowerPositions() {
+  if (resources.flower?.config?.positions) {
+    return resources.flower.config.positions;
+  }
+  // Default positions
+  return [
+    { x: 90, y: 708 },
+    { x: 180, y: 708 },
+    { x: 270, y: 708 },
+    { x: 360, y: 708 }
+  ];
+}
 
 // 初始化云朵
 function initClouds() {
@@ -609,8 +621,10 @@ function drawFlower(x, y, alive) {
 }
 
 function drawHealthFlowers() {
+  const positions = getFlowerPositions();
   for (let i = 0; i < 4; i++) {
-    drawFlower(healthFlowerPositions[i], H - 92, flowerAlive[i]);
+    const pos = positions[i] || { x: 90 + i * 90, y: 708 };
+    drawFlower(pos.x, pos.y, flowerAlive[i]);
   }
 }
 
@@ -1267,6 +1281,7 @@ function update() {
   // ========== END WAVE SYSTEM UPDATE ==========
 
   // 更新炸弹
+  const flowerPositions = getFlowerPositions();
   for (let i = bombs.length - 1; i >= 0; i--) {
     const bomb = bombs[i];
     bomb.y += bomb.speed;
@@ -1279,7 +1294,8 @@ function update() {
       let closestDist = Infinity;
       for (let f = 0; f < 4; f++) {
         if (!flowerAlive[f]) continue;
-        const dist = Math.abs(bomb.x - healthFlowerPositions[f]);
+        const pos = flowerPositions[f] || { x: 90 + f * 90, y: 708 };
+        const dist = Math.abs(bomb.x - pos.x);
         if (dist < flowerHitRadius && dist < closestDist) {
           closestDist = dist;
           closestIdx = f;

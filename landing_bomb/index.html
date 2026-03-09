@@ -169,6 +169,15 @@ function loadFlowerFrames() {
 }
 loadFlowerFrames();
 
+// Load flower config for positions
+fetch('assets/flower/info.json')
+  .then(r => r.json())
+  .then(data => {
+    resources.flower.config = { ...resources.flower.config, ...data };
+    console.log('Flower config loaded:', data.positions);
+  })
+  .catch(() => console.log('Using default flower positions'));
+
 // ========== WAVE SYSTEM ==========
 // Wave-based spawn system - tunable parameters for difficulty curve
 let currentWave = 1;
@@ -528,14 +537,28 @@ function drawFlower(x, y, alive) {
 }
 
 // Health flowers - 4 flowers on the ground representing lives
-const healthFlowerColors = ['#FF5252', '#FF4081', '#FFAB40', '#E040FB'];
-const healthFlowerPositions = [90, 180, 270, 360];
 let flowerAlive = [true, true, true, true];
 const flowerHitRadius = 50; // how close a bomb must land to kill a flower
 
+// Get flower positions from config or use defaults
+function getFlowerPositions() {
+  if (resources.flower?.config?.positions) {
+    return resources.flower.config.positions;
+  }
+  // Default positions
+  return [
+    { x: 90, y: 708 },
+    { x: 180, y: 708 },
+    { x: 270, y: 708 },
+    { x: 360, y: 708 }
+  ];
+}
+
 function drawHealthFlowers() {
+  const positions = getFlowerPositions();
   for (let i = 0; i < 4; i++) {
-    drawFlower(healthFlowerPositions[i], H - 92, flowerAlive[i]);
+    const pos = positions[i] || { x: 90 + i * 90, y: 708 };
+    drawFlower(pos.x, pos.y, flowerAlive[i]);
   }
 }
 
@@ -1164,6 +1187,7 @@ function update() {
   // ========== END WAVE SYSTEM UPDATE ==========
 
   // Update bombs
+  const flowerPositions = getFlowerPositions();
   for (let i = bombs.length - 1; i >= 0; i--) {
     const bomb = bombs[i];
     bomb.y += bomb.speed;
@@ -1178,7 +1202,8 @@ function update() {
       let closestDist = Infinity;
       for (let f = 0; f < 4; f++) {
         if (!flowerAlive[f]) continue;
-        const dist = Math.abs(bomb.x - healthFlowerPositions[f]);
+        const pos = flowerPositions[f] || { x: 90 + f * 90, y: 708 };
+        const dist = Math.abs(bomb.x - pos.x);
         if (dist < flowerHitRadius && dist < closestDist) {
           closestDist = dist;
           closestIdx = f;
