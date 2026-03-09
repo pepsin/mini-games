@@ -18,9 +18,12 @@ const screenHeight = systemInfo.windowHeight;
 canvas.width = screenWidth;
 canvas.height = screenHeight;
 
-// 适配逻辑：保持 450:800 的竖屏比例
-const W = 450, H = 800;
-let scaleX = 1, scaleY = 1;
+// 适配逻辑：保持 450:900 的竖屏比例，使用统一缩放
+// H=900 确保底部元素（背景、花朵、弹弓）不会被裁剪
+const W = 450, H = 900;
+// 地面高度 - 炸弹会在此高度爆炸，花朵在此区域
+const GROUND_Y = 820;
+let scale = 1;
 let offsetX = 0, offsetY = 0;
 
 function updateScale() {
@@ -28,26 +31,28 @@ function updateScale() {
   const screenRatio = screenWidth / screenHeight;
   
   if (screenRatio > ratio) {
-    scaleY = screenHeight / H;
-    scaleX = scaleY;
-    offsetX = (screenWidth - W * scaleX) / 2;
+    // 屏幕比游戏更宽（如 iPad）：以高度为基准，左右留黑边
+    scale = screenHeight / H;
+    offsetX = (screenWidth - W * scale) / 2;
     offsetY = 0;
   } else {
-    scaleX = screenWidth / W;
-    scaleY = scaleX;
+    // 屏幕比游戏更高或相同（如全面屏手机）：以宽度为基准，上下留黑边
+    scale = screenWidth / W;
     offsetX = 0;
-    offsetY = (screenHeight - H * scaleY) / 2;
+    offsetY = (screenHeight - H * scale) / 2;
   }
 }
 updateScale();
 
-// 坐标转换函数
-function sx(x) { return x * scaleX + offsetX; }
-function sy(y) { return y * scaleY + offsetY; }
+// 坐标转换函数 - 统一使用 scale 保持宽高比
+function sx(x) { return x * scale + offsetX; }
+function sy(y) { return y * scale + offsetY; }
+// 尺寸缩放函数 - 统一使用 scale，不再区分 X/Y
+function ss(size) { return size * scale; }
 function toGame(cx, cy) {
   return {
-    x: (cx - offsetX) / scaleX,
-    y: (cy - offsetY) / scaleY
+    x: (cx - offsetX) / scale,
+    y: (cy - offsetY) / scale
   };
 }
 
@@ -298,8 +303,8 @@ try {
   console.log('读取最高分失败:', e);
 }
 
-// Slingshot state
-const sling = { x: W / 2, y: H, prongW: 0, prongH: 100 };
+// Slingshot state - 锚定到底部（相对于 GROUND_Y）
+const sling = { x: W / 2, y: GROUND_Y, prongW: 0, prongH: 100 };
 let dragging = false;
 let dragStart = null;
 let dragCurrent = null;
@@ -311,16 +316,17 @@ let flowerFrameIndices = [0, 1, 2, 3]; // Each flower starts at different frame
 const flowerHitRadius = 50;
 
 // Get flower positions from config or use defaults
+// 所有 Y 坐标都相对于底部锚定，确保在任何屏幕上都从底部绘制
 function getFlowerPositions() {
   if (resources.flower?.config?.positions) {
     return resources.flower.config.positions;
   }
-  // Default positions
+  // Default positions - 锚定到底部，在 GROUND_Y 附近
   return [
-    { x: 90, y: 708 },
-    { x: 180, y: 708 },
-    { x: 270, y: 708 },
-    { x: 360, y: 708 }
+    { x: 90, y: GROUND_Y - 10 },
+    { x: 180, y: GROUND_Y - 10 },
+    { x: 270, y: GROUND_Y - 10 },
+    { x: 360, y: GROUND_Y - 10 }
   ];
 }
 
@@ -339,8 +345,8 @@ function initClouds() {
     // 根据尺寸调整速度：越大的云看起来越远，移动越慢
     const depthFactor = 1 - (finalScale - 0.7) / 0.6 * 0.4; // 0.6 - 1.0
     
-    // 云朵在屏幕上部 2/5 区域浮动 (y: -50 到 H*2/5)
-    const yPos = -50 + Math.random() * (H * 2/5 + 50);
+    // 云朵在屏幕上部区域浮动 (y: -50 到 GROUND_Y*0.5)
+    const yPos = -50 + Math.random() * (GROUND_Y * 0.5 + 50);
     
     clouds.push({
       x: Math.random() * (W + 200),  // 初始化时分布在更宽的区域
@@ -359,12 +365,24 @@ function initClouds() {
 // --- Drawing Functions ---
 
 function drawSky() {
-  const grad = ctx.createLinearGradient(0, 0, 0, sy(H));
+  // 天空渐变 - 延伸到整个屏幕高度，从顶部(#4ab8ff)到底部(#b8e8ff)
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
   grad.addColorStop(0, '#4ab8ff');
   grad.addColorStop(0.6, '#87CEEB');
   grad.addColorStop(1, '#b8e8ff');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // 只在左右两侧绘制黑边（垂直方向天空填满，水平方向留黑边）
+  ctx.fillStyle = '#000000';
+  // 左侧黑边
+  if (offsetX > 0) {
+    ctx.fillRect(0, 0, offsetX, canvas.height);
+  }
+  // 右侧黑边
+  if (offsetX > 0) {
+    ctx.fillRect(canvas.width - offsetX, 0, offsetX, canvas.height);
+  }
 }
 
 function drawSun() {
@@ -411,14 +429,13 @@ function drawImageProportional(img, x, y, targetWidth, anchorX = 0.5, anchorY = 
   let drawWidth, drawHeight;
   
   if (targetWidth > 0) {
-    // 按目标宽度等比缩放
-    drawWidth = sx(targetWidth);
+    // 按目标宽度等比缩放（使用统一 scale）
+    drawWidth = ss(targetWidth);
     drawHeight = drawWidth / aspectRatio;
   } else {
     // 使用原始像素尺寸（转换为屏幕坐标）
-    const scale = (W / canvas.width + H / canvas.height) / 2;
-    drawWidth = originalWidth / scale;
-    drawHeight = originalHeight / scale;
+    drawWidth = originalWidth * scale;
+    drawHeight = originalHeight * scale;
   }
   
   const drawX = sx(x) - drawWidth * anchorX;
@@ -442,10 +459,10 @@ function drawImageProportional(img, x, y, targetWidth, anchorX = 0.5, anchorY = 
  */
 function drawPlaceholder(x, y, w, h, label, colorIndex, anchorX = 0.5, anchorY = 0.5) {
   const color = COLOR_PALETTE[colorIndex % COLOR_PALETTE.length];
-  const drawX = sx(x) - sx(w) * anchorX;
-  const drawY = sy(y) - sy(h) * anchorY;
-  const drawW = sx(w);
-  const drawH = sy(h);
+  const drawW = ss(w);
+  const drawH = ss(h);
+  const drawX = sx(x) - drawW * anchorX;
+  const drawY = sy(y) - drawH * anchorY;
   
   // 绘制方块背景
   ctx.fillStyle = color.bg;
@@ -453,7 +470,7 @@ function drawPlaceholder(x, y, w, h, label, colorIndex, anchorX = 0.5, anchorY =
   
   // 绘制边框
   ctx.strokeStyle = color.text;
-  ctx.lineWidth = Math.max(2, sx(2));
+  ctx.lineWidth = Math.max(2, ss(2));
   ctx.strokeRect(drawX, drawY, drawW, drawH);
   
   // 绘制对角线（X形）
@@ -471,11 +488,11 @@ function drawPlaceholder(x, y, w, h, label, colorIndex, anchorX = 0.5, anchorY =
   ctx.textBaseline = 'middle';
   
   // 自适应字体大小
-  const fontSize = Math.min(drawW / 3, drawH / 2, sx(16));
+  const fontSize = Math.min(drawW / 3, drawH / 2, ss(16));
   ctx.font = `bold ${fontSize}px Arial`;
   
   // 文字换行处理（如果太长）
-  if (label.length > 4 && drawW < sx(60)) {
+  if (label.length > 4 && drawW < ss(60)) {
     const mid = Math.ceil(label.length / 2);
     ctx.fillText(label.slice(0, mid), drawX + drawW / 2, drawY + drawH / 2 - fontSize * 0.3);
     ctx.fillText(label.slice(mid), drawX + drawW / 2, drawY + drawH / 2 + fontSize * 0.7);
@@ -560,30 +577,34 @@ function drawWall() {
     if (result) return; // 图片绘制成功，直接返回
   }
   
-  // 备用：使用程序绘制墙壁和地面
-  const wallY = sy(H - 80);
-  const wallH = sy(80);
+  // 备用：使用程序绘制墙壁和地面（只在游戏区域内绘制）
+  const wallY = sy(GROUND_Y);
+  const wallH = ss(80);
+  const gameLeft = sx(0);
+  const gameRight = sx(W);
+  const gameWidth = gameRight - gameLeft;
+  
   ctx.fillStyle = '#E8DCC8';
-  ctx.fillRect(0, wallY, canvas.width, wallH);
-  const bw = sx(40), bh = sy(14);
+  ctx.fillRect(gameLeft, wallY, gameWidth, wallH);
+  const bw = ss(40), bh = ss(14);
   ctx.strokeStyle = '#D4C4A8';
-  ctx.lineWidth = sx(1);
+  ctx.lineWidth = ss(1);
   for (let row = 0; row < 6; row++) {
     const yy = wallY + row * bh;
     const offset = (row % 2) * bw * 0.5;
     for (let col = -1; col < W / 40 + 1; col++) {
-      const xx = offset + col * bw;
+      const xx = gameLeft + offset + col * bw;
       ctx.strokeRect(xx, yy, bw, bh);
     }
   }
   ctx.fillStyle = '#D2B48C';
-  ctx.fillRect(0, wallY - sy(5), canvas.width, sy(5));
+  ctx.fillRect(gameLeft, wallY - ss(5), gameWidth, ss(5));
   ctx.fillStyle = '#4CAF50';
-  ctx.fillRect(0, wallY - sy(14), canvas.width, sy(10));
+  ctx.fillRect(gameLeft, wallY - ss(14), gameWidth, ss(10));
   ctx.fillStyle = '#388E3C';
   for (let i = 0; i < W; i += 12) {
     ctx.beginPath();
-    ctx.arc(sx(i), wallY - sy(14), sx(7), 0, Math.PI * 2);
+    ctx.arc(sx(i), wallY - ss(14), ss(7), 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -615,7 +636,7 @@ function drawFlower(x, y, alive, frameIndex) {
     // 计算保持比例的绘制尺寸
     const aspectRatio = frame.image.width / frame.image.height;
     const targetWidth = size.width;
-    const drawWidth = sx(targetWidth);
+    const drawWidth = ss(targetWidth);
     const drawHeight = drawWidth / aspectRatio;
     
     const drawX = sx(x) - drawWidth * anchor.x;
@@ -634,7 +655,7 @@ function drawFlower(x, y, alive, frameIndex) {
 function drawHealthFlowers() {
   const positions = getFlowerPositions();
   for (let i = 0; i < 4; i++) {
-    const pos = positions[i] || { x: 90 + i * 90, y: 708 };
+    const pos = positions[i] || { x: 90 + i * 90, y: GROUND_Y - 10 };
     drawFlower(pos.x, pos.y, flowerAlive[i], flowerFrameIndices[i]);
   }
 }
@@ -693,7 +714,7 @@ function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
     const pullY = pivotY + Math.sin(angle) * clampDist;
 
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = sx(4);
+    ctx.lineWidth = ss(4);
     ctx.beginPath();
     ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
     ctx.lineTo(sx(pullX), sy(pullY));
@@ -704,17 +725,17 @@ function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(sx(pullX), sy(pullY), sx(8), 0, Math.PI * 2);
+    ctx.arc(sx(pullX), sy(pullY), ss(8), 0, Math.PI * 2);
     ctx.fillStyle = '#333';
     ctx.fill();
     ctx.strokeStyle = '#111';
-    ctx.lineWidth = sx(1);
+    ctx.lineWidth = ss(1);
     ctx.stroke();
 
     ctx.setLineDash([]);
   } else {
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = sx(4);
+    ctx.lineWidth = ss(4);
     ctx.beginPath();
     ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
     ctx.quadraticCurveTo(sx(pivotX), sy(pivotY + 20), sx(rightTip.x), sy(rightTip.y));
@@ -726,7 +747,7 @@ function drawBomb(bomb) {
   if (bomb.exploding) return;
   
   // 使用降落伞模块绘制降落伞（包含连接线、旋转和缩放变化）
-  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount);
+  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss);
   
   // 绘制炸弹
   let usePlaceholder = true;
@@ -760,7 +781,7 @@ function drawBomb(bomb) {
 }
 
 function drawProjectile(proj) {
-  const px = sx(proj.x), py = sy(proj.y), r = sx(proj.radius);
+  const px = sx(proj.x), py = sy(proj.y), r = ss(proj.radius);
   ctx.beginPath();
   ctx.arc(px, py, r, 0, Math.PI * 2);
   const grad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
@@ -769,7 +790,7 @@ function drawProjectile(proj) {
   ctx.fillStyle = grad;
   ctx.fill();
   ctx.strokeStyle = '#000';
-  ctx.lineWidth = sx(1);
+  ctx.lineWidth = ss(1);
   ctx.stroke();
 
   ctx.globalAlpha = 0.3;
@@ -787,7 +808,7 @@ function drawExplosion(exp) {
   const cx = sx(exp.x), cy = sy(exp.y);
 
   if (progress < 0.3) {
-    const flashR = sx(40) * (progress / 0.3);
+    const flashR = ss(40) * (progress / 0.3);
     const flashGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashR);
     flashGrad.addColorStop(0, 'rgba(255,255,200,0.8)');
     flashGrad.addColorStop(1, 'rgba(255,200,50,0)');
@@ -798,10 +819,10 @@ function drawExplosion(exp) {
   }
 
   exp.particles.forEach(p => {
-    const px = cx + sx(p.vx * exp.frame);
-    const py = cy + sy(p.vy * exp.frame);
+    const px = cx + ss(p.vx * exp.frame);
+    const py = cy + ss(p.vy * exp.frame);
     const alpha = 1 - progress;
-    const size = sx(p.size) * (1 - progress * 0.5);
+    const size = ss(p.size) * (1 - progress * 0.5);
     ctx.beginPath();
     ctx.arc(px, py, size, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha})`;
@@ -843,39 +864,39 @@ function drawScorePopup(popup) {
 }
 
 function drawUI() {
-  // 分数面板 - 统一使用 sx 缩放保持比例
-  const panelH = sx(30);
+  // 分数面板 - 统一使用 ss 缩放保持比例
+  const panelH = ss(30);
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(sx(10), sy(10), sx(150), panelH);
+  ctx.fillRect(sx(10), sy(10), ss(150), panelH);
   ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = sx(2);
-  ctx.strokeRect(sx(10), sy(10), sx(150), panelH);
+  ctx.lineWidth = ss(2);
+  ctx.strokeRect(sx(10), sy(10), ss(150), panelH);
   ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${sx(15)}px Arial`;
+  ctx.font = `bold ${ss(15)}px Arial`;
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE: ${score}`, sx(18), sy(10) + panelH * 0.65);
 
   // 最高分面板
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(sx(W - 170), sy(10), sx(160), panelH);
+  ctx.fillRect(sx(W - 170), sy(10), ss(160), panelH);
   ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = sx(2);
-  ctx.strokeRect(sx(W - 170), sy(10), sx(160), panelH);
+  ctx.lineWidth = ss(2);
+  ctx.strokeRect(sx(W - 170), sy(10), ss(160), panelH);
   ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${sx(13)}px Arial`;
+  ctx.font = `bold ${ss(13)}px Arial`;
   ctx.textAlign = 'left';
   ctx.fillText(`HI-SCORE: ${highScore}`, sx(W - 160), sy(10) + panelH * 0.65);
   
   // 波次显示
-  const wavePanelW = sx(100);
+  const wavePanelW = ss(100);
   const waveX = (sx(W) - wavePanelW) / 2;
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(waveX, sy(10), wavePanelW, panelH);
   ctx.strokeStyle = isInterWave ? '#4CAF50' : '#FF6B6B';
-  ctx.lineWidth = sx(2);
+  ctx.lineWidth = ss(2);
   ctx.strokeRect(waveX, sy(10), wavePanelW, panelH);
   ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${sx(14)}px Arial`;
+  ctx.font = `bold ${ss(14)}px Arial`;
   ctx.textAlign = 'center';
   
   if (isInterWave) {
@@ -889,17 +910,17 @@ function drawUI() {
   // 波次进度条（仅在波次中显示）
   if (!isInterWave && currentWaveConfig) {
     const progress = waveTimer / currentWaveConfig.waveDurationFrames;
-    const barWidth = wavePanelW - sx(10);
-    const barHeight = sx(4);
-    const barY = sy(10) + panelH - barHeight - sx(3);
+    const barWidth = wavePanelW - ss(10);
+    const barHeight = ss(4);
+    const barY = sy(10) + panelH - barHeight - ss(3);
     
     // 背景
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(waveX + sx(5), barY, barWidth, barHeight);
+    ctx.fillRect(waveX + ss(5), barY, barWidth, barHeight);
     
     // 进度
     ctx.fillStyle = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
-    ctx.fillRect(waveX + sx(5), barY, barWidth * (1 - progress), barHeight);
+    ctx.fillRect(waveX + ss(5), barY, barWidth * (1 - progress), barHeight);
   }
 }
 
@@ -907,38 +928,38 @@ function drawGameOver() {
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 弹窗框 - 统一使用 sx 缩放保持宽高比
-  const boxW = sx(320);
-  const boxH = sx(280); // 增加高度以容纳波次信息
+  // 弹窗框 - 统一使用 ss 缩放保持宽高比
+  const boxW = ss(320);
+  const boxH = ss(280); // 增加高度以容纳波次信息
   const bx = sx(W / 2) - boxW / 2;
   const by = sy(H / 2) - boxH / 2;
   
   ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(bx, by, boxW, boxH);
   ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = sx(3);
+  ctx.lineWidth = ss(3);
   ctx.strokeRect(bx, by, boxW, boxH);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FF4444';
-  ctx.font = `bold ${sx(32)}px Arial`;
+  ctx.font = `bold ${ss(32)}px Arial`;
   ctx.fillText('GAME OVER', sx(W / 2), by + boxH * 0.22);
 
   ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${sx(24)}px Arial`;
+  ctx.font = `bold ${ss(24)}px Arial`;
   ctx.fillText(`Wave ${currentWave} Reached!`, sx(W / 2), by + boxH * 0.38);
 
   ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${sx(20)}px Arial`;
+  ctx.font = `bold ${ss(20)}px Arial`;
   ctx.fillText(`Score: ${score}`, sx(W / 2), by + boxH * 0.52);
 
   ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${sx(16)}px Arial`;
+  ctx.font = `bold ${ss(16)}px Arial`;
   ctx.fillText(`High Score: ${highScore}`, sx(W / 2), by + boxH * 0.63);
 
   if (score >= highScore && score > 0) {
     ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${sx(14)}px Arial`;
+    ctx.font = `bold ${ss(14)}px Arial`;
     ctx.fillText('NEW HIGH SCORE!', sx(W / 2), by + boxH * 0.72);
   }
   
@@ -958,23 +979,23 @@ function drawGameOver() {
   
   if (rating) {
     ctx.fillStyle = ratingColor;
-    ctx.font = `bold ${sx(14)}px Arial`;
+    ctx.font = `bold ${ss(14)}px Arial`;
     ctx.fillText(rating, sx(W / 2), by + boxH * 0.79);
   }
 
-  // 按钮 - 统一使用 sx 缩放保持宽高比
-  const btnW = sx(140);
-  const btnH = sx(40); // 使用 sx 保持按钮比例
+  // 按钮 - 统一使用 ss 缩放保持宽高比
+  const btnW = ss(140);
+  const btnH = ss(40); // 使用 ss 保持按钮比例
   const btnX = sx(W / 2) - btnW / 2;
   const btnY = by + boxH * 0.86;
   
   ctx.fillStyle = '#4CAF50';
   ctx.fillRect(btnX, btnY, btnW, btnH);
   ctx.strokeStyle = '#388E3C';
-  ctx.lineWidth = sx(2);
+  ctx.lineWidth = ss(2);
   ctx.strokeRect(btnX, btnY, btnW, btnH);
   ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${sx(16)}px Arial`;
+  ctx.font = `bold ${ss(16)}px Arial`;
   ctx.fillText('PLAY AGAIN', sx(W / 2), btnY + btnH * 0.65);
 }
 
@@ -987,37 +1008,37 @@ function drawStartScreen() {
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${sx(34)}px Arial`;
-  ctx.fillText('BOB-OMB SQUAD', centerX, centerY - sx(80));
+  ctx.font = `bold ${ss(34)}px Arial`;
+  ctx.fillText('BOB-OMB SQUAD', centerX, centerY - ss(80));
 
   ctx.fillStyle = '#FFF';
-  ctx.font = `${sx(13)}px Arial`;
-  ctx.fillText('Drag the slingshot to aim and release to fire!', centerX, centerY - sx(35));
-  ctx.fillText('Hit the bombs before they land!', centerX, centerY - sx(10));
+  ctx.font = `${ss(13)}px Arial`;
+  ctx.fillText('Drag the slingshot to aim and release to fire!', centerX, centerY - ss(35));
+  ctx.fillText('Hit the bombs before they land!', centerX, centerY - ss(10));
 
   // 炸弹图标
   ctx.beginPath();
-  ctx.arc(centerX, centerY + sx(40), sx(15), 0, Math.PI * 2);
+  ctx.arc(centerX, centerY + ss(40), ss(15), 0, Math.PI * 2);
   ctx.fillStyle = '#333';
   ctx.fill();
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.arc(centerX, centerY + sx(28), sx(4), 0, Math.PI * 2);
+  ctx.arc(centerX, centerY + ss(28), ss(4), 0, Math.PI * 2);
   ctx.fill();
 
-  // 按钮 - 统一使用 sx 缩放保持宽高比
-  const btnW = sx(140);
-  const btnH = sx(44); // 使用 sx 保持按钮比例
+  // 按钮 - 统一使用 ss 缩放保持宽高比
+  const btnW = ss(140);
+  const btnH = ss(44); // 使用 ss 保持按钮比例
   const btnX = centerX - btnW / 2;
-  const btnY = centerY + sx(80);
+  const btnY = centerY + ss(80);
   
   ctx.fillStyle = '#FF5722';
   ctx.fillRect(btnX, btnY, btnW, btnH);
   ctx.strokeStyle = '#E64A19';
-  ctx.lineWidth = sx(2);
+  ctx.lineWidth = ss(2);
   ctx.strokeRect(btnX, btnY, btnW, btnH);
   ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${sx(20)}px Arial`;
+  ctx.font = `bold ${ss(20)}px Arial`;
   ctx.fillText('START', centerX, btnY + btnH * 0.6);
 }
 
@@ -1285,14 +1306,14 @@ function update() {
     bomb.y += bomb.speed;
     bomb.x += Math.sin(frameCount * 0.02 + bomb.swayOffset) * bomb.sway;
 
-    if (bomb.y > H - 80 - bomb.radius) {
-      createGroundExplosion(bomb.x, H - 85);
+    if (bomb.y > GROUND_Y - bomb.radius) {
+      createGroundExplosion(bomb.x, GROUND_Y - 5);
       bombs.splice(i, 1);
       let closestIdx = -1;
       let closestDist = Infinity;
       for (let f = 0; f < 4; f++) {
         if (!flowerAlive[f]) continue;
-        const pos = flowerPositions[f] || { x: 90 + f * 90, y: 708 };
+        const pos = flowerPositions[f] || { x: 90 + f * 90, y: GROUND_Y - 10 };
         const dist = Math.abs(bomb.x - pos.x);
         if (dist < flowerHitRadius && dist < closestDist) {
           closestDist = dist;
@@ -1446,7 +1467,7 @@ function handleStart(e) {
     // PLAY AGAIN 按钮检测 - 使用 sx 缩放后的尺寸 (140x40)
     const btnW = 140;
     const btnH = 40;
-    const boxH = 240; // 与 drawGameOver 中一致
+    const boxH = 280; // 与 drawGameOver 中一致 (ss(280) 在逻辑坐标中)
     const btnTop = H / 2 - boxH / 2 + boxH * 0.78;
     if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
         gp.y > btnTop && gp.y < btnTop + btnH) {

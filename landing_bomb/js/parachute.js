@@ -192,11 +192,13 @@ class ParachuteClass {
    * @param {number} parachuteHeight - Parachute height (screen coordinates)
    * @param {Object} config - Line configuration
    * @param {number} rotation - Current rotation in radians
+   * @param {Function} ss - Size scaling function (optional, for consistent scaling)
    */
-  drawConnectingLines(ctx, bombX, bombY, parachuteX, parachuteY, parachuteWidth, parachuteHeight, config, rotation = 0) {
+  drawConnectingLines(ctx, bombX, bombY, parachuteX, parachuteY, parachuteWidth, parachuteHeight, config, rotation = 0, ss = null) {
     const lineCount = config.count;
     const color = config.color;
-    const lineWidth = config.lineWidth;
+    // 使用传入的 ss 函数或默认 1 像素
+    const lineWidth = ss ? ss(config.lineWidth) : config.lineWidth;
     
     // Parachute canopy edge positions (relative to parachute center)
     // Assuming the parachute canopy extends from -width/2 to +width/2 at the bottom
@@ -236,8 +238,9 @@ class ParachuteClass {
    * @param {Function} sx - X coordinate transform function
    * @param {Function} sy - Y coordinate transform function
    * @param {number} frameCount - Current frame count for sway calculation
+   * @param {Function} ss - Size scaling function (optional, for consistent scaling)
    */
-  draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount) {
+  draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss = null) {
     if (!bomb || bomb.exploding) return;
     
     const parachuteResource = resources?.parachute;
@@ -270,8 +273,10 @@ class ParachuteClass {
     const baseScale = 0.6;
     const totalScale = baseScale * bombScale;
     
-    // Calculate draw dimensions
-    const drawWidth = sx(size.width * totalScale);
+    // Calculate draw dimensions (使用统一 scale 保持宽高比)
+    // 通过 sx(1) 获取当前 scale 值（因为 sx(x) = x * scale + offsetX）
+    const currentScale = sx(1) - sx(0);
+    const drawWidth = size.width * totalScale * currentScale;
     const drawHeight = drawWidth / (size.width / size.height);
     
     // Save context for rotation
@@ -301,7 +306,8 @@ class ParachuteClass {
       drawWidth,
       drawHeight,
       config.connectingLines,
-      rotation
+      rotation,
+      ss
     );
   }
 
