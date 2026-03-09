@@ -281,7 +281,7 @@ try {
 }
 
 // Slingshot state
-const sling = { x: W / 2, y: H - 130, prongW: 12, prongH: 50 };
+const sling = { x: W / 2, y: H, prongW: 0, prongH: 100 };
 let dragging = false;
 let dragStart = null;
 let dragCurrent = null;
@@ -629,8 +629,8 @@ function drawSlingshot() {
   drawPlaceholder(sling.x, sling.y, 64, 96, 'SLING', RESOURCE_COLORS.slingshot, 0.5, 1.0);
   
   // 仍需绘制橡皮筋
-  const leftTip = { x: sling.x - 18, y: sling.y - sling.prongH };
-  const rightTip = { x: sling.x + 18, y: sling.y - sling.prongH };
+  const leftTip = { x: sling.x - 24, y: sling.y };
+  const rightTip = { x: sling.x + 24, y: sling.y };
   drawSlingshotBands(leftTip, rightTip, pivotX, pivotY);
 }
 
@@ -644,7 +644,7 @@ function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
     const pullX = pivotX + Math.cos(angle) * clampDist;
     const pullY = pivotY + Math.sin(angle) * clampDist;
 
-    ctx.strokeStyle = '#8B0000';
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = sx(4);
     ctx.beginPath();
     ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
@@ -665,7 +665,7 @@ function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
 
     ctx.setLineDash([]);
   } else {
-    ctx.strokeStyle = '#8B0000';
+    ctx.strokeStyle = '#efefaf';
     ctx.lineWidth = sx(4);
     ctx.beginPath();
     ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
