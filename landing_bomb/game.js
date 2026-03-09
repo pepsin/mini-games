@@ -1,1388 +1,188 @@
-// Bob-omb Squad - 微信小游戏版本 (图片资源版)
+// Bob-omb Squad - WeChat Mini Game (Refactored Version)
 
-// 获取画布和上下文
+// Get canvas and context
 const canvas = wx.createCanvas();
 const ctx = canvas.getContext('2d');
 
-// 引入动画加载器
+// Core modules
+const { W, H, updateScale } = require('./js/config.js');
+const { loadResources, getResource } = require('./js/resources.js');
 const { animationLoader } = require('./js/animationLoader.js');
-// 引入降落伞模块
-const { Parachute } = require('./js/parachute.js');
 
-// 获取系统信息
+// Game state - direct array exports
+const {
+  resetGame, addScore, setGameStarted, setGameOver, setLastTime, incrementFrameCount,
+  getScore, getFrameCount, getLastTime, isGameOver, isGameStarted,
+  getFlowerPositions, damageFlower,
+  bombs, projectiles, explosions, scorePopups, clouds,
+  flowerAlive, flowerFrameIndices
+} = require('./js/gameState.js');
+
+// Wave system
+const {
+  startWave, resetWaves, updateWaves, getCurrentWave, getCurrentWaveConfig
+} = require('./js/waveSystem.js');
+
+// Entities
+const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
+const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
+const { drawWall } = require('./js/entities/wall.js');
+const { drawHealthFlowers } = require('./js/entities/flower.js');
+const {
+  updateSlingshotPosition, drawSlingshot, clearDrag, getDragCurrent, isDragging, getSlingshot
+} = require('./js/entities/slingshot.js');
+const { drawBomb, createBomb, updateBomb } = require('./js/entities/bomb.js');
+const { drawProjectile, updateProjectile, isOutOfBounds, checkCollision } = require('./js/entities/projectile.js');
+const {
+  createExplosion, createGroundExplosion, createScorePopup,
+  drawExplosion, drawScorePopup
+} = require('./js/entities/explosion.js');
+
+// UI and Input
+const { drawUI, drawGameOver, drawStartScreen } = require('./js/ui.js');
+const { setupInput, registerCallbacks } = require('./js/inputHandler.js');
+
+// Setup canvas size
 const systemInfo = wx.getSystemInfoSync();
-const screenWidth = systemInfo.windowWidth;
-const screenHeight = systemInfo.windowHeight;
-
-// 设置画布尺寸
-canvas.width = screenWidth;
-canvas.height = screenHeight;
-
-// 适配逻辑：保持 450:900 的竖屏比例，使用统一缩放
-// H=900 确保底部元素（背景、花朵、弹弓）不会被裁剪
-const W = 450, H = 900;
-// 地面高度 - 炸弹会在此高度爆炸，花朵在此区域
-const GROUND_Y = 820;
-let scale = 1;
-let offsetX = 0, offsetY = 0;
-
-function updateScale() {
-  const ratio = W / H;
-  const screenRatio = screenWidth / screenHeight;
-  
-  if (screenRatio > ratio) {
-    // 屏幕比游戏更宽（如 iPad）：以高度为基准，左右留黑边
-    scale = screenHeight / H;
-    offsetX = (screenWidth - W * scale) / 2;
-    offsetY = 0;
-  } else {
-    // 屏幕比游戏更高或相同（如全面屏手机）：以宽度为基准，上下留黑边
-    scale = screenWidth / W;
-    offsetX = 0;
-    offsetY = (screenHeight - H * scale) / 2;
-  }
-}
+canvas.width = systemInfo.windowWidth;
+canvas.height = systemInfo.windowHeight;
 updateScale();
 
-// 坐标转换函数 - 统一使用 scale 保持宽高比
-function sx(x) { return x * scale + offsetX; }
-function sy(y) { return y * scale + offsetY; }
-// 尺寸缩放函数 - 统一使用 scale，不再区分 X/Y
-function ss(size) { return size * scale; }
-function toGame(cx, cy) {
-  return {
-    x: (cx - offsetX) / scale,
-    y: (cy - offsetY) / scale
-  };
-}
-
-// 资源对象
-let resources = {
-  bomb: null,
-  parachute: null,
-  flower: null,
-  cloud: null,
-  rainbow: null,
-  slingshot: null,
-  background: null,
-  sun: null
-};
-
-// 8色色板 - 用于图片未加载时的示意方块
-const COLOR_PALETTE = [
-  { name: 'CORAL',    hex: '#FF6B6B', bg: '#FF6B6B', text: '#FFFFFF' },
-  { name: 'TEAL',     hex: '#4ECDC4', bg: '#4ECDC4', text: '#000000' },
-  { name: 'SKY',      hex: '#45B7D1', bg: '#45B7D1', text: '#FFFFFF' },
-  { name: 'MINT',     hex: '#96CEB4', bg: '#96CEB4', text: '#000000' },
-  { name: 'CREAM',    hex: '#FFEAA7', bg: '#FFEAA7', text: '#000000' },
-  { name: 'PLUM',     hex: '#DDA0DD', bg: '#DDA0DD', text: '#000000' },
-  { name: 'SEAFOAM',  hex: '#98D8C8', bg: '#98D8C8', text: '#000000' },
-  { name: 'LEMON',    hex: '#F7DC6F', bg: '#F7DC6F', text: '#000000' }
-];
-
-// 资源对应的色板索引
-const RESOURCE_COLORS = {
-  bomb: 0,        // CORAL - 红色系适合炸弹
-  parachute: 4,   // CREAM - 浅色系
-  flower: 5,      // PLUM - 花朵色
-  cloud: 2,       // SKY - 天空色
-  rainbow: 6,     // SEAFOAM - 彩虹相关
-  slingshot: 1,   // TEAL - 木质感
-  background: 3,  // MINT - 地面色
-  sun: 7          // LEMON - 太阳色
-};
-
-// 云朵变体使用不同颜色
-const CLOUD_VARIANT_COLORS = {
-  small: 2,   // SKY
-  medium: 3,  // MINT
-  large: 7    // LEMON
-};
-
-// 花朵颜色映射（使用色板相近色）
-const FLOWER_COLOR_MAP = ['#FF6B6B', '#DDA0DD', '#F7DC6F', '#DDA0DD'];
-
-// 资源加载完成标志
-let resourcesLoaded = false;
-
-// 加载所有资源
-async function loadResources() {
-  console.log('=== 开始加载所有资源 ===');
+// Initialize game
+function init() {
+  // Initialize clouds
+  const initialClouds = initClouds();
+  clouds.push(...initialClouds);
   
-  // 单独加载每个资源，以便更好地调试
-  resources.bomb = await animationLoader.load('bomb');
-  console.log('炸弹资源:', resources.bomb ? '已加载' : '失败');
-  if (resources.bomb) {
-    console.log('  - 类型:', resources.bomb.type);
-    console.log('  - 帧数:', resources.bomb.frames?.length);
-    console.log('  - 当前帧:', resources.bomb.currentFrame);
-    if (resources.bomb.frames?.length > 0) {
-      console.log('  - 第一帧图片:', resources.bomb.frames[0].image ? '存在' : '缺失');
-      console.log('  - 第一帧图片尺寸:', resources.bomb.frames[0].image?.width, 'x', resources.bomb.frames[0].image?.height);
-    }
-  }
-  
-  resources.parachute = await animationLoader.load('bomb/parachute');
-  console.log('降落伞资源:', resources.parachute ? '已加载' : '失败');
-  
-  resources.flower = await animationLoader.load('flower');
-  console.log('花朵资源:', resources.flower ? '已加载' : '失败');
-  
-  resources.cloud = await animationLoader.load('cloud');
-  console.log('云朵资源:', resources.cloud ? '已加载' : '失败');
-  
-  resources.rainbow = await animationLoader.load('rainbow');
-  console.log('彩虹资源:', resources.rainbow ? '已加载' : '失败');
-  
-  resources.slingshot = await animationLoader.load('slingshot');
-  console.log('弹弓资源:', resources.slingshot ? '已加载' : '失败');
-  
-  // Apply slingshot position from config
-  if (resources.slingshot?.config?.position) {
-    const pos = resources.slingshot.config.position;
-    sling.x = pos.x !== undefined ? pos.x : W / 2;
-    sling.y = pos.y !== undefined ? pos.y : H;
-    console.log('弹弓位置:', sling.x, sling.y);
-  }
-  
-  resources.background = await animationLoader.load('background');
-  console.log('背景资源:', resources.background ? '已加载' : '失败');
-  
-  resources.sun = await animationLoader.load('sun');
-  console.log('太阳资源:', resources.sun ? '已加载' : '失败');
-
-  // 初始化云朵变体
-  initClouds();
-  
-  // 检查是否有任何资源成功加载
-  const anyLoaded = resources.bomb || resources.parachute || resources.flower || 
-                    resources.cloud || resources.rainbow || resources.slingshot || resources.background || resources.sun;
-  
-  if (anyLoaded) {
-    resourcesLoaded = true;
-    console.log('=== 资源加载完成，使用图片模式 ===');
-  } else {
-    resourcesLoaded = false;
-    console.log('=== 没有资源加载成功，使用方块模式 ===');
-  }
-}
-
-// Game state
-let score = 0;
-let highScore = 0;
-let lives = 4;
-let gameOver = false;
-let gameStarted = false;
-let bombs = [];
-let projectiles = [];
-let explosions = [];
-let scorePopups = []; // 分数弹出动画
-let clouds = [];
-let frameCount = 0;
-let lastTime = Date.now();
-
-// ========== WAVE SYSTEM ==========
-// Wave-based spawn system - tunable parameters for difficulty curve
-let currentWave = 1;
-let waveTimer = 0;           // Frames since wave started
-let waveDuration = 600;      // Default wave duration (10 seconds at 60fps)
-let interWaveTimer = 0;      // Break between waves
-let interWaveDuration = 120; // 2 seconds break between waves
-let isInterWave = false;     // Are we in between waves?
-let bombsSpawnedThisWave = 0;
-let totalBombsThisWave = 0;
-let nextSpawnTime = 0;       // Frame count when next bomb should spawn
-
-// Wave configuration function - returns spawn parameters for given wave
-// This is the main tuning function for difficulty
-function getWaveConfig(wave) {
-  // Clamp wave to max 200 for calculation safety
-  const w = Math.min(wave, 200);
-  
-  // Base difficulty multiplier (1.0 at wave 1, ~5.0 at wave 100)
-  // Using a curve that starts slow and accelerates after wave 30
-  let difficultyMultiplier;
-  if (w <= 30) {
-    // Waves 1-30: Gentle linear increase (easy for most players)
-    difficultyMultiplier = 1 + (w - 1) * 0.05;
-  } else {
-    // Waves 31+: Exponential increase (hard for elite players)
-    // At wave 100: difficulty ~5.0
-    const excess = w - 30;
-    difficultyMultiplier = 2.45 + excess * 0.036;
-  }
-  
-  // ========== TUNABLE PARAMETERS ==========
-  
-  // Total bombs per wave
-  // Wave 1: 3 bombs, Wave 30: ~10 bombs, Wave 100: ~20 bombs
-  const bombsPerWave = Math.floor(5 + w * 0.18 + Math.pow(w / 50, 2) * 5);
-  
-  // Wave duration in frames (varies slightly to keep it interesting)
-  // Wave 1: 8 seconds, Wave 30: 9s, Wave 100: 10s
-  const waveDurationFrames = Math.floor((8 + Math.min(w * 0.03, 2)) * 60);
-  
-  // Bomb speed range
-  // Wave 1: 0.6-1.0, Wave 30: 1.2-1.8, Wave 100: 2.2-3.5
-  const minSpeed = 0.7 + w * 0.02 + Math.pow(w / 60, 2) * 0.8;
-  const maxSpeed = minSpeed + 0.4 + w * 0.01;
-  
-  // Sway (horizontal movement) - makes bombs harder to hit
-  // Wave 1: minimal sway, Wave 100: significant sway
-  const maxSway = 0.2 + w * 0.015;
-  
-  // Bomb size variation (smaller bombs at higher waves)
-  const minRadius = Math.max(10, 16 - w * 0.04);
-  const maxRadius = Math.max(14, 20 - w * 0.04);
-  
-  // Bomb health (for future use - multi-hit bombs)
-  const bombHealth = w >= 50 ? 1 + Math.floor((w - 50) / 25) : 1;
-  
-  // Special bomb chance (fast bombs, zigzag bombs, etc.)
-  // Wave 1-10: 0%, Wave 30: 10%, Wave 100: 40%
-  const specialBombChance = Math.max(0, (w - 10) * 0.005);
-  
-  // Cluster bomb chance (bombs that split when hit)
-  // Starts at wave 20
-  const clusterBombChance = w >= 20 ? Math.min(0.15, (w - 20) * 0.003) : 0;
-  
-  return {
-    bombsPerWave,
-    waveDurationFrames,
-    minSpeed,
-    maxSpeed,
-    maxSway,
-    minRadius,
-    maxRadius,
-    bombHealth,
-    specialBombChance,
-    clusterBombChance,
-    difficultyMultiplier
-  };
-}
-
-// Calculate spawn times for a wave (returns array of frame offsets)
-function calculateSpawnTimes(config) {
-  const spawnTimes = [];
-  const { bombsPerWave, waveDurationFrames } = config;
-  
-  if (bombsPerWave === 0) return spawnTimes;
-  
-  // Distribute bombs throughout the wave with some randomness
-  // First bomb always comes early, last bomb comes before wave ends
-  const safeDuration = waveDurationFrames - 60; // Leave 1 second buffer at end
-  
-  for (let i = 0; i < bombsPerWave; i++) {
-    // Base position in wave (0 to 1)
-    const basePosition = (i + 1) / (bombsPerWave + 1);
-    
-    // Add randomness ±30% to make patterns less predictable
-    const randomOffset = (Math.random() - 0.5) * 0.3;
-    const position = Math.max(0.05, Math.min(0.95, basePosition + randomOffset));
-    
-    spawnTimes.push(Math.floor(position * safeDuration));
-  }
-  
-  // Sort spawn times
-  return spawnTimes.sort((a, b) => a - b);
-}
-
-// Get current wave configuration
-let currentWaveConfig = getWaveConfig(1);
-let waveSpawnSchedule = [];
-
-// ========== END WAVE SYSTEM ==========
-
-// 从本地存储读取最高分
-try {
-  const savedHighScore = wx.getStorageSync('bobomb_highscore');
-  if (savedHighScore !== '') {
-    highScore = parseInt(savedHighScore) || 0;
-  }
-} catch (e) {
-  console.log('读取最高分失败:', e);
-}
-
-// Slingshot state - 锚定到底部（相对于 GROUND_Y）
-const sling = { x: W / 2, y: GROUND_Y, prongW: 0, prongH: 100 };
-let dragging = false;
-let dragStart = null;
-let dragCurrent = null;
-const maxDrag = 300; // 允许拉到更远的距离，接近屏幕边缘
-
-// 花朵配置
-let flowerAlive = [true, true, true, true];
-let flowerFrameIndices = [0, 1, 2, 3]; // Each flower starts at different frame
-const flowerHitRadius = 50;
-
-// Get flower positions from config or use defaults
-// 所有 Y 坐标都相对于底部锚定，确保在任何屏幕上都从底部绘制
-function getFlowerPositions() {
-  if (resources.flower?.config?.positions) {
-    return resources.flower.config.positions;
-  }
-  // Default positions - 锚定到底部，在 GROUND_Y 附近
-  return [
-    { x: 90, y: GROUND_Y - 10 },
-    { x: 180, y: GROUND_Y - 10 },
-    { x: 270, y: GROUND_Y - 10 },
-    { x: 360, y: GROUND_Y - 10 }
-  ];
-}
-
-// 初始化云朵
-function initClouds() {
-  clouds = [];
-  for (let i = 0; i < 8; i++) {
-    const variants = resources.cloud?.variants ? Object.keys(resources.cloud.variants) : ['small', 'medium', 'large'];
-    
-    // 随机选择云朵变体
-    const variant = variants[Math.floor(Math.random() * variants.length)];
-    
-    // 云朵缩放范围: 0.7 - 1.3 (再 * 1.2 = 最终 0.84 - 1.56)
-    const finalScale = 0.7 + Math.random() * 0.6;
-    
-    // 根据尺寸调整速度：越大的云看起来越远，移动越慢
-    const depthFactor = 1 - (finalScale - 0.7) / 0.6 * 0.4; // 0.6 - 1.0
-    
-    // 云朵在屏幕上部区域浮动 (y: -50 到 GROUND_Y*0.5)
-    const yPos = -50 + Math.random() * (GROUND_Y * 0.5 + 50);
-    
-    clouds.push({
-      x: Math.random() * (W + 200),  // 初始化时分布在更宽的区域
-      y: yPos,
-      variant: variant,
-      scale: finalScale,           // 个体缩放比例 (0.7 - 1.3)
-      speed: (0.1 + Math.random() * 0.2) * depthFactor
-      // No opacity - clouds use full alpha
-    });
-  }
-  
-  // 按尺寸排序，让小云在前面（后绘制），大云在后面（先绘制）
-  clouds.sort((a, b) => b.scale - a.scale);
-}
-
-// --- Drawing Functions ---
-
-function drawSky() {
-  // 天空渐变 - 延伸到整个屏幕高度，从顶部(#4ab8ff)到底部(#b8e8ff)
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  grad.addColorStop(0, '#4ab8ff');
-  grad.addColorStop(0.6, '#87CEEB');
-  grad.addColorStop(1, '#b8e8ff');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // 只在左右两侧绘制黑边（垂直方向天空填满，水平方向留黑边）
-  ctx.fillStyle = '#000000';
-  // 左侧黑边
-  if (offsetX > 0) {
-    ctx.fillRect(0, 0, offsetX, canvas.height);
-  }
-  // 右侧黑边
-  if (offsetX > 0) {
-    ctx.fillRect(canvas.width - offsetX, 0, offsetX, canvas.height);
-  }
-}
-
-function drawSun() {
-  if (resourcesLoaded && resources.sun?.image && resources.sun.image.width > 0) {
-    const size = animationLoader.getSize(resources.sun);
-    const anchor = animationLoader.getAnchor(resources.sun);
-    const pos = resources.sun.config.position || { x: 380, y: 70 };
-    
-    const result = drawImageProportional(
-      resources.sun.image,
-      pos.x,
-      pos.y,
-      size.width,
-      anchor.x,
-      anchor.y
-    );
-    
-    if (result) return;
-  }
-  
-  // Fallback: placeholder
-  drawPlaceholder(380, 70, 80, 80, 'SUN', RESOURCE_COLORS.sun, 0.5, 0.5);
-}
-
-/**
- * 保持宽高比绘制图片
- * @param {Image} img - 图片对象
- * @param {number} x - 游戏坐标X（中心点）
- * @param {number} y - 游戏坐标Y（中心点）
- * @param {number} targetWidth - 目标宽度（游戏坐标），0表示使用原始尺寸
- * @param {number} anchorX - 锚点X (0-1)
- * @param {number} anchorY - 锚点Y (0-1)
- * @returns {Object} 实际绘制的尺寸 {width, height}
- */
-function drawImageProportional(img, x, y, targetWidth, anchorX = 0.5, anchorY = 0.5) {
-  if (!img || img.width === 0 || img.height === 0) {
-    return null;
-  }
-  
-  const originalWidth = img.width;
-  const originalHeight = img.height;
-  const aspectRatio = originalWidth / originalHeight;
-  
-  let drawWidth, drawHeight;
-  
-  if (targetWidth > 0) {
-    // 按目标宽度等比缩放（使用统一 scale）
-    drawWidth = ss(targetWidth);
-    drawHeight = drawWidth / aspectRatio;
-  } else {
-    // 使用原始像素尺寸（转换为屏幕坐标）
-    drawWidth = originalWidth * scale;
-    drawHeight = originalHeight * scale;
-  }
-  
-  const drawX = sx(x) - drawWidth * anchorX;
-  const drawY = sy(y) - drawHeight * anchorY;
-  
-  ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-  
-  return { width: drawWidth, height: drawHeight };
-}
-
-/**
- * 绘制示意方块 - 图片未加载时使用
- * @param {number} x - 游戏坐标X
- * @param {number} y - 游戏坐标Y
- * @param {number} w - 宽度（游戏坐标）
- * @param {number} h - 高度（游戏坐标）
- * @param {string} label - 显示文字
- * @param {number} colorIndex - 色板索引
- * @param {number} anchorX - 锚点X (0-1)
- * @param {number} anchorY - 锚点Y (0-1)
- */
-function drawPlaceholder(x, y, w, h, label, colorIndex, anchorX = 0.5, anchorY = 0.5) {
-  const color = COLOR_PALETTE[colorIndex % COLOR_PALETTE.length];
-  const drawW = ss(w);
-  const drawH = ss(h);
-  const drawX = sx(x) - drawW * anchorX;
-  const drawY = sy(y) - drawH * anchorY;
-  
-  // 绘制方块背景
-  ctx.fillStyle = color.bg;
-  ctx.fillRect(drawX, drawY, drawW, drawH);
-  
-  // 绘制边框
-  ctx.strokeStyle = color.text;
-  ctx.lineWidth = Math.max(2, ss(2));
-  ctx.strokeRect(drawX, drawY, drawW, drawH);
-  
-  // 绘制对角线（X形）
-  ctx.beginPath();
-  ctx.moveTo(drawX, drawY);
-  ctx.lineTo(drawX + drawW, drawY + drawH);
-  ctx.moveTo(drawX + drawW, drawY);
-  ctx.lineTo(drawX, drawY + drawH);
-  ctx.strokeStyle = color.text + '40'; // 半透明
-  ctx.stroke();
-  
-  // 绘制文字
-  ctx.fillStyle = color.text;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  
-  // 自适应字体大小
-  const fontSize = Math.min(drawW / 3, drawH / 2, ss(16));
-  ctx.font = `bold ${fontSize}px Arial`;
-  
-  // 文字换行处理（如果太长）
-  if (label.length > 4 && drawW < ss(60)) {
-    const mid = Math.ceil(label.length / 2);
-    ctx.fillText(label.slice(0, mid), drawX + drawW / 2, drawY + drawH / 2 - fontSize * 0.3);
-    ctx.fillText(label.slice(mid), drawX + drawW / 2, drawY + drawH / 2 + fontSize * 0.7);
-  } else {
-    ctx.fillText(label, drawX + drawW / 2, drawY + drawH / 2);
-  }
-}
-
-function drawRainbow() {
-  if (resourcesLoaded && resources.rainbow?.image && resources.rainbow.image.width > 0) {
-    const size = animationLoader.getSize(resources.rainbow);
-    const anchor = animationLoader.getAnchor(resources.rainbow);
-    const pos = resources.rainbow.config.position || { x: 80, y: 140 };
-    
-    ctx.globalAlpha = 0.4;
-    const result = drawImageProportional(
-      resources.rainbow.image,
-      pos.x,
-      pos.y,
-      size.width,
-      anchor.x,
-      anchor.y
-    );
-    ctx.globalAlpha = 1;
-    
-    if (!result) {
-      drawPlaceholder(80, 140, 120, 60, 'RAIN', RESOURCE_COLORS.rainbow, 0.5, 1.0);
-    }
-  } else {
-    // 使用示意方块 - 使用 config 中的标准尺寸 256x128
-    drawPlaceholder(80, 140, 256, 128, 'RAIN', RESOURCE_COLORS.rainbow, 0.5, 1.0);
-  }
-}
-
-function drawCloud(cloud) {
-  // 使用云朵自身的缩放比例，再缩放 1.2x
-  const scale = (cloud.scale || 0.5) * 1.2;
-  
-  if (resourcesLoaded && resources.cloud?.variants) {
-    animationLoader.setVariant(resources.cloud, cloud.variant);
-    const img = resources.cloud.image;
-    
-    if (img && img.width > 0) {
-      const size = animationLoader.getSize(resources.cloud);
-      const anchor = animationLoader.getAnchor(resources.cloud);
-      
-      // 使用云朵个体的缩放比例 * 1.2（无透明度）
-      const result = drawImageProportional(
-        img,
-        cloud.x,
-        cloud.y,
-        size.width * scale,
-        anchor.x,
-        anchor.y
-      );
-      
-      if (result) return;
-    }
-  }
-  
-  // 使用示意方块 - 使用云朵个体缩放 * 1.2
-  const colorIdx = CLOUD_VARIANT_COLORS[cloud.variant] || RESOURCE_COLORS.cloud;
-  drawPlaceholder(cloud.x, cloud.y, 128 * scale, 64 * scale, 'CLOUD', colorIdx, 0.5, 0.5);
-}
-
-function drawWall() {
-  // 优先使用背景图片资源
-  if (resourcesLoaded && resources.background?.image && resources.background.image.width > 0) {
-    const size = animationLoader.getSize(resources.background);
-    const anchor = animationLoader.getAnchor(resources.background);
-    const pos = resources.background.config.position || { x: W / 2, y: H };
-    
-    const result = drawImageProportional(
-      resources.background.image,
-      pos.x,
-      pos.y,
-      size.width,
-      anchor.x,
-      anchor.y
-    );
-    
-    if (result) return; // 图片绘制成功，直接返回
-  }
-  
-  // 备用：使用程序绘制墙壁和地面（只在游戏区域内绘制）
-  const wallY = sy(GROUND_Y);
-  const wallH = ss(80);
-  const gameLeft = sx(0);
-  const gameRight = sx(W);
-  const gameWidth = gameRight - gameLeft;
-  
-  ctx.fillStyle = '#E8DCC8';
-  ctx.fillRect(gameLeft, wallY, gameWidth, wallH);
-  const bw = ss(40), bh = ss(14);
-  ctx.strokeStyle = '#D4C4A8';
-  ctx.lineWidth = ss(1);
-  for (let row = 0; row < 6; row++) {
-    const yy = wallY + row * bh;
-    const offset = (row % 2) * bw * 0.5;
-    for (let col = -1; col < W / 40 + 1; col++) {
-      const xx = gameLeft + offset + col * bw;
-      ctx.strokeRect(xx, yy, bw, bh);
-    }
-  }
-  ctx.fillStyle = '#D2B48C';
-  ctx.fillRect(gameLeft, wallY - ss(5), gameWidth, ss(5));
-  ctx.fillStyle = '#4CAF50';
-  ctx.fillRect(gameLeft, wallY - ss(14), gameWidth, ss(10));
-  ctx.fillStyle = '#388E3C';
-  for (let i = 0; i < W; i += 12) {
-    ctx.beginPath();
-    ctx.arc(sx(i), wallY - ss(14), ss(7), 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-function drawFlower(x, y, alive, frameIndex) {
-  if (resourcesLoaded && resources.flower) {
-    const state = alive ? 'alive' : 'dead';
-    
-    // Get frames for current state
-    const frames = resources.flower.states?.[state] || resources.flower.frames;
-    if (!frames || frames.length === 0) {
-      // 使用示意方块 - 使用 config 中的标准尺寸
-      const label = alive ? 'FLOWER' : 'DEAD';
-      drawPlaceholder(x, y, 48, 64, label, RESOURCE_COLORS.flower, 0.5, 0.8);
-      return;
-    }
-    
-    // Get specific frame for this flower
-    const frame = frames[frameIndex % frames.length];
-    if (!frame || !frame.image) {
-      const label = alive ? 'FLOWER' : 'DEAD';
-      drawPlaceholder(x, y, 48, 64, label, RESOURCE_COLORS.flower, 0.5, 0.8);
-      return;
-    }
-    
-    const size = animationLoader.getSize(resources.flower);
-    const anchor = animationLoader.getAnchor(resources.flower);
-    
-    // 计算保持比例的绘制尺寸
-    const aspectRatio = frame.image.width / frame.image.height;
-    const targetWidth = size.width;
-    const drawWidth = ss(targetWidth);
-    const drawHeight = drawWidth / aspectRatio;
-    
-    const drawX = sx(x) - drawWidth * anchor.x;
-    const drawY = sy(y) - drawHeight * anchor.y;
-    
-    // 直接绘制，不使用染色
-    ctx.drawImage(frame.image, drawX, drawY, drawWidth, drawHeight);
-    return;
-  }
-  
-  // 使用示意方块 - 使用 config 中的标准尺寸
-  const label = alive ? 'FLOWER' : 'DEAD';
-  drawPlaceholder(x, y, 48, 64, label, RESOURCE_COLORS.flower, 0.5, 0.8);
-}
-
-function drawHealthFlowers() {
-  const positions = getFlowerPositions();
-  for (let i = 0; i < 4; i++) {
-    const pos = positions[i] || { x: 90 + i * 90, y: GROUND_Y - 10 };
-    drawFlower(pos.x, pos.y, flowerAlive[i], flowerFrameIndices[i]);
-  }
-}
-
-function drawSlingshot() {
-  const pivotX = sling.x;
-  const pivotY = sling.y - sling.prongH;
-  
-  if (resourcesLoaded && resources.slingshot?.image && resources.slingshot.image.width > 0) {
-    const size = animationLoader.getSize(resources.slingshot);
-    const anchor = animationLoader.getAnchor(resources.slingshot);
-    
-    const result = drawImageProportional(
-      resources.slingshot.image,
-      sling.x,
-      sling.y,
-      size.width,
-      anchor.x,
-      anchor.y
-    );
-    
-    if (result) {
-      // 获取叉尖位置（从配置或计算）
-      const parts = resources.slingshot.config.parts;
-      const leftTip = { 
-        x: sling.x + parts.leftTip.x, 
-        y: sling.y + parts.leftTip.y 
-      };
-      const rightTip = { 
-        x: sling.x + parts.rightTip.x, 
-        y: sling.y + parts.rightTip.y 
-      };
-      
-      drawSlingshotBands(leftTip, rightTip, pivotX, pivotY);
-      return;
-    }
-  }
-  
-  // 使用示意方块 - 使用 config 中的标准尺寸 64x96
-  drawPlaceholder(sling.x, sling.y, 64, 96, 'SLING', RESOURCE_COLORS.slingshot, 0.5, 1.0);
-  
-  // 仍需绘制橡皮筋
-  const leftTip = { x: sling.x - 24, y: sling.y };
-  const rightTip = { x: sling.x + 24, y: sling.y };
-  drawSlingshotBands(leftTip, rightTip, pivotX, pivotY);
-}
-
-function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
-  if (dragging && dragCurrent) {
-    const dx = dragCurrent.x - pivotX;
-    const dy = dragCurrent.y - pivotY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const clampDist = Math.min(dist, maxDrag);
-    const angle = Math.atan2(dy, dx);
-    const pullX = pivotX + Math.cos(angle) * clampDist;
-    const pullY = pivotY + Math.sin(angle) * clampDist;
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = ss(4);
-    ctx.beginPath();
-    ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
-    ctx.lineTo(sx(pullX), sy(pullY));
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(sx(rightTip.x), sy(rightTip.y));
-    ctx.lineTo(sx(pullX), sy(pullY));
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(sx(pullX), sy(pullY), ss(8), 0, Math.PI * 2);
-    ctx.fillStyle = '#333';
-    ctx.fill();
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = ss(1);
-    ctx.stroke();
-
-    ctx.setLineDash([]);
-  } else {
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = ss(4);
-    ctx.beginPath();
-    ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
-    ctx.quadraticCurveTo(sx(pivotX), sy(pivotY + 20), sx(rightTip.x), sy(rightTip.y));
-    ctx.stroke();
-  }
-}
-
-function drawBomb(bomb) {
-  if (bomb.exploding) return;
-  
-  // 使用降落伞模块绘制降落伞（包含连接线、旋转和缩放变化）
-  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss);
-  
-  // 绘制炸弹
-  let usePlaceholder = true;
-  
-  if (resourcesLoaded && resources.bomb) {
-    const img = animationLoader.getCurrentFrame(resources.bomb);
-    if (img && img.width > 0 && img.height > 0) {
-      const size = animationLoader.getSize(resources.bomb);
-      const anchor = animationLoader.getAnchor(resources.bomb);
-      
-      // 使用保持比例的绘制
-      const result = drawImageProportional(
-        img,
-        bomb.x,
-        bomb.y,
-        size.width * 0.8,  // 目标宽度（游戏坐标）
-        anchor.x,
-        anchor.y
-      );
-      
-      if (result) {
-        usePlaceholder = false;
-      }
-    }
-  }
-  
-  // 使用示意方块绘制炸弹 - 使用 config 中的标准尺寸 64x64
-  if (usePlaceholder) {
-    drawPlaceholder(bomb.x, bomb.y, 64, 64, 'BOMB', RESOURCE_COLORS.bomb, 0.5, 0.5);
-  }
-}
-
-function drawProjectile(proj) {
-  const px = sx(proj.x), py = sy(proj.y), r = ss(proj.radius);
-  ctx.beginPath();
-  ctx.arc(px, py, r, 0, Math.PI * 2);
-  const grad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
-  grad.addColorStop(0, '#777');
-  grad.addColorStop(1, '#222');
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = ss(1);
-  ctx.stroke();
-
-  ctx.globalAlpha = 0.3;
-  for (let i = 1; i <= 3; i++) {
-    ctx.beginPath();
-    ctx.arc(sx(proj.x - proj.vx * i * 2), sy(proj.y - proj.vy * i * 2), r * (1 - i * 0.2), 0, Math.PI * 2);
-    ctx.fillStyle = '#555';
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawExplosion(exp) {
-  const progress = exp.frame / exp.maxFrames;
-  const cx = sx(exp.x), cy = sy(exp.y);
-
-  if (progress < 0.3) {
-    const flashR = ss(40) * (progress / 0.3);
-    const flashGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, flashR);
-    flashGrad.addColorStop(0, 'rgba(255,255,200,0.8)');
-    flashGrad.addColorStop(1, 'rgba(255,200,50,0)');
-    ctx.fillStyle = flashGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, flashR, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  exp.particles.forEach(p => {
-    const px = cx + ss(p.vx * exp.frame);
-    const py = cy + ss(p.vy * exp.frame);
-    const alpha = 1 - progress;
-    const size = ss(p.size) * (1 - progress * 0.5);
-    ctx.beginPath();
-    ctx.arc(px, py, size, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha})`;
-    ctx.fill();
+  // Load resources and start
+  loadResources().then(() => {
+    console.log('Resources loaded, starting game');
+    updateSlingshotPosition();
   });
-}
-
-// 绘制分数弹出动画
-function drawScorePopup(popup) {
-  const progress = popup.frame / popup.maxFrames;
-  const cx = sx(popup.x);
-  const cy = sy(popup.y - 20 - progress * 30); // 向上飘动
   
-  // 缩放效果：从大到小 (zoom out)
-  const scale = 1.5 - progress * 0.8; // 从1.5倍缩小到0.7倍
-  
-  // 透明度：先保持一段时间，然后淡出
-  let alpha = 1;
-  if (progress > 0.5) {
-    alpha = 1 - (progress - 0.5) * 2; // 后半段淡出
-  }
-  
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#FFFFFF';
-  
-  // Scale up by 0.2 for each combo level (base 1.0, combo 2 = 1.2, combo 3 = 1.4, etc.)
-  const comboScale = scale * (1 + (popup.combo - 1) * 0.2);
-  const fontSize = Math.floor(sx(24) * comboScale);
-  ctx.font = `bold ${fontSize}px Arial`;
-  
-  // Just show the total score: 100, 200, 300, etc.
-  const totalScore = popup.combo * 100;
-  ctx.fillText(`+${totalScore}`, cx, cy);
-  
-  ctx.restore();
-}
-
-function drawUI() {
-  // 分数面板 - 统一使用 ss 缩放保持比例
-  const panelH = ss(30);
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(sx(10), sy(10), ss(150), panelH);
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(sx(10), sy(10), ss(150), panelH);
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(15)}px Arial`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`SCORE: ${score}`, sx(18), sy(10) + panelH * 0.65);
-
-  // 最高分面板
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(sx(W - 170), sy(10), ss(160), panelH);
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(sx(W - 170), sy(10), ss(160), panelH);
-  ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${ss(13)}px Arial`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`HI-SCORE: ${highScore}`, sx(W - 160), sy(10) + panelH * 0.65);
-  
-  // 波次显示
-  const wavePanelW = ss(100);
-  const waveX = (sx(W) - wavePanelW) / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(waveX, sy(10), wavePanelW, panelH);
-  ctx.strokeStyle = isInterWave ? '#4CAF50' : '#FF6B6B';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(waveX, sy(10), wavePanelW, panelH);
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(14)}px Arial`;
-  ctx.textAlign = 'center';
-  
-  if (isInterWave) {
-    // 波次间休息时显示倒计时
-    const remainingBreak = Math.ceil((interWaveDuration - interWaveTimer) / 60);
-    ctx.fillText(`BREAK ${remainingBreak}s`, sx(W / 2), sy(10) + panelH * 0.65);
-  } else {
-    ctx.fillText(`WAVE ${currentWave}`, sx(W / 2), sy(10) + panelH * 0.65);
-  }
-  
-  // 波次进度条（仅在波次中显示）
-  if (!isInterWave && currentWaveConfig) {
-    const progress = waveTimer / currentWaveConfig.waveDurationFrames;
-    const barWidth = wavePanelW - ss(10);
-    const barHeight = ss(4);
-    const barY = sy(10) + panelH - barHeight - ss(3);
-    
-    // 背景
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(waveX + ss(5), barY, barWidth, barHeight);
-    
-    // 进度
-    ctx.fillStyle = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
-    ctx.fillRect(waveX + ss(5), barY, barWidth * (1 - progress), barHeight);
-  }
-}
-
-function drawGameOver() {
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // 弹窗框 - 统一使用 ss 缩放保持宽高比
-  const boxW = ss(320);
-  const boxH = ss(280); // 增加高度以容纳波次信息
-  const bx = sx(W / 2) - boxW / 2;
-  const by = sy(H / 2) - boxH / 2;
-  
-  ctx.fillStyle = '#1a1a2e';
-  ctx.fillRect(bx, by, boxW, boxH);
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = ss(3);
-  ctx.strokeRect(bx, by, boxW, boxH);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FF4444';
-  ctx.font = `bold ${ss(32)}px Arial`;
-  ctx.fillText('GAME OVER', sx(W / 2), by + boxH * 0.22);
-
-  ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${ss(24)}px Arial`;
-  ctx.fillText(`Wave ${currentWave} Reached!`, sx(W / 2), by + boxH * 0.38);
-
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(20)}px Arial`;
-  ctx.fillText(`Score: ${score}`, sx(W / 2), by + boxH * 0.52);
-
-  ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${ss(16)}px Arial`;
-  ctx.fillText(`High Score: ${highScore}`, sx(W / 2), by + boxH * 0.63);
-
-  if (score >= highScore && score > 0) {
-    ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${ss(14)}px Arial`;
-    ctx.fillText('NEW HIGH SCORE!', sx(W / 2), by + boxH * 0.72);
-  }
-  
-  // 波次评价
-  let rating = '';
-  let ratingColor = '#FFF';
-  if (currentWave >= 100) {
-    rating = '⭐ LEGEND! TOP 1%! ⭐';
-    ratingColor = '#FFD700';
-  } else if (currentWave >= 50) {
-    rating = '🔥 EXPERT! Top 10%! 🔥';
-    ratingColor = '#FF6B6B';
-  } else if (currentWave >= 30) {
-    rating = '🌻 Good Job! 🌻';
-    ratingColor = '#4ECDC4';
-  }
-  
-  if (rating) {
-    ctx.fillStyle = ratingColor;
-    ctx.font = `bold ${ss(14)}px Arial`;
-    ctx.fillText(rating, sx(W / 2), by + boxH * 0.79);
-  }
-
-  // 按钮 - 统一使用 ss 缩放保持宽高比
-  const btnW = ss(140);
-  const btnH = ss(40); // 使用 ss 保持按钮比例
-  const btnX = sx(W / 2) - btnW / 2;
-  const btnY = by + boxH * 0.86;
-  
-  ctx.fillStyle = '#4CAF50';
-  ctx.fillRect(btnX, btnY, btnW, btnH);
-  ctx.strokeStyle = '#388E3C';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(btnX, btnY, btnW, btnH);
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(16)}px Arial`;
-  ctx.fillText('PLAY AGAIN', sx(W / 2), btnY + btnH * 0.65);
-}
-
-function drawStartScreen() {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const centerX = sx(W / 2);
-  const centerY = sy(H / 2);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${ss(34)}px Arial`;
-  ctx.fillText('BOB-OMB SQUAD', centerX, centerY - ss(80));
-
-  ctx.fillStyle = '#FFF';
-  ctx.font = `${ss(13)}px Arial`;
-  ctx.fillText('Drag the slingshot to aim and release to fire!', centerX, centerY - ss(35));
-  ctx.fillText('Hit the bombs before they land!', centerX, centerY - ss(10));
-
-  // 炸弹图标
-  ctx.beginPath();
-  ctx.arc(centerX, centerY + ss(40), ss(15), 0, Math.PI * 2);
-  ctx.fillStyle = '#333';
-  ctx.fill();
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath();
-  ctx.arc(centerX, centerY + ss(28), ss(4), 0, Math.PI * 2);
-  ctx.fill();
-
-  // 按钮 - 统一使用 ss 缩放保持宽高比
-  const btnW = ss(140);
-  const btnH = ss(44); // 使用 ss 保持按钮比例
-  const btnX = centerX - btnW / 2;
-  const btnY = centerY + ss(80);
-  
-  ctx.fillStyle = '#FF5722';
-  ctx.fillRect(btnX, btnY, btnW, btnH);
-  ctx.strokeStyle = '#E64A19';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(btnX, btnY, btnW, btnH);
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(20)}px Arial`;
-  ctx.fillText('START', centerX, btnY + btnH * 0.6);
-}
-
-// --- Game Logic ---
-
-function spawnBomb() {
-  const cfg = currentWaveConfig;
-  
-  // Determine if this is a special bomb
-  const isSpecial = Math.random() < cfg.specialBombChance;
-  const isCluster = Math.random() < cfg.clusterBombChance;
-  
-  // Calculate base properties
-  const radius = cfg.minRadius + Math.random() * (cfg.maxRadius - cfg.minRadius);
-  let speed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
-  let sway = Math.random() * cfg.maxSway;
-  
-  // Special bomb types
-  let bombType = 'normal';
-  let health = cfg.bombHealth;
-  
-  if (isCluster) {
-    bombType = 'cluster';
-    // Cluster bombs are slightly slower but split when hit
-    speed *= 0.85;
-  } else if (isSpecial) {
-    const specialTypes = ['fast', 'zigzag', 'tank'];
-    bombType = specialTypes[Math.floor(Math.random() * specialTypes.length)];
-    
-    switch (bombType) {
-      case 'fast':
-        speed *= 1.5;  // 50% faster
-        sway *= 0.5;   // Less sway
-        break;
-      case 'zigzag':
-        speed *= 0.9;
-        sway *= 2.5;   // Much more horizontal movement
-        break;
-      case 'tank':
-        speed *= 0.6;  // Slow but tanky
-        health = Math.max(2, health + 1);
-        break;
+  // Setup input callbacks
+  registerCallbacks({
+    onGameStart: () => {
+      setGameStarted(true);
+      resetGame();
+      resetWaves();
+      startWave(1);
+    },
+    onGameReset: () => {
+      resetGame();
+      resetWaves();
+      startWave(1);
+    },
+    onFire: (proj) => {
+      if (proj) projectiles.push(proj);
     }
-  }
-  
-  // Spawn position: ensure bombs don't spawn too close to edges
-  // Higher waves have slightly wider spawn area
-  const margin = 30 + Math.min(currentWave * 0.5, 30);
-  const x = margin + Math.random() * (W - margin * 2);
-  
-  bombs.push({
-    x: x,
-    y: -50,
-    radius: radius,
-    speed: speed,
-    sway: sway,
-    swayOffset: Math.random() * Math.PI * 2,
-    exploding: false,
-    bombType: bombType,
-    health: health,
-    maxHealth: health,
-    // 初始化降落伞属性（随机缩放和旋转偏移）
-    parachute: Parachute.createBombParachute()
   });
+  
+  setupInput();
 }
 
-// Start a new wave
-function startWave(waveNum) {
-  currentWave = waveNum;
-  currentWaveConfig = getWaveConfig(waveNum);
-  
-  waveTimer = 0;
-  bombsSpawnedThisWave = 0;
-  totalBombsThisWave = currentWaveConfig.bombsPerWave;
-  
-  // Calculate spawn schedule for this wave
-  waveSpawnSchedule = calculateSpawnTimes(currentWaveConfig);
-  
-  // Set first spawn time
-  nextSpawnTime = waveSpawnSchedule.length > 0 ? waveSpawnSchedule[0] : 0;
-  
-  console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${currentWaveConfig.waveDurationFrames / 60}s duration`);
-}
-
-// End current wave, start inter-wave break
-function endWave() {
-  isInterWave = true;
-  interWaveTimer = 0;
-  
-  // Inter-wave duration decreases slightly at higher waves (less rest for elites)
-  interWaveDuration = Math.max(60, 120 - currentWave * 0.5);
-  
-  console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
-}
-
-function createExplosion(x, y, points, bombType = 'normal') {
-  const particles = [];
-  
-  // Different explosion colors based on bomb type
-  let colors;
-  switch (bombType) {
-    case 'fast':
-      colors = [
-        { r: 100, g: 200, b: 255 },
-        { r: 50, g: 150, b: 255 },
-        { r: 200, g: 230, b: 255 },
-      ];
-      break;
-    case 'tank':
-      colors = [
-        { r: 150, g: 50, b: 50 },
-        { r: 100, g: 30, b: 30 },
-        { r: 200, g: 100, b: 100 },
-      ];
-      break;
-    case 'cluster':
-      colors = [
-        { r: 255, g: 100, b: 255 },
-        { r: 200, g: 50, b: 200 },
-        { r: 255, g: 200, b: 255 },
-      ];
-      break;
-    default:
-      colors = [
-        { r: 255, g: 100, b: 0 },
-        { r: 255, g: 200, b: 0 },
-        { r: 255, g: 50, b: 0 },
-        { r: 255, g: 255, b: 100 },
-        { r: 200, g: 50, b: 0 },
-      ];
-  }
-  
-  const particleCount = bombType === 'normal' ? 20 : 28;
-  for (let i = 0; i < particleCount; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1 + Math.random() * 3;
-    const c = colors[Math.floor(Math.random() * colors.length)];
-    particles.push({
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 2 + Math.random() * 4,
-      r: c.r, g: c.g, b: c.b
-    });
-  }
-  explosions.push({ x, y, frame: 0, maxFrames: 40, particles, points: null });
-}
-
-// 创建分数弹出动画
-function createScorePopup(x, y, combo) {
-  const baseScore = 100;
-  const totalScore = baseScore * combo;
-  scorePopups.push({
-    x, y,
-    combo,           // 连击数
-    baseScore,       // 基础分数
-    totalScore,      // 总分
-    frame: 0,
-    maxFrames: 50    // 动画持续帧数
-  });
-  return totalScore;
-}
-
-function createGroundExplosion(x, y) {
-  const particles = [];
-  for (let i = 0; i < 15; i++) {
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI;
-    const speed = 1 + Math.random() * 2;
-    particles.push({
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      size: 2 + Math.random() * 3,
-      r: 100, g: 100, b: 100
-    });
-  }
-  explosions.push({ x, y, frame: 0, maxFrames: 30, particles, points: null });
-}
-
-function fireProjectile() {
-  if (!dragCurrent) return;
-  const pivotX = sling.x;
-  const pivotY = sling.y - sling.prongH;
-  
-  const dx = dragCurrent.x - pivotX;
-  const dy = dragCurrent.y - pivotY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  const clampDist = Math.min(dist, maxDrag);
-  if (clampDist < 10) return;
-
-  const angle = Math.atan2(dy, dx);
-  const pullX = pivotX + Math.cos(angle) * clampDist;
-  const pullY = pivotY + Math.sin(angle) * clampDist;
-
-  const vx = -(pullX - pivotX) * 0.18;
-  const vy = -(pullY - pivotY) * 0.18;
-
-  projectiles.push({
-    x: pivotX,
-    y: pivotY,
-    vx: vx,
-    vy: vy,
-    radius: 12,
-    gravity: 0.12
-  });
-}
-
+// Update game logic
 function update() {
-  if (gameOver || !gameStarted) return;
+  if (isGameOver() || !isGameStarted()) return;
   
   const currentTime = Date.now();
-  const deltaTime = currentTime - lastTime;
-  lastTime = currentTime;
+  const deltaTime = currentTime - getLastTime();
+  setLastTime(currentTime);
   
-  frameCount++;
-
-  // 更新动画
-  if (resourcesLoaded) {
-    animationLoader.update(resources.bomb, deltaTime);
-    
-    // Update each flower's frame independently (they have different start frames)
-    if (resources.flower && frameCount % 15 === 0) { // 15 frames = ~250ms at 60fps
-      for (let i = 0; i < 4; i++) {
-        if (flowerAlive[i]) {
-          flowerFrameIndices[i]++;
-        }
+  incrementFrameCount();
+  const frameCount = getFrameCount();
+  
+  // Update animations
+  const bombRes = getResource('bomb');
+  if (bombRes) {
+    animationLoader.update(bombRes, deltaTime);
+  }
+  
+  // Update flowers
+  if (frameCount % 15 === 0) {
+    for (let i = 0; i < 4; i++) {
+      if (flowerAlive[i]) {
+        flowerFrameIndices[i]++;
       }
     }
   }
-
-  // 更新云朵（从右往左移动）
-  clouds.forEach(c => {
-    c.x -= c.speed;
-    if (c.x < -100) c.x = W + 100;
-  });
-
-  // ========== WAVE SYSTEM UPDATE ==========
-  if (isInterWave) {
-    // Inter-wave break
-    interWaveTimer++;
-    if (interWaveTimer >= interWaveDuration) {
-      isInterWave = false;
-      startWave(currentWave + 1);
-    }
-  } else {
-    // Active wave
-    waveTimer++;
-    
-    // Check if it's time to spawn a bomb
-    if (bombsSpawnedThisWave < waveSpawnSchedule.length && 
-        waveTimer >= waveSpawnSchedule[bombsSpawnedThisWave]) {
-      spawnBomb();
-      bombsSpawnedThisWave++;
-    }
-    
-    // Check if wave should end
-    if (waveTimer >= currentWaveConfig.waveDurationFrames && bombs.length === 0) {
-      endWave();
-    }
+  
+  // Update clouds
+  updateClouds(clouds);
+  
+  // Update wave system
+  const waveAction = updateWaves(bombs.length);
+  if (waveAction.action === 'start_wave') {
+    startWave(waveAction.wave);
+  } else if (waveAction.action === 'spawn_bomb') {
+    const waveConfig = getCurrentWaveConfig();
+    const bomb = createBomb(waveConfig, getCurrentWave());
+    bombs.push(bomb);
   }
-  // ========== END WAVE SYSTEM UPDATE ==========
-
-  // 更新炸弹
+  
+  // Update bombs
   const flowerPositions = getFlowerPositions();
   for (let i = bombs.length - 1; i >= 0; i--) {
     const bomb = bombs[i];
-    bomb.y += bomb.speed;
-    bomb.x += Math.sin(frameCount * 0.02 + bomb.swayOffset) * bomb.sway;
-
-    if (bomb.y > GROUND_Y - bomb.radius) {
-      createGroundExplosion(bomb.x, GROUND_Y - 5);
+    updateBomb(bomb, frameCount);
+    
+    // Check ground collision
+    if (bomb.y > 820 - bomb.radius) {
+      explosions.push(createGroundExplosion(bomb.x, 815));
       bombs.splice(i, 1);
+      
+      // Find nearest flower
       let closestIdx = -1;
       let closestDist = Infinity;
       for (let f = 0; f < 4; f++) {
         if (!flowerAlive[f]) continue;
-        const pos = flowerPositions[f] || { x: 90 + f * 90, y: GROUND_Y - 10 };
+        const pos = flowerPositions[f];
         const dist = Math.abs(bomb.x - pos.x);
-        if (dist < flowerHitRadius && dist < closestDist) {
+        if (dist < 50 && dist < closestDist) {
           closestDist = dist;
           closestIdx = f;
         }
       }
+      
       if (closestIdx >= 0) {
-        flowerAlive[closestIdx] = false;
-        lives--;
-        if (lives <= 0) {
-          lives = 0;
-          gameOver = true;
-          if (score > highScore) {
-            highScore = score;
-            try {
-              wx.setStorageSync('bobomb_highscore', highScore.toString());
-            } catch (e) {
-              console.log('保存最高分失败:', e);
-            }
-          }
-        }
+        damageFlower(closestIdx);
       }
     }
   }
-
-  // 更新投射物
+  
+  // Update projectiles
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += p.gravity;
-
-    if (p.x < -50 || p.x > W + 50 || p.y < -100 || p.y > H + 50) {
+    updateProjectile(p);
+    
+    // Remove if out of bounds
+    if (isOutOfBounds(p)) {
       projectiles.splice(i, 1);
       continue;
     }
-
-    // 初始化连击计数（如果是新投射物）
-    if (typeof p.hits === 'undefined') {
-      p.hits = 0;
-    }
-
+    
+    // Check collisions with bombs
     for (let j = bombs.length - 1; j >= 0; j--) {
       const b = bombs[j];
-      const dx = p.x - b.x;
-      const dy = p.y - b.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < p.radius + b.radius + 5) {
-        // 增加连击数
-        p.hits++;
-        // 计算分数：第n次击中 = n x 100
-        const points = createScorePopup(b.x, b.y, p.hits);
-        score += points;
-        createExplosion(b.x, b.y, points, b.bombType);
+      if (checkCollision(p, b)) {
+        p.hits = (p.hits || 0) + 1;
+        const popup = createScorePopup(b.x, b.y, p.hits);
+        addScore(popup.totalScore);
+        explosions.push(createExplosion(b.x, b.y, b.bombType));
         bombs.splice(j, 1);
-        // 不删除投射物，让它可以继续飞行击中其他炸弹
       }
     }
   }
-
-  // 更新分数弹出动画
+  
+  // Update score popups
   for (let i = scorePopups.length - 1; i >= 0; i--) {
     scorePopups[i].frame++;
     if (scorePopups[i].frame >= scorePopups[i].maxFrames) {
       scorePopups.splice(i, 1);
     }
   }
-
-  // 更新爆炸
+  
+  // Update explosions
   for (let i = explosions.length - 1; i >= 0; i--) {
     explosions[i].frame++;
     if (explosions[i].frame >= explosions[i].maxFrames) {
@@ -1391,118 +191,45 @@ function update() {
   }
 }
 
+// Draw everything
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.globalAlpha = 1; // Reset transparency
-  drawSky();
-  drawSun();
-  drawRainbow();
-  clouds.forEach(drawCloud);
-  drawWall();
-  drawHealthFlowers();
-  bombs.forEach(drawBomb);
-  projectiles.forEach(drawProjectile);
-  explosions.forEach(drawExplosion);
-  scorePopups.forEach(drawScorePopup);
-  drawSlingshot();
-  drawUI();
-
-  if (gameOver) {
-    drawGameOver();
-  } else if (!gameStarted) {
-    drawStartScreen();
+  ctx.globalAlpha = 1;
+  
+  // Background
+  drawSky(ctx, canvas);
+  drawSun(ctx);
+  drawRainbow(ctx);
+  clouds.forEach(c => drawCloud(ctx, c));
+  drawWall(ctx);
+  drawHealthFlowers(ctx);
+  
+  // Game entities
+  const frameCount = getFrameCount();
+  bombs.forEach(b => drawBomb(ctx, b, frameCount));
+  projectiles.forEach(p => drawProjectile(ctx, p));
+  explosions.forEach(e => drawExplosion(ctx, e));
+  scorePopups.forEach(s => drawScorePopup(ctx, s));
+  
+  // Slingshot and UI
+  drawSlingshot(ctx);
+  drawUI(ctx);
+  
+  // Screens
+  if (isGameOver()) {
+    drawGameOver(ctx, canvas);
+  } else if (!isGameStarted()) {
+    drawStartScreen(ctx, canvas);
   }
 }
 
+// Game loop
 function gameLoop() {
   update();
   draw();
   requestAnimationFrame(gameLoop);
 }
 
-function resetGame() {
-  score = 0;
-  lives = 4;
-  flowerAlive = [true, true, true, true];
-  flowerFrameIndices = [0, 1, 2, 3]; // Reset to different starting frames
-  gameOver = false;
-  bombs = [];
-  projectiles = [];
-  explosions = [];
-  scorePopups = [];
-  frameCount = 0;
-  dragging = false;
-  dragStart = null;
-  dragCurrent = null;
-  
-  // Reset wave system
-  currentWave = 0;
-  waveTimer = 0;
-  interWaveTimer = 0;
-  isInterWave = true; // Start with a break to let player prepare
-  interWaveDuration = 180; // 3 seconds to start
-  bombsSpawnedThisWave = 0;
-  totalBombsThisWave = 0;
-  waveSpawnSchedule = [];
-}
-
-// --- Input Handling ---
-
-function handleStart(e) {
-  const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
-
-  if (!gameStarted) {
-    // START 按钮检测 - 使用 sx 缩放后的尺寸 (140x44)
-    const btnW = 140;
-    const btnH = 44;
-    if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
-        gp.y > H / 2 + 80 && gp.y < H / 2 + 80 + btnH) {
-      gameStarted = true;
-      resetGame();
-    }
-    return;
-  }
-
-  if (gameOver) {
-    // PLAY AGAIN 按钮检测 - 使用 sx 缩放后的尺寸 (140x40)
-    const btnW = 140;
-    const btnH = 40;
-    const boxH = 280; // 与 drawGameOver 中一致 (ss(280) 在逻辑坐标中)
-    const btnTop = H / 2 - boxH / 2 + boxH * 0.78;
-    if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
-        gp.y > btnTop && gp.y < btnTop + btnH) {
-      resetGame();
-    }
-    return;
-  }
-
-  // 允许在屏幕任何位置开始拖拽（除了UI按钮区域）
-  dragging = true;
-  dragStart = gp;
-  dragCurrent = gp;
-}
-
-function handleMove(e) {
-  if (!dragging) return;
-  dragCurrent = toGame(e.touches[0].clientX, e.touches[0].clientY);
-}
-
-function handleEnd(e) {
-  if (!dragging) return;
-  fireProjectile();
-  dragging = false;
-  dragStart = null;
-  dragCurrent = null;
-}
-
-// 监听触摸事件
-wx.onTouchStart(handleStart);
-wx.onTouchMove(handleMove);
-wx.onTouchEnd(handleEnd);
-
-// 启动：先加载资源，再开始游戏
-loadResources().then(() => {
-  console.log('资源加载完成，启动游戏');
-});
-
+// Start
+init();
 gameLoop();
