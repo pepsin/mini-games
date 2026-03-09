@@ -239,8 +239,8 @@ for (let i = 0; i < 8; i++) {
     y: 30 + Math.random() * 150,
     w: (60 + Math.random() * 80) * scale,
     scale: scale,
-    speed: (0.1 + Math.random() * 0.2) * depthFactor,
-    opacity: 0.5 + scale * 0.35
+    speed: (0.1 + Math.random() * 0.2) * depthFactor
+    // No opacity - clouds use full alpha
   });
 }
 
@@ -301,12 +301,11 @@ function drawRainbow() {
 }
 
 function drawCloud(cloud) {
-  // Apply 1.5x scale to cloud size
-  const scale = 1.5;
+  // Apply 1.2x scale to cloud size (no alpha)
+  const scale = 1.2;
   const x = sx(cloud.x), y = sy(cloud.y), w = sx(cloud.w) * scale;
-  const opacity = cloud.opacity || 0.9;
   
-  ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+  ctx.fillStyle = 'rgba(255,255,255,1.0)';  // Full opacity, no alpha variation
   
   // Main cloud body
   ctx.beginPath();

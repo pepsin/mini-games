@@ -332,10 +332,10 @@ function initClouds() {
       x: Math.random() * (W + 200),  // 初始化时分布在更宽的区域
       y: yPos,
       variant: variant,
-      scale: finalScale,           // 个体缩放比例（1.5x 后的尺寸）
+      scale: finalScale,           // 个体缩放比例（1.2x 后的尺寸）
       baseScale: baseScale,        // 基础类型缩放
-      speed: (0.1 + Math.random() * 0.2) * depthFactor,
-      opacity: 0.6 + Math.min(finalScale * 0.2, 0.3)  // 越大越不透明
+      speed: (0.1 + Math.random() * 0.2) * depthFactor
+      // No opacity - clouds use full alpha
     });
   }
   
@@ -501,8 +501,8 @@ function drawRainbow() {
 }
 
 function drawCloud(cloud) {
-  // 使用云朵自身的缩放比例，再缩放 1.5x
-  const scale = (cloud.scale || 0.5) * 1.5;
+  // 使用云朵自身的缩放比例，再缩放 1.2x
+  const scale = (cloud.scale || 0.5) * 1.2;
   
   if (resourcesLoaded && resources.cloud?.variants) {
     animationLoader.setVariant(resources.cloud, cloud.variant);
@@ -512,23 +512,21 @@ function drawCloud(cloud) {
       const size = animationLoader.getSize(resources.cloud);
       const anchor = animationLoader.getAnchor(resources.cloud);
       
-      // 使用云朵个体的缩放比例 * 1.5
-      ctx.globalAlpha = cloud.opacity || 0.9;
+      // 使用云朵个体的缩放比例 * 1.2（无透明度）
       const result = drawImageProportional(
         img,
         cloud.x,
         cloud.y,
-        size.width * scale,  // 使用云朵个体缩放 * 1.5
+        size.width * scale,
         anchor.x,
         anchor.y
       );
-      ctx.globalAlpha = 1;
       
       if (result) return;
     }
   }
   
-  // 使用示意方块 - 使用云朵个体缩放 * 1.5
+  // 使用示意方块 - 使用云朵个体缩放 * 1.2
   const colorIdx = CLOUD_VARIANT_COLORS[cloud.variant] || RESOURCE_COLORS.cloud;
   drawPlaceholder(cloud.x, cloud.y, 128 * scale, 64 * scale, 'CLOUD', colorIdx, 0.5, 0.5);
 }
