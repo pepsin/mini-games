@@ -832,35 +832,12 @@ function drawScorePopup(popup) {
   
   // Scale up by 0.2 for each combo level (base 1.0, combo 2 = 1.2, combo 3 = 1.4, etc.)
   const comboScale = scale * (1 + (popup.combo - 1) * 0.2);
-  const fontSize = Math.floor(sx(20) * comboScale);
+  const fontSize = Math.floor(sx(24) * comboScale);
   ctx.font = `bold ${fontSize}px Arial`;
   
-  if (popup.combo === 1) {
-    // Single hit: just show "+100"
-    ctx.fillText('+100', cx, cy);
-  } else {
-    // Combo: show "n x 100" with larger combo number
-    const comboText = `${popup.combo}`;
-    const xText = ' x ';
-    const scoreText = '100';
-    
-    // Measure with current font
-    const comboWidth = ctx.measureText(comboText).width;
-    const xWidth = ctx.measureText(xText).width;
-    const scoreWidth = ctx.measureText(scoreText).width;
-    const totalWidth = comboWidth + xWidth + scoreWidth;
-    
-    const startX = cx - totalWidth / 2;
-    
-    // Draw combo number (larger)
-    ctx.font = `bold ${Math.floor(fontSize * 1.3)}px Arial`;
-    ctx.fillText(comboText, startX + comboWidth / 2, cy);
-    
-    // Draw "x" and "100" (normal size)
-    ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillText(xText, startX + comboWidth + xWidth / 2, cy);
-    ctx.fillText(scoreText, startX + comboWidth + xWidth + scoreWidth / 2, cy);
-  }
+  // Just show the total score: 100, 200, 300, etc.
+  const totalScore = popup.combo * 100;
+  ctx.fillText(`+${totalScore}`, cx, cy);
   
   ctx.restore();
 }
