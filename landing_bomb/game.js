@@ -575,11 +575,13 @@ function drawWall() {
   }
 }
 
-function drawFlower(index, x, y, alive) {
+function drawFlower(x, y, alive) {
   if (resourcesLoaded && resources.flower) {
-    // 设置状态
+    // Only set state when it changes (avoid resetting animation every frame)
     const state = alive ? 'alive' : 'dead';
-    animationLoader.setState(resources.flower, state);
+    if (resources.flower.currentState !== state) {
+      animationLoader.setState(resources.flower, state);
+    }
     
     const img = animationLoader.getCurrentFrame(resources.flower);
     if (img && img.width > 0) {
@@ -595,33 +597,20 @@ function drawFlower(index, x, y, alive) {
       const drawX = sx(x) - drawWidth * anchor.x;
       const drawY = sy(y) - drawHeight * anchor.y;
       
-      // 应用颜色染色
-      if (alive) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-        
-        // 叠加颜色
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = healthFlowerColors[index] + '40';
-        ctx.fillRect(drawX, drawY, drawWidth, drawHeight);
-        ctx.restore();
-      } else {
-        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-      }
+      // 直接绘制，不使用染色
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
       return;
     }
   }
   
   // 使用示意方块 - 使用 config 中的标准尺寸
-  const label = alive ? `F${index + 1}` : 'DEAD';
-  const colorIdx = alive ? (RESOURCE_COLORS.flower + index) % COLOR_PALETTE.length : 0;
-  drawPlaceholder(x, y, 48, 64, label, colorIdx, 0.5, 0.8);
+  const label = alive ? 'FLOWER' : 'DEAD';
+  drawPlaceholder(x, y, 48, 64, label, RESOURCE_COLORS.flower, 0.5, 0.8);
 }
 
 function drawHealthFlowers() {
   for (let i = 0; i < 4; i++) {
-    drawFlower(i, healthFlowerPositions[i], H - 92, flowerAlive[i]);
+    drawFlower(healthFlowerPositions[i], H - 92, flowerAlive[i]);
   }
 }
 

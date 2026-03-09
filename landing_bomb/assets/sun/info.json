@@ -4,8 +4,8 @@
   "description": "太阳",
   "file": "sun.png",
   "size": {
-    "width": 80,
-    "height": 80
+    "width": 180,
+    "height": 180
   },
   "anchor": {
     "x": 0.5,

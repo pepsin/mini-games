@@ -19,12 +19,6 @@
       ]
     }
   },
-  "colors": [
-    { "id": "red", "tint": "#FF5252" },
-    { "id": "pink", "tint": "#FF4081" },
-    { "id": "orange", "tint": "#FFAB40" },
-    { "id": "purple", "tint": "#E040FB" }
-  ],
   "size": {
     "width": 48,
     "height": 64

@@ -97,6 +97,14 @@ const resources = {
       anchorY: 0.5,
       position: { x: 380, y: 70 }
     }
+  },
+  flower: {
+    frames: {},
+    currentState: 'alive',
+    currentFrame: 0,
+    lastFrameTime: 0,
+    frameDuration: 250, // 4 fps
+    loaded: false
   }
 };
 
@@ -136,6 +144,30 @@ resources.sun.image.onload = () => {
 resources.sun.image.onerror = () => {
   console.log('Sun image failed to load, using fallback');
 };
+
+// Load flower animation frames
+function loadFlowerFrames() {
+  const states = ['alive_01', 'alive_02', 'alive_03', 'alive_04', 'dead'];
+  let loadedCount = 0;
+  
+  states.forEach(state => {
+    const img = new Image();
+    img.src = `assets/flower/${state}.png`;
+    img.onload = () => {
+      resources.flower.frames[state] = img;
+      loadedCount++;
+      if (loadedCount === states.length) {
+        resources.flower.loaded = true;
+        console.log('Flower frames loaded');
+      }
+    };
+    img.onerror = () => {
+      console.log(`Flower frame ${state} failed to load`);
+      loadedCount++;
+    };
+  });
+}
+loadFlowerFrames();
 
 // ========== WAVE SYSTEM ==========
 // Wave-based spawn system - tunable parameters for difficulty curve
@@ -442,7 +474,44 @@ function drawWall() {
   }
 }
 
-function drawFlower(x, y, petalColor, alive) {
+function drawFlower(x, y, alive) {
+  // Use image if loaded
+  if (resources.flower.loaded) {
+    // Update state if changed
+    const state = alive ? 'alive' : 'dead';
+    if (resources.flower.currentState !== state) {
+      resources.flower.currentState = state;
+      resources.flower.currentFrame = 0;
+    }
+    
+    // Get current frame image
+    let frameKey;
+    if (alive) {
+      // Cycle through alive frames: 01, 02, 03, 04
+      const frameIndices = ['alive_01', 'alive_02', 'alive_03', 'alive_04'];
+      frameKey = frameIndices[resources.flower.currentFrame % 4];
+    } else {
+      frameKey = 'dead';
+    }
+    
+    const img = resources.flower.frames[frameKey];
+    if (img && img.complete) {
+      const size = { width: 48, height: 64 };
+      const anchor = { x: 0.5, y: 0.8 };
+      
+      const aspectRatio = img.width / img.height;
+      const drawWidth = sx(size.width);
+      const drawHeight = drawWidth / aspectRatio;
+      
+      const drawX = sx(x) - drawWidth * anchor.x;
+      const drawY = sy(y) - drawHeight * anchor.y;
+      
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      return;
+    }
+  }
+  
+  // Fallback: simple placeholder
   const fx = sx(x), fy = sy(y), r = sx(9);
   // Stem
   ctx.strokeStyle = alive ? '#2E7D32' : '#8B7355';
@@ -451,69 +520,11 @@ function drawFlower(x, y, petalColor, alive) {
   ctx.moveTo(fx, fy);
   ctx.lineTo(fx, fy + sy(25));
   ctx.stroke();
-  // Leaves
-  ctx.fillStyle = alive ? '#388E3C' : '#A0926B';
+  // Simple flower head
+  ctx.fillStyle = alive ? '#FF69B4' : '#888';
   ctx.beginPath();
-  ctx.ellipse(fx - sx(6), fy + sy(14), sx(7), sx(3), -0.4, 0, Math.PI * 2);
+  ctx.arc(fx, fy, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(fx + sx(6), fy + sy(18), sx(7), sx(3), 0.4, 0, Math.PI * 2);
-  ctx.fill();
-  if (alive) {
-    // Petals
-    ctx.fillStyle = petalColor;
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.ellipse(fx + Math.cos(a) * r, fy + Math.sin(a) * r, r * 0.65, r * 0.45, a, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // Center
-    ctx.beginPath();
-    ctx.arc(fx, fy, r * 0.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFD700';
-    ctx.fill();
-    // Smiley face on center
-    ctx.fillStyle = '#996600';
-    ctx.beginPath();
-    ctx.arc(fx - r * 0.15, fy - r * 0.1, sx(1.2), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(fx + r * 0.15, fy - r * 0.1, sx(1.2), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(fx, fy + r * 0.05, r * 0.2, 0, Math.PI);
-    ctx.strokeStyle = '#996600';
-    ctx.lineWidth = sx(0.8);
-    ctx.stroke();
-  } else {
-    // Dead flower: wilted/droopy
-    ctx.fillStyle = '#888';
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + 0.3;
-      ctx.beginPath();
-      ctx.ellipse(fx + Math.cos(a) * r * 0.7, fy + Math.sin(a) * r * 0.7 + sx(2), r * 0.45, r * 0.3, a + 0.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // Wilted center
-    ctx.beginPath();
-    ctx.arc(fx, fy, r * 0.4, 0, Math.PI * 2);
-    ctx.fillStyle = '#A09060';
-    ctx.fill();
-    // Sad face
-    ctx.fillStyle = '#666';
-    ctx.beginPath();
-    ctx.arc(fx - r * 0.12, fy - r * 0.08, sx(1), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(fx + r * 0.12, fy - r * 0.08, sx(1), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(fx, fy + r * 0.2, r * 0.15, Math.PI, 0);
-    ctx.strokeStyle = '#666';
-    ctx.lineWidth = sx(0.8);
-    ctx.stroke();
-  }
 }
 
 // Health flowers - 4 flowers on the ground representing lives
@@ -524,7 +535,7 @@ const flowerHitRadius = 50; // how close a bomb must land to kill a flower
 
 function drawHealthFlowers() {
   for (let i = 0; i < 4; i++) {
-    drawFlower(healthFlowerPositions[i], H - 92, healthFlowerColors[i], flowerAlive[i]);
+    drawFlower(healthFlowerPositions[i], H - 92, flowerAlive[i]);
   }
 }
 
@@ -1110,6 +1121,15 @@ function fireProjectile() {
 function update() {
   if (gameOver || !gameStarted) return;
   frameCount++;
+  
+  // Update flower animation
+  if (resources.flower.loaded && resources.flower.currentState === 'alive') {
+    const now = Date.now();
+    if (now - resources.flower.lastFrameTime > resources.flower.frameDuration) {
+      resources.flower.currentFrame++;
+      resources.flower.lastFrameTime = now;
+    }
+  }
 
   // Update clouds (move right to left)
   clouds.forEach(c => {
