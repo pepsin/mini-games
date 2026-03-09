@@ -1,6 +1,32 @@
 // Projectile Module
 
 const { W, H, sx, sy, ss } = require('../config.js');
+const { isResourcesLoaded, getResource } = require('../resources.js');
+
+// Get slingshot tips (same logic as in slingshot.js)
+function getSlingshotTips(sling) {
+  const slingshotRes = getResource('slingshot');
+  
+  if (isResourcesLoaded() && slingshotRes?.config?.parts) {
+    const parts = slingshotRes.config.parts;
+    return {
+      leftTip: {
+        x: sling.x + parts.leftTip.x,
+        y: sling.y + parts.leftTip.y
+      },
+      rightTip: {
+        x: sling.x + parts.rightTip.x,
+        y: sling.y + parts.rightTip.y
+      }
+    };
+  }
+  
+  // Fallback
+  return {
+    leftTip: { x: sling.x - 24, y: sling.y },
+    rightTip: { x: sling.x + 24, y: sling.y }
+  };
+}
 
 // Create projectile from slingshot drag
 function createProjectile(sling, dragCurrent, maxDrag) {
@@ -18,10 +44,23 @@ function createProjectile(sling, dragCurrent, maxDrag) {
   const pullX = pivotX + Math.cos(angle) * clampDist;
   const pullY = pivotY + Math.sin(angle) * clampDist;
 
-  // Shoot outward from the drag tip (pull point) away from the slingshot
-  // Direction is from pivot to pull (outward), not negated
-  const vx = (pullX - pivotX) * 0.18;
-  const vy = (pullY - pivotY) * 0.18;
+  // Get slingshot tips
+  const { leftTip, rightTip } = getSlingshotTips(sling);
+  
+  // Calculate base midpoint (middle of the line between left and right tips)
+  const baseMidX = (leftTip.x + rightTip.x) / 2;
+  const baseMidY = (leftTip.y + rightTip.y) / 2;
+  
+  // Direction is from pull point (where bands cross) toward base midpoint
+  const dirX = baseMidX - pullX;
+  const dirY = baseMidY - pullY;
+  
+  // Normalize and apply velocity
+  const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+  const speed = clampDist * 0.18;
+  
+  const vx = (dirX / dirLength) * speed;
+  const vy = (dirY / dirLength) * speed;
 
   return {
     x: pullX,
