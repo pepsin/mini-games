@@ -4,14 +4,14 @@
   "description": "降落伞，随炸弹一起下落",
   "file": "parachute.png",
   "size": {
-    "width": 66,
-    "height": 37
+    "width": 132,
+    "height": 74
   },
   "anchor": {
     "x": 0.5,
     "y": 0.8
   },
-  "parachuteOffset": 30,
+  "parachuteOffset": 50,
   "connectingLines": {
     "count": 5,
     "color": "#999",

@@ -11,8 +11,8 @@
     { "file": "frame_04.png", "duration": 125 }
   ],
   "size": {
-    "width": 64,
-    "height": 64
+    "width": 96,
+    "height": 96
   },
   "anchor": {
     "x": 0.5,

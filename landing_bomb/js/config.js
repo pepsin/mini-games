@@ -8,7 +8,7 @@ const screenHeight = systemInfo.windowHeight;
 // Game dimensions - maintain 450:900 aspect ratio
 const W = 450;
 const H = 900;
-const GROUND_Y = 820;
+const GROUND_Y = 780;
 
 // Calculate scale and offsets
 let scale = 1;
