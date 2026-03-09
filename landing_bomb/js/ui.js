@@ -3,6 +3,7 @@
 const { W, H, GROUND_Y, sx, sy, ss } = require('./config.js');
 const { getScore, getHighScore, isGameOver } = require('./gameState.js');
 const { getCurrentWave, isInInterWave, getInterWaveTimer, getInterWaveDuration, getWaveProgress } = require('./waveSystem.js');
+const { roundedRect } = require('./roundedRect.js');
 
 // Draw score panel
 function drawUI(ctx) {
@@ -11,60 +12,69 @@ function drawUI(ctx) {
   const currentWave = getCurrentWave();
   const inInterWave = isInInterWave();
   
-  // Score panel
-  const panelH = ss(30);
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(sx(10), sy(10), ss(150), panelH);
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(sx(10), sy(10), ss(150), panelH);
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(15)}px Arial`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`SCORE: ${score}`, sx(18), sy(10) + panelH * 0.65);
+  // Score panel - Orange/Red gradient
+  roundedRect()
+    .position(10, 10)
+    .size(150, 32)
+    .cornerRadius(8)
+    .linearGradient(['#FF6B35', '#FF4500'], 90)
+    .border(2, '#FFFFFF')
+    .shadow('rgba(0,0,0,0.3)', 6, 0, 2)
+    .setText(`SCORE: ${score}`)
+    .textStyle('#FFFFFF', 15, 'Arial', 'bold')
+    .align('left', 'middle')
+    .setPadding({ left: 12, right: 8, top: 6, bottom: 6 })
+    .draw(ctx);
 
-  // High score panel
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(sx(W - 170), sy(10), ss(160), panelH);
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(sx(W - 170), sy(10), ss(160), panelH);
-  ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${ss(13)}px Arial`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`HI-SCORE: ${highScore}`, sx(W - 160), sy(10) + panelH * 0.65);
+  // High score panel - Purple/Pink gradient
+  roundedRect()
+    .position(W - 170, 10)
+    .size(160, 32)
+    .cornerRadius(8)
+    .linearGradient(['#9C27B0', '#E91E63'], 90)
+    .border(2, '#FFFFFF')
+    .shadow('rgba(0,0,0,0.3)', 6, 0, 2)
+    .setText(`HI-SCORE: ${highScore}`)
+    .textStyle('#FFFFFF', 13, 'Arial', 'bold')
+    .align('left', 'middle')
+    .setPadding({ left: 10, right: 8, top: 6, bottom: 6 })
+    .draw(ctx);
   
-  // Wave display
-  const wavePanelW = ss(100);
-  const waveX = (sx(W) - wavePanelW) / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(waveX, sy(10), wavePanelW, panelH);
-  ctx.strokeStyle = inInterWave ? '#4CAF50' : '#FF6B6B';
-  ctx.lineWidth = ss(2);
-  ctx.strokeRect(waveX, sy(10), wavePanelW, panelH);
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(14)}px Arial`;
-  ctx.textAlign = 'center';
+  // Wave display - Blue/Cyan gradient (changes to green during break)
+  const waveColors = inInterWave ? ['#4CAF50', '#8BC34A'] : ['#2196F3', '#00BCD4'];
+  const waveText = inInterWave 
+    ? `BREAK ${Math.ceil((getInterWaveDuration() - getInterWaveTimer()) / 60)}s`
+    : `WAVE ${currentWave}`;
   
-  if (inInterWave) {
-    const remainingBreak = Math.ceil((getInterWaveDuration() - getInterWaveTimer()) / 60);
-    ctx.fillText(`BREAK ${remainingBreak}s`, sx(W / 2), sy(10) + panelH * 0.65);
-  } else {
-    ctx.fillText(`WAVE ${currentWave}`, sx(W / 2), sy(10) + panelH * 0.65);
-  }
+  roundedRect()
+    .position((W - 100) / 2, 10)
+    .size(100, 32)
+    .cornerRadius(8)
+    .linearGradient(waveColors, 90)
+    .border(2, '#FFFFFF')
+    .shadow('rgba(0,0,0,0.3)', 6, 0, 2)
+    .setText(waveText)
+    .textStyle('#FFFFFF', 14, 'Arial', 'bold')
+    .align('center', 'middle')
+    .setPadding({ left: 8, right: 8, top: 6, bottom: 6 })
+    .draw(ctx);
   
   // Wave progress bar
   if (!inInterWave) {
     const progress = getWaveProgress();
-    const barWidth = wavePanelW - ss(10);
+    const barWidth = ss(90);
     const barHeight = ss(4);
-    const barY = sy(10) + panelH - barHeight - ss(3);
+    const barX = sx((W - 90) / 2) + ss(5);
+    const barY = sy(10) + ss(32) - ss(8);
+    const progressColor = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
     
+    // Background
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(waveX + ss(5), barY, barWidth, barHeight);
+    ctx.fillRect(barX, barY, barWidth, barHeight);
     
-    ctx.fillStyle = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
-    ctx.fillRect(waveX + ss(5), barY, barWidth * (1 - progress), barHeight);
+    // Progress
+    ctx.fillStyle = progressColor;
+    ctx.fillRect(barX, barY, barWidth * (1 - progress), barHeight);
   }
 }
 
