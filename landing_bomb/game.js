@@ -58,7 +58,8 @@ let resources = {
   flower: null,
   cloud: null,
   rainbow: null,
-  slingshot: null
+  slingshot: null,
+  background: null
 };
 
 // 8色色板 - 用于图片未加载时的示意方块
@@ -80,7 +81,8 @@ const RESOURCE_COLORS = {
   flower: 5,      // PLUM - 花朵色
   cloud: 2,       // SKY - 天空色
   rainbow: 6,     // SEAFOAM - 彩虹相关
-  slingshot: 1    // TEAL - 木质感
+  slingshot: 1,   // TEAL - 木质感
+  background: 3   // MINT - 地面色
 };
 
 // 云朵变体使用不同颜色
@@ -127,13 +129,24 @@ async function loadResources() {
   
   resources.slingshot = await animationLoader.load('slingshot');
   console.log('弹弓资源:', resources.slingshot ? '已加载' : '失败');
+  
+  // Apply slingshot position from config
+  if (resources.slingshot?.config?.position) {
+    const pos = resources.slingshot.config.position;
+    sling.x = pos.x !== undefined ? pos.x : W / 2;
+    sling.y = pos.y !== undefined ? pos.y : H;
+    console.log('弹弓位置:', sling.x, sling.y);
+  }
+  
+  resources.background = await animationLoader.load('background');
+  console.log('背景资源:', resources.background ? '已加载' : '失败');
 
   // 初始化云朵变体
   initClouds();
   
   // 检查是否有任何资源成功加载
   const anyLoaded = resources.bomb || resources.parachute || resources.flower || 
-                    resources.cloud || resources.rainbow || resources.slingshot;
+                    resources.cloud || resources.rainbow || resources.slingshot || resources.background;
   
   if (anyLoaded) {
     resourcesLoaded = true;
@@ -514,6 +527,25 @@ function drawCloud(cloud) {
 }
 
 function drawWall() {
+  // 优先使用背景图片资源
+  if (resourcesLoaded && resources.background?.image && resources.background.image.width > 0) {
+    const size = animationLoader.getSize(resources.background);
+    const anchor = animationLoader.getAnchor(resources.background);
+    const pos = resources.background.config.position || { x: W / 2, y: H };
+    
+    const result = drawImageProportional(
+      resources.background.image,
+      pos.x,
+      pos.y,
+      size.width,
+      anchor.x,
+      anchor.y
+    );
+    
+    if (result) return; // 图片绘制成功，直接返回
+  }
+  
+  // 备用：使用程序绘制墙壁和地面
   const wallY = sy(H - 80);
   const wallH = sy(80);
   ctx.fillStyle = '#E8DCC8';

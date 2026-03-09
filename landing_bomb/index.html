@@ -69,6 +69,54 @@ let clouds = [];
 let particles = [];
 let frameCount = 0;
 
+// Resources
+const resources = {
+  background: {
+    image: new Image(),
+    loaded: false,
+    config: {
+      width: 450,
+      height: 80,
+      anchorX: 0.5,
+      anchorY: 1.0,
+      position: { x: 225, y: 800 }
+    }
+  },
+  slingshot: {
+    config: {
+      position: { x: 225, y: 670 }  // Default: center, slightly above bottom
+    }
+  }
+};
+
+// Load slingshot config
+fetch('assets/slingshot/info.json')
+  .then(r => r.json())
+  .then(data => {
+    resources.slingshot.config.data = data;
+    if (data.position) {
+      resources.slingshot.config.position = data.position;
+      // Apply to sling
+      sling.x = data.position.x;
+      sling.y = data.position.y;
+      console.log('Slingshot position loaded:', sling.x, sling.y);
+    }
+    if (data.parts) {
+      resources.slingshot.config.parts = data.parts;
+    }
+  })
+  .catch(() => console.log('Using default slingshot position'));
+
+// Load background image
+resources.background.image.src = 'assets/background/background.png';
+resources.background.image.onload = () => {
+  resources.background.loaded = true;
+  console.log('Background image loaded');
+};
+resources.background.image.onerror = () => {
+  console.log('Background image failed to load, using fallback');
+};
+
 // ========== WAVE SYSTEM ==========
 // Wave-based spawn system - tunable parameters for difficulty curve
 let currentWave = 1;
@@ -211,7 +259,7 @@ function endWave() {
 // ========== END WAVE SYSTEM ==========
 
 // Slingshot state
-const sling = { x: W / 2, y: H - 130, prongW: 12, prongH: 50 };
+const sling = { x: 225, y: 800, prongW: 0, prongH: 100 };
 let dragging = false;
 let dragStart = null;
 let dragCurrent = null;
@@ -323,6 +371,26 @@ function drawCloud(cloud) {
 }
 
 function drawWall() {
+  // Try to use background image if loaded
+  if (resources.background.loaded && resources.background.image.complete) {
+    const cfg = resources.background.config;
+    const aspectRatio = resources.background.image.width / resources.background.image.height;
+    
+    // Calculate draw dimensions maintaining aspect ratio
+    const drawWidth = sx(cfg.width);
+    const drawHeight = drawWidth / aspectRatio;
+    
+    // Calculate position based on anchor
+    const posX = sx(cfg.position.x);
+    const posY = sy(cfg.position.y);
+    const drawX = posX - drawWidth * cfg.anchorX;
+    const drawY = posY - drawHeight * cfg.anchorY;
+    
+    ctx.drawImage(resources.background.image, drawX, drawY, drawWidth, drawHeight);
+    return;
+  }
+  
+  // Fallback: programmatic drawing
   const wallY = sy(H - 80);
   const wallH = sy(80);
   // Wall background
@@ -478,9 +546,14 @@ function drawSlingshot() {
   ctx.arc(x + gap, y - ph, sx(7), 0, Math.PI * 2);
   ctx.fill();
 
-  // Rubber band
-  const leftTip = { x: sling.x - 18, y: sling.y - sling.prongH };
-  const rightTip = { x: sling.x + 18, y: sling.y - sling.prongH };
+  // Rubber band - use config parts if available
+  const parts = resources.slingshot.config.parts;
+  const leftTip = parts ? 
+    { x: sling.x + parts.leftTip.x, y: sling.y + parts.leftTip.y } :
+    { x: sling.x - 25, y: sling.y - 100 };
+  const rightTip = parts ? 
+    { x: sling.x + parts.rightTip.x, y: sling.y + parts.rightTip.y } :
+    { x: sling.x + 25, y: sling.y - 100 };
 
   if (dragging && dragCurrent) {
     const dx = dragCurrent.x - sling.x;
