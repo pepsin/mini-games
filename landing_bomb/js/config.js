@@ -25,10 +25,10 @@ function updateScale() {
     offsetX = (screenWidth - W * scale) / 2;
     offsetY = 0;
   } else {
-    // Screen is taller (full screen phone): fit to width
+    // Screen is taller (full screen phone): fit to width, align to bottom
     scale = screenWidth / W;
     offsetX = 0;
-    offsetY = (screenHeight - H * scale) / 2;
+    offsetY = screenHeight - H * scale;
   }
 }
 updateScale();

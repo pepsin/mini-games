@@ -1,21 +1,28 @@
 // Sky, Sun and Rainbow Module
 
-const { W, screenHeight, offsetX, sx, sy, ss, RESOURCE_COLORS } = require('../config.js');
+const { W, H, screenHeight, offsetX, offsetY, scale, sx, sy, ss, RESOURCE_COLORS } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
 const { drawImageProportional, drawPlaceholder } = require('../renderer.js');
 const { animationLoader } = require('../animationLoader.js');
 
 // Draw sky background
 function drawSky(ctx, canvas) {
-  // Sky gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  // Fill top area (above game) with top sky color
+  if (offsetY > 0) {
+    ctx.fillStyle = '#4ab8ff';
+    ctx.fillRect(0, 0, canvas.width, offsetY);
+  }
+  
+  // Fill game area with sky gradient
+  const gameHeight = H * scale;
+  const grad = ctx.createLinearGradient(0, offsetY, 0, offsetY + gameHeight);
   grad.addColorStop(0, '#4ab8ff');
   grad.addColorStop(0.6, '#87CEEB');
   grad.addColorStop(1, '#b8e8ff');
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(offsetX, offsetY, W * scale, gameHeight);
   
-  // Side black bars
+  // Side black bars (only for wide screens)
   ctx.fillStyle = '#000000';
   if (offsetX > 0) {
     ctx.fillRect(0, 0, offsetX, canvas.height);
