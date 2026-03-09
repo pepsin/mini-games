@@ -35,19 +35,6 @@ function drawWall(ctx) {
   ctx.fillStyle = '#E8DCC8';
   ctx.fillRect(gameLeft, wallY, gameWidth, wallH);
   
-  // Brick pattern
-  const bw = ss(40), bh = ss(14);
-  ctx.strokeStyle = '#D4C4A8';
-  ctx.lineWidth = ss(1);
-  for (let row = 0; row < 6; row++) {
-    const yy = wallY + row * bh;
-    const offset = (row % 2) * bw * 0.5;
-    for (let col = -1; col < W / 40 + 1; col++) {
-      const xx = gameLeft + offset + col * bw;
-      ctx.strokeRect(xx, yy, bw, bh);
-    }
-  }
-  
   // Wall top
   ctx.fillStyle = '#D2B48C';
   ctx.fillRect(gameLeft, wallY - ss(5), gameWidth, ss(5));
@@ -55,12 +42,6 @@ function drawWall(ctx) {
   // Grass
   ctx.fillStyle = '#4CAF50';
   ctx.fillRect(gameLeft, wallY - ss(14), gameWidth, ss(10));
-  ctx.fillStyle = '#388E3C';
-  for (let i = 0; i < W; i += 12) {
-    ctx.beginPath();
-    ctx.arc(sx(i), wallY - ss(14), ss(7), 0, Math.PI * 2);
-    ctx.fill();
-  }
 }
 
 module.exports = {
