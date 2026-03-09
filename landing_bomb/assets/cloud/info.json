@@ -3,9 +3,8 @@
   "type": "static",
   "description": "云朵装饰",
   "variants": [
-    { "id": "small", "file": "cloud_small.png" },
-    { "id": "medium", "file": "cloud_medium.png" },
-    { "id": "large", "file": "cloud_large.png" }
+    { "id": "small", "file": "cloud_1.png" },
+    { "id": "medium", "file": "cloud_2.png" }
   ],
   "size": {
     "width": 128,

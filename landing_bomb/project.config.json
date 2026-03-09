@@ -43,8 +43,8 @@
     "disableSWC": true
   },
   "compileType": "game",
-  "libVersion": "2.14.0",
-  "appid": "wx4ec4f616870568c7",
+  "libVersion": "3.14.3",
+  "appid": "wx461a1207f9d9e98e",
   "projectname": "Bob-omb Squad",
   "isGameTourist": false,
   "game": {
