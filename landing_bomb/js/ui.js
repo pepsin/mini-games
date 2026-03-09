@@ -17,31 +17,28 @@ function drawUI(ctx) {
     .position(10, 10)
     .size(150, 32)
     .cornerRadius(8)
-    .linearGradient(['#FF6B35', '#FF4500'], 90)
-    .border(2, '#FFFFFF')
-    .shadow('rgba(0,0,0,0.3)', 6, 0, 2)
+    .background('#338833')
+    .border(1, "#fff")
     .setText(`分数: ${score}`)
     .textStyle('#FFFFFF', 15, 'Arial', 'bold')
-    .align('left', 'middle')
+    .align('middle', 'middle')
     .setPadding({ left: 12, right: 8, top: 6, bottom: 6 })
     .draw(ctx);
 
   // High score panel - Purple/Pink gradient
   roundedRect()
-    .position(W - 170, 10)
-    .size(160, 32)
+    .position(W - 160, 10)
+    .size(150, 32)
     .cornerRadius(8)
-    .linearGradient(['#9C27B0', '#E91E63'], 90)
-    .border(2, '#FFFFFF')
-    .shadow('rgba(0,0,0,0.3)', 6, 0, 2)
+    .background('#ffaf58')
+    .border(1, "#ffe200")
     .setText(`最高分: ${highScore}`)
     .textStyle('#FFFFFF', 13, 'Arial', 'bold')
-    .align('left', 'middle')
+    .align('middle', 'middle')
     .setPadding({ left: 10, right: 8, top: 6, bottom: 6 })
     .draw(ctx);
   
   // Wave display - Blue/Cyan gradient (changes to green during break)
-  const waveColors = inInterWave ? ['#4CAF50', '#8BC34A'] : ['#2196F3', '#00BCD4'];
   const waveText = inInterWave 
     ? `休息 ${Math.ceil((getInterWaveDuration() - getInterWaveTimer()) / 60)}s`
     : `第 ${currentWave} 波`;
@@ -50,9 +47,7 @@ function drawUI(ctx) {
     .position((W - 100) / 2, 10)
     .size(100, 32)
     .cornerRadius(8)
-    .linearGradient(waveColors, 90)
-    .border(2, '#FFFFFF')
-    .shadow('rgba(0,0,0,0.3)', 6, 0, 2)
+    .background('#000000')
     .setText(waveText)
     .textStyle('#FFFFFF', 14, 'Arial', 'bold')
     .align('center', 'middle')
@@ -62,9 +57,10 @@ function drawUI(ctx) {
   // Wave progress bar
   if (!inInterWave) {
     const progress = getWaveProgress();
-    const barWidth = ss(90);
+    const fixedBarWidth = 80;
+    const barWidth = ss(fixedBarWidth);
     const barHeight = ss(4);
-    const barX = sx((W - 90) / 2) + ss(5);
+    const barX = sx((W - fixedBarWidth) / 2);
     const barY = sy(10) + ss(32) - ss(8);
     const progressColor = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
     
@@ -74,7 +70,7 @@ function drawUI(ctx) {
     
     // Progress
     ctx.fillStyle = progressColor;
-    ctx.fillRect(barX, barY, barWidth * (1 - progress), barHeight);
+    ctx.fillRect(barX, barY, barWidth * Math.max(0,(1 - progress)), barHeight);
   }
 }
 
@@ -161,24 +157,25 @@ function drawStartScreen(ctx, canvas) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // White background panel
+  const panelWidth = 300;
+  const panelHeight = 360;
   roundedRect()
-    .position((W - 340) / 2, (H - 420) / 2)
-    .size(340, 420)
+    .position((W - panelWidth) / 2, (H - panelHeight) / 2)
+    .size(panelWidth, panelHeight)
     .cornerRadius(20)
     .background('#FFFFFF')
-    .border(4, '#FF6B35')
-    .shadow('rgba(0,0,0,0.4)', 20, 0, 8)
+    .border(6, '#FF6B35')
     .draw(ctx);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FF6B35';
   ctx.font = `bold ${ss(42)}px Arial`;
-  ctx.fillText('一起来护花!', sx(W / 2), sy(H / 2) - ss(120));
+  ctx.fillText('一起来护花!', sx(W / 2), sy(H / 2) - ss(100));
 
   ctx.fillStyle = '#666';
   ctx.font = `${ss(15)}px Arial`;
-  ctx.fillText('拖动弹弓瞄准,松开发射!', sx(W / 2), sy(H / 2) - ss(60));
-  ctx.fillText('在炸弹落地前击碎它们!', sx(W / 2), sy(H / 2) - ss(35));
+  ctx.fillText('拖动弹弓瞄准,松开发射!', sx(W / 2), sy(H / 2) - ss(50));
+  ctx.fillText('在炸弹落地前击碎它们!', sx(W / 2), sy(H / 2) - ss(25));
 
   // Bomb icon
   ctx.beginPath();
@@ -197,7 +194,6 @@ function drawStartScreen(ctx, canvas) {
     .cornerRadius(15)
     .linearGradient(['#FF6B35', '#FF4500'], 90)
     .border(3, '#FFFFFF')
-    .shadow('rgba(0,0,0,0.3)', 10, 0, 4)
     .setText('开始游戏')
     .textStyle('#FFFFFF', 22, 'Arial', 'bold')
     .align('center', 'middle')
