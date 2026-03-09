@@ -168,6 +168,7 @@ function update() {
       if (checkCollision(p, b)) {
         p.hits = (p.hits || 0) + 1;
         const popup = createScorePopup(b.x, b.y, p.hits);
+        scorePopups.push(popup);
         addScore(popup.totalScore);
         explosions.push(createExplosion(b.x, b.y, b.bombType));
         bombs.splice(j, 1);
