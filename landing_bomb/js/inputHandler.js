@@ -18,22 +18,22 @@ function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
   
   if (!isGameStarted()) {
-    // Start button check
-    const btnW = 140;
-    const btnH = 44;
+    // Start button check - matches roundedRect button in ui.js
+    const btnW = 160;
+    const btnH = 50;
+    const btnTop = H / 2 + 70;
     if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
-        gp.y > H / 2 + 80 && gp.y < H / 2 + 80 + btnH) {
+        gp.y > btnTop && gp.y < btnTop + btnH) {
       gameCallbacks.onGameStart && gameCallbacks.onGameStart();
     }
     return;
   }
   
   if (isGameOver()) {
-    // Play again button check
+    // Play again button check - matches roundedRect button in ui.js
     const btnW = 140;
-    const btnH = 40;
-    const boxH = 280;
-    const btnTop = H / 2 - boxH / 2 + boxH * 0.78;
+    const btnH = 44;
+    const btnTop = H / 2 + 90;
     if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
         gp.y > btnTop && gp.y < btnTop + btnH) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();

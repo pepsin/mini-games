@@ -18,12 +18,14 @@ function createProjectile(sling, dragCurrent, maxDrag) {
   const pullX = pivotX + Math.cos(angle) * clampDist;
   const pullY = pivotY + Math.sin(angle) * clampDist;
 
-  const vx = -(pullX - pivotX) * 0.18;
-  const vy = -(pullY - pivotY) * 0.18;
+  // Shoot outward from the drag tip (pull point) away from the slingshot
+  // Direction is from pivot to pull (outward), not negated
+  const vx = (pullX - pivotX) * 0.18;
+  const vy = (pullY - pivotY) * 0.18;
 
   return {
-    x: pivotX,
-    y: pivotY,
+    x: pullX,
+    y: pullY,
     vx: vx,
     vy: vy,
     radius: 12,
