@@ -5,7 +5,8 @@ const canvas = wx.createCanvas();
 const ctx = canvas.getContext('2d');
 
 // Core modules
-const { W, H, updateScale } = require('./js/config.js');
+const config = require('./js/config.js');
+const { W, H, updateScale } = config;
 const { loadResources, getResource } = require('./js/resources.js');
 const { animationLoader } = require('./js/animationLoader.js');
 
@@ -196,15 +197,22 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.globalAlpha = 1;
   
-  // Background
+  // Background (drawn without clipping)
   drawSky(ctx, canvas);
+  
+  // Set up clipping region for game area only (exclude black bars)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(config.offsetX, 0, W * config.scale, canvas.height);
+  ctx.clip();
   drawSun(ctx);
   drawRainbow(ctx);
+  
+  // Game entities (clipped to game area)
   clouds.forEach(c => drawCloud(ctx, c));
   drawWall(ctx);
   drawHealthFlowers(ctx);
   
-  // Game entities
   const frameCount = getFrameCount();
   bombs.forEach(b => drawBomb(ctx, b, frameCount));
   projectiles.forEach(p => drawProjectile(ctx, p));
@@ -215,7 +223,10 @@ function draw() {
   drawSlingshot(ctx);
   drawUI(ctx);
   
-  // Screens
+  // Restore context (remove clipping)
+  ctx.restore();
+  
+  // Screens (drawn without clipping)
   if (isGameOver()) {
     drawGameOver(ctx, canvas);
   } else if (!isGameStarted()) {
