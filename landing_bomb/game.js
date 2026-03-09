@@ -299,41 +299,23 @@ function initClouds() {
   for (let i = 0; i < 8; i++) {
     const variants = resources.cloud?.variants ? Object.keys(resources.cloud.variants) : ['small', 'medium', 'large'];
     
-    // 随机选择云朵类型并设置对应的基础缩放比例
-    // small: 0.45-0.75, medium: 0.75-1.2, large: 1.2-1.8 (缩放 1.5x 后)
+    // 随机选择云朵变体
     const variant = variants[Math.floor(Math.random() * variants.length)];
-    let baseScale;
-    switch (variant) {
-      case 'small':
-        baseScale = 0.45 + Math.random() * 0.3;  // 0.45 - 0.75
-        break;
-      case 'medium':
-        baseScale = 0.75 + Math.random() * 0.45; // 0.75 - 1.2
-        break;
-      case 'large':
-        baseScale = 1.2 + Math.random() * 0.6;   // 1.2 - 1.8
-        break;
-      default:
-        baseScale = 0.6 + Math.random() * 0.6;   // 0.6 - 1.2
-    }
     
-    // 添加小的随机变化，让同类型的云也有大小差异
-    const randomVariation = (Math.random() - 0.5) * 0.2; // ±10%
-    const finalScale = Math.max(0.4, Math.min(2.0, baseScale + randomVariation));
+    // 云朵缩放范围: 0.7 - 1.3 (再 * 1.2 = 最终 0.84 - 1.56)
+    const finalScale = 0.7 + Math.random() * 0.6;
     
     // 根据尺寸调整速度：越大的云看起来越远，移动越慢
-    const depthFactor = 1 - (finalScale - 0.4) / 1.6 * 0.5; // 0.5 - 1.0
+    const depthFactor = 1 - (finalScale - 0.7) / 0.6 * 0.4; // 0.6 - 1.0
     
-    // 云朵只在上半屏浮动 (y: -50 到 H/2)
-    // 允许部分云朵从屏幕外开始（y: -50）
-    const yPos = -50 + Math.random() * (H / 2 + 50);
+    // 云朵在屏幕上部 2/5 区域浮动 (y: -50 到 H*2/5)
+    const yPos = -50 + Math.random() * (H * 2/5 + 50);
     
     clouds.push({
       x: Math.random() * (W + 200),  // 初始化时分布在更宽的区域
       y: yPos,
       variant: variant,
-      scale: finalScale,           // 个体缩放比例（1.2x 后的尺寸）
-      baseScale: baseScale,        // 基础类型缩放
+      scale: finalScale,           // 个体缩放比例 (0.7 - 1.3)
       speed: (0.1 + Math.random() * 0.2) * depthFactor
       // No opacity - clouds use full alpha
     });
