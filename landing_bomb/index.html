@@ -483,22 +483,15 @@ function drawWall() {
   }
 }
 
-function drawFlower(x, y, alive) {
+function drawFlower(x, y, alive, frameIndex) {
   // Use image if loaded
   if (resources.flower.loaded) {
-    // Update state if changed
-    const state = alive ? 'alive' : 'dead';
-    if (resources.flower.currentState !== state) {
-      resources.flower.currentState = state;
-      resources.flower.currentFrame = 0;
-    }
-    
     // Get current frame image
     let frameKey;
     if (alive) {
       // Cycle through alive frames: 01, 02, 03, 04
       const frameIndices = ['alive_01', 'alive_02', 'alive_03', 'alive_04'];
-      frameKey = frameIndices[resources.flower.currentFrame % 4];
+      frameKey = frameIndices[frameIndex % 4];
     } else {
       frameKey = 'dead';
     }
@@ -538,6 +531,7 @@ function drawFlower(x, y, alive) {
 
 // Health flowers - 4 flowers on the ground representing lives
 let flowerAlive = [true, true, true, true];
+let flowerFrameIndices = [0, 1, 2, 3]; // Each flower starts at different frame
 const flowerHitRadius = 50; // how close a bomb must land to kill a flower
 
 // Get flower positions from config or use defaults
@@ -558,7 +552,7 @@ function drawHealthFlowers() {
   const positions = getFlowerPositions();
   for (let i = 0; i < 4; i++) {
     const pos = positions[i] || { x: 90 + i * 90, y: 708 };
-    drawFlower(pos.x, pos.y, flowerAlive[i]);
+    drawFlower(pos.x, pos.y, flowerAlive[i], flowerFrameIndices[i]);
   }
 }
 
@@ -1145,12 +1139,12 @@ function update() {
   if (gameOver || !gameStarted) return;
   frameCount++;
   
-  // Update flower animation
-  if (resources.flower.loaded && resources.flower.currentState === 'alive') {
-    const now = Date.now();
-    if (now - resources.flower.lastFrameTime > resources.flower.frameDuration) {
-      resources.flower.currentFrame++;
-      resources.flower.lastFrameTime = now;
+  // Update flower animation - each flower advances independently
+  if (resources.flower.loaded && frameCount % 15 === 0) { // 15 frames = ~250ms at 60fps
+    for (let i = 0; i < 4; i++) {
+      if (flowerAlive[i]) {
+        flowerFrameIndices[i]++;
+      }
     }
   }
 
@@ -1305,6 +1299,7 @@ function resetGame() {
   score = 0;
   lives = 4;
   flowerAlive = [true, true, true, true];
+  flowerFrameIndices = [0, 1, 2, 3]; // Reset to different starting frames
   gameOver = false;
   bombs = [];
   projectiles = [];

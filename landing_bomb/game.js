@@ -307,6 +307,7 @@ const maxDrag = 300; // 允许拉到更远的距离，接近屏幕边缘
 
 // 花朵配置
 let flowerAlive = [true, true, true, true];
+let flowerFrameIndices = [0, 1, 2, 3]; // Each flower starts at different frame
 const flowerHitRadius = 50;
 
 // Get flower positions from config or use defaults
@@ -587,32 +588,42 @@ function drawWall() {
   }
 }
 
-function drawFlower(x, y, alive) {
+function drawFlower(x, y, alive, frameIndex) {
   if (resourcesLoaded && resources.flower) {
-    // Only set state when it changes (avoid resetting animation every frame)
     const state = alive ? 'alive' : 'dead';
-    if (resources.flower.currentState !== state) {
-      animationLoader.setState(resources.flower, state);
-    }
     
-    const img = animationLoader.getCurrentFrame(resources.flower);
-    if (img && img.width > 0) {
-      const size = animationLoader.getSize(resources.flower);
-      const anchor = animationLoader.getAnchor(resources.flower);
-      
-      // 计算保持比例的绘制尺寸
-      const aspectRatio = img.width / img.height;
-      const targetWidth = size.width;
-      const drawWidth = sx(targetWidth);
-      const drawHeight = drawWidth / aspectRatio;
-      
-      const drawX = sx(x) - drawWidth * anchor.x;
-      const drawY = sy(y) - drawHeight * anchor.y;
-      
-      // 直接绘制，不使用染色
-      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+    // Get frames for current state
+    const frames = resources.flower.states?.[state] || resources.flower.frames;
+    if (!frames || frames.length === 0) {
+      // 使用示意方块 - 使用 config 中的标准尺寸
+      const label = alive ? 'FLOWER' : 'DEAD';
+      drawPlaceholder(x, y, 48, 64, label, RESOURCE_COLORS.flower, 0.5, 0.8);
       return;
     }
+    
+    // Get specific frame for this flower
+    const frame = frames[frameIndex % frames.length];
+    if (!frame || !frame.image) {
+      const label = alive ? 'FLOWER' : 'DEAD';
+      drawPlaceholder(x, y, 48, 64, label, RESOURCE_COLORS.flower, 0.5, 0.8);
+      return;
+    }
+    
+    const size = animationLoader.getSize(resources.flower);
+    const anchor = animationLoader.getAnchor(resources.flower);
+    
+    // 计算保持比例的绘制尺寸
+    const aspectRatio = frame.image.width / frame.image.height;
+    const targetWidth = size.width;
+    const drawWidth = sx(targetWidth);
+    const drawHeight = drawWidth / aspectRatio;
+    
+    const drawX = sx(x) - drawWidth * anchor.x;
+    const drawY = sy(y) - drawHeight * anchor.y;
+    
+    // 直接绘制，不使用染色
+    ctx.drawImage(frame.image, drawX, drawY, drawWidth, drawHeight);
+    return;
   }
   
   // 使用示意方块 - 使用 config 中的标准尺寸
@@ -624,7 +635,7 @@ function drawHealthFlowers() {
   const positions = getFlowerPositions();
   for (let i = 0; i < 4; i++) {
     const pos = positions[i] || { x: 90 + i * 90, y: 708 };
-    drawFlower(pos.x, pos.y, flowerAlive[i]);
+    drawFlower(pos.x, pos.y, flowerAlive[i], flowerFrameIndices[i]);
   }
 }
 
@@ -702,7 +713,7 @@ function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
 
     ctx.setLineDash([]);
   } else {
-    ctx.strokeStyle = '#efefaf';
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = sx(4);
     ctx.beginPath();
     ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
@@ -1245,7 +1256,15 @@ function update() {
   // 更新动画
   if (resourcesLoaded) {
     animationLoader.update(resources.bomb, deltaTime);
-    animationLoader.update(resources.flower, deltaTime);
+    
+    // Update each flower's frame independently (they have different start frames)
+    if (resources.flower && frameCount % 15 === 0) { // 15 frames = ~250ms at 60fps
+      for (let i = 0; i < 4; i++) {
+        if (flowerAlive[i]) {
+          flowerFrameIndices[i]++;
+        }
+      }
+    }
   }
 
   // 更新云朵（从右往左移动）
@@ -1405,6 +1424,7 @@ function resetGame() {
   score = 0;
   lives = 4;
   flowerAlive = [true, true, true, true];
+  flowerFrameIndices = [0, 1, 2, 3]; // Reset to different starting frames
   gameOver = false;
   bombs = [];
   projectiles = [];
