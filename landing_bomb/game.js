@@ -155,11 +155,120 @@ let projectiles = [];
 let explosions = [];
 let scorePopups = []; // 分数弹出动画
 let clouds = [];
-let spawnTimer = 0;
-let spawnInterval = 120;
-let difficulty = 0;
 let frameCount = 0;
 let lastTime = Date.now();
+
+// ========== WAVE SYSTEM ==========
+// Wave-based spawn system - tunable parameters for difficulty curve
+let currentWave = 1;
+let waveTimer = 0;           // Frames since wave started
+let waveDuration = 600;      // Default wave duration (10 seconds at 60fps)
+let interWaveTimer = 0;      // Break between waves
+let interWaveDuration = 120; // 2 seconds break between waves
+let isInterWave = false;     // Are we in between waves?
+let bombsSpawnedThisWave = 0;
+let totalBombsThisWave = 0;
+let nextSpawnTime = 0;       // Frame count when next bomb should spawn
+
+// Wave configuration function - returns spawn parameters for given wave
+// This is the main tuning function for difficulty
+function getWaveConfig(wave) {
+  // Clamp wave to max 200 for calculation safety
+  const w = Math.min(wave, 200);
+  
+  // Base difficulty multiplier (1.0 at wave 1, ~5.0 at wave 100)
+  // Using a curve that starts slow and accelerates after wave 30
+  let difficultyMultiplier;
+  if (w <= 30) {
+    // Waves 1-30: Gentle linear increase (easy for most players)
+    difficultyMultiplier = 1 + (w - 1) * 0.05;
+  } else {
+    // Waves 31+: Exponential increase (hard for elite players)
+    // At wave 100: difficulty ~5.0
+    const excess = w - 30;
+    difficultyMultiplier = 2.45 + excess * 0.036;
+  }
+  
+  // ========== TUNABLE PARAMETERS ==========
+  
+  // Total bombs per wave
+  // Wave 1: 3 bombs, Wave 30: ~10 bombs, Wave 100: ~20 bombs
+  const bombsPerWave = Math.floor(5 + w * 0.18 + Math.pow(w / 50, 2) * 5);
+  
+  // Wave duration in frames (varies slightly to keep it interesting)
+  // Wave 1: 8 seconds, Wave 30: 9s, Wave 100: 10s
+  const waveDurationFrames = Math.floor((8 + Math.min(w * 0.03, 2)) * 60);
+  
+  // Bomb speed range
+  // Wave 1: 0.6-1.0, Wave 30: 1.2-1.8, Wave 100: 2.2-3.5
+  const minSpeed = 0.7 + w * 0.02 + Math.pow(w / 60, 2) * 0.8;
+  const maxSpeed = minSpeed + 0.4 + w * 0.01;
+  
+  // Sway (horizontal movement) - makes bombs harder to hit
+  // Wave 1: minimal sway, Wave 100: significant sway
+  const maxSway = 0.2 + w * 0.015;
+  
+  // Bomb size variation (smaller bombs at higher waves)
+  const minRadius = Math.max(10, 16 - w * 0.04);
+  const maxRadius = Math.max(14, 20 - w * 0.04);
+  
+  // Bomb health (for future use - multi-hit bombs)
+  const bombHealth = w >= 50 ? 1 + Math.floor((w - 50) / 25) : 1;
+  
+  // Special bomb chance (fast bombs, zigzag bombs, etc.)
+  // Wave 1-10: 0%, Wave 30: 10%, Wave 100: 40%
+  const specialBombChance = Math.max(0, (w - 10) * 0.005);
+  
+  // Cluster bomb chance (bombs that split when hit)
+  // Starts at wave 20
+  const clusterBombChance = w >= 20 ? Math.min(0.15, (w - 20) * 0.003) : 0;
+  
+  return {
+    bombsPerWave,
+    waveDurationFrames,
+    minSpeed,
+    maxSpeed,
+    maxSway,
+    minRadius,
+    maxRadius,
+    bombHealth,
+    specialBombChance,
+    clusterBombChance,
+    difficultyMultiplier
+  };
+}
+
+// Calculate spawn times for a wave (returns array of frame offsets)
+function calculateSpawnTimes(config) {
+  const spawnTimes = [];
+  const { bombsPerWave, waveDurationFrames } = config;
+  
+  if (bombsPerWave === 0) return spawnTimes;
+  
+  // Distribute bombs throughout the wave with some randomness
+  // First bomb always comes early, last bomb comes before wave ends
+  const safeDuration = waveDurationFrames - 60; // Leave 1 second buffer at end
+  
+  for (let i = 0; i < bombsPerWave; i++) {
+    // Base position in wave (0 to 1)
+    const basePosition = (i + 1) / (bombsPerWave + 1);
+    
+    // Add randomness ±30% to make patterns less predictable
+    const randomOffset = (Math.random() - 0.5) * 0.3;
+    const position = Math.max(0.05, Math.min(0.95, basePosition + randomOffset));
+    
+    spawnTimes.push(Math.floor(position * safeDuration));
+  }
+  
+  // Sort spawn times
+  return spawnTimes.sort((a, b) => a - b);
+}
+
+// Get current wave configuration
+let currentWaveConfig = getWaveConfig(1);
+let waveSpawnSchedule = [];
+
+// ========== END WAVE SYSTEM ==========
 
 // 从本地存储读取最高分
 try {
@@ -711,6 +820,42 @@ function drawUI() {
   ctx.font = `bold ${sx(13)}px Arial`;
   ctx.textAlign = 'left';
   ctx.fillText(`HI-SCORE: ${highScore}`, sx(W - 160), sy(10) + panelH * 0.65);
+  
+  // 波次显示
+  const wavePanelW = sx(100);
+  const waveX = (sx(W) - wavePanelW) / 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(waveX, sy(10), wavePanelW, panelH);
+  ctx.strokeStyle = isInterWave ? '#4CAF50' : '#FF6B6B';
+  ctx.lineWidth = sx(2);
+  ctx.strokeRect(waveX, sy(10), wavePanelW, panelH);
+  ctx.fillStyle = '#FFF';
+  ctx.font = `bold ${sx(14)}px Arial`;
+  ctx.textAlign = 'center';
+  
+  if (isInterWave) {
+    // 波次间休息时显示倒计时
+    const remainingBreak = Math.ceil((interWaveDuration - interWaveTimer) / 60);
+    ctx.fillText(`BREAK ${remainingBreak}s`, sx(W / 2), sy(10) + panelH * 0.65);
+  } else {
+    ctx.fillText(`WAVE ${currentWave}`, sx(W / 2), sy(10) + panelH * 0.65);
+  }
+  
+  // 波次进度条（仅在波次中显示）
+  if (!isInterWave && currentWaveConfig) {
+    const progress = waveTimer / currentWaveConfig.waveDurationFrames;
+    const barWidth = wavePanelW - sx(10);
+    const barHeight = sx(4);
+    const barY = sy(10) + panelH - barHeight - sx(3);
+    
+    // 背景
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(waveX + sx(5), barY, barWidth, barHeight);
+    
+    // 进度
+    ctx.fillStyle = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
+    ctx.fillRect(waveX + sx(5), barY, barWidth * (1 - progress), barHeight);
+  }
 }
 
 function drawGameOver() {
@@ -719,7 +864,7 @@ function drawGameOver() {
 
   // 弹窗框 - 统一使用 sx 缩放保持宽高比
   const boxW = sx(320);
-  const boxH = sx(240); // 使用 sx 保持比例，而不是 sy
+  const boxH = sx(280); // 增加高度以容纳波次信息
   const bx = sx(W / 2) - boxW / 2;
   const by = sy(H / 2) - boxH / 2;
   
@@ -732,27 +877,51 @@ function drawGameOver() {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#FF4444';
   ctx.font = `bold ${sx(32)}px Arial`;
-  ctx.fillText('GAME OVER', sx(W / 2), by + boxH * 0.25);
+  ctx.fillText('GAME OVER', sx(W / 2), by + boxH * 0.22);
+
+  ctx.fillStyle = '#FFD700';
+  ctx.font = `bold ${sx(24)}px Arial`;
+  ctx.fillText(`Wave ${currentWave} Reached!`, sx(W / 2), by + boxH * 0.38);
 
   ctx.fillStyle = '#FFF';
   ctx.font = `bold ${sx(20)}px Arial`;
-  ctx.fillText(`Score: ${score}`, sx(W / 2), by + boxH * 0.45);
+  ctx.fillText(`Score: ${score}`, sx(W / 2), by + boxH * 0.52);
 
   ctx.fillStyle = '#FFD700';
   ctx.font = `bold ${sx(16)}px Arial`;
-  ctx.fillText(`High Score: ${highScore}`, sx(W / 2), by + boxH * 0.58);
+  ctx.fillText(`High Score: ${highScore}`, sx(W / 2), by + boxH * 0.63);
 
   if (score >= highScore && score > 0) {
     ctx.fillStyle = '#FFD700';
     ctx.font = `bold ${sx(14)}px Arial`;
-    ctx.fillText('NEW HIGH SCORE!', sx(W / 2), by + boxH * 0.70);
+    ctx.fillText('NEW HIGH SCORE!', sx(W / 2), by + boxH * 0.72);
+  }
+  
+  // 波次评价
+  let rating = '';
+  let ratingColor = '#FFF';
+  if (currentWave >= 100) {
+    rating = '⭐ LEGEND! TOP 1%! ⭐';
+    ratingColor = '#FFD700';
+  } else if (currentWave >= 50) {
+    rating = '🔥 EXPERT! Top 10%! 🔥';
+    ratingColor = '#FF6B6B';
+  } else if (currentWave >= 30) {
+    rating = '🌻 Good Job! 🌻';
+    ratingColor = '#4ECDC4';
+  }
+  
+  if (rating) {
+    ctx.fillStyle = ratingColor;
+    ctx.font = `bold ${sx(14)}px Arial`;
+    ctx.fillText(rating, sx(W / 2), by + boxH * 0.79);
   }
 
   // 按钮 - 统一使用 sx 缩放保持宽高比
   const btnW = sx(140);
   const btnH = sx(40); // 使用 sx 保持按钮比例
   const btnX = sx(W / 2) - btnW / 2;
-  const btnY = by + boxH * 0.78;
+  const btnY = by + boxH * 0.86;
   
   ctx.fillStyle = '#4CAF50';
   ctx.fillRect(btnX, btnY, btnW, btnH);
@@ -810,30 +979,134 @@ function drawStartScreen() {
 // --- Game Logic ---
 
 function spawnBomb() {
-  const radius = 14 + Math.random() * 4;
+  const cfg = currentWaveConfig;
+  
+  // Determine if this is a special bomb
+  const isSpecial = Math.random() < cfg.specialBombChance;
+  const isCluster = Math.random() < cfg.clusterBombChance;
+  
+  // Calculate base properties
+  const radius = cfg.minRadius + Math.random() * (cfg.maxRadius - cfg.minRadius);
+  let speed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
+  let sway = Math.random() * cfg.maxSway;
+  
+  // Special bomb types
+  let bombType = 'normal';
+  let health = cfg.bombHealth;
+  
+  if (isCluster) {
+    bombType = 'cluster';
+    // Cluster bombs are slightly slower but split when hit
+    speed *= 0.85;
+  } else if (isSpecial) {
+    const specialTypes = ['fast', 'zigzag', 'tank'];
+    bombType = specialTypes[Math.floor(Math.random() * specialTypes.length)];
+    
+    switch (bombType) {
+      case 'fast':
+        speed *= 1.5;  // 50% faster
+        sway *= 0.5;   // Less sway
+        break;
+      case 'zigzag':
+        speed *= 0.9;
+        sway *= 2.5;   // Much more horizontal movement
+        break;
+      case 'tank':
+        speed *= 0.6;  // Slow but tanky
+        health = Math.max(2, health + 1);
+        break;
+    }
+  }
+  
+  // Spawn position: ensure bombs don't spawn too close to edges
+  // Higher waves have slightly wider spawn area
+  const margin = 30 + Math.min(currentWave * 0.5, 30);
+  const x = margin + Math.random() * (W - margin * 2);
+  
   bombs.push({
-    x: 40 + Math.random() * (W - 80),
-    y: -40,
+    x: x,
+    y: -50,
     radius: radius,
-    speed: 0.6 + Math.random() * 0.5 + difficulty * 0.05,
-    sway: Math.random() * 0.3,
+    speed: speed,
+    sway: sway,
     swayOffset: Math.random() * Math.PI * 2,
     exploding: false,
+    bombType: bombType,
+    health: health,
+    maxHealth: health,
     // 初始化降落伞属性（随机缩放和旋转偏移）
     parachute: Parachute.createBombParachute()
   });
 }
 
-function createExplosion(x, y, points) {
+// Start a new wave
+function startWave(waveNum) {
+  currentWave = waveNum;
+  currentWaveConfig = getWaveConfig(waveNum);
+  
+  waveTimer = 0;
+  bombsSpawnedThisWave = 0;
+  totalBombsThisWave = currentWaveConfig.bombsPerWave;
+  
+  // Calculate spawn schedule for this wave
+  waveSpawnSchedule = calculateSpawnTimes(currentWaveConfig);
+  
+  // Set first spawn time
+  nextSpawnTime = waveSpawnSchedule.length > 0 ? waveSpawnSchedule[0] : 0;
+  
+  console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${currentWaveConfig.waveDurationFrames / 60}s duration`);
+}
+
+// End current wave, start inter-wave break
+function endWave() {
+  isInterWave = true;
+  interWaveTimer = 0;
+  
+  // Inter-wave duration decreases slightly at higher waves (less rest for elites)
+  interWaveDuration = Math.max(60, 120 - currentWave * 0.5);
+  
+  console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
+}
+
+function createExplosion(x, y, points, bombType = 'normal') {
   const particles = [];
-  const colors = [
-    { r: 255, g: 100, b: 0 },
-    { r: 255, g: 200, b: 0 },
-    { r: 255, g: 50, b: 0 },
-    { r: 255, g: 255, b: 100 },
-    { r: 200, g: 50, b: 0 },
-  ];
-  for (let i = 0; i < 20; i++) {
+  
+  // Different explosion colors based on bomb type
+  let colors;
+  switch (bombType) {
+    case 'fast':
+      colors = [
+        { r: 100, g: 200, b: 255 },
+        { r: 50, g: 150, b: 255 },
+        { r: 200, g: 230, b: 255 },
+      ];
+      break;
+    case 'tank':
+      colors = [
+        { r: 150, g: 50, b: 50 },
+        { r: 100, g: 30, b: 30 },
+        { r: 200, g: 100, b: 100 },
+      ];
+      break;
+    case 'cluster':
+      colors = [
+        { r: 255, g: 100, b: 255 },
+        { r: 200, g: 50, b: 200 },
+        { r: 255, g: 200, b: 255 },
+      ];
+      break;
+    default:
+      colors = [
+        { r: 255, g: 100, b: 0 },
+        { r: 255, g: 200, b: 0 },
+        { r: 255, g: 50, b: 0 },
+        { r: 255, g: 255, b: 100 },
+        { r: 200, g: 50, b: 0 },
+      ];
+  }
+  
+  const particleCount = bombType === 'normal' ? 20 : 28;
+  for (let i = 0; i < particleCount; i++) {
     const angle = Math.random() * Math.PI * 2;
     const speed = 1 + Math.random() * 3;
     const c = colors[Math.floor(Math.random() * colors.length)];
@@ -926,18 +1199,31 @@ function update() {
     if (c.x > W + 100) c.x = -100;
   });
 
-  // 生成炸弹
-  spawnTimer++;
-  if (spawnTimer >= spawnInterval) {
-    spawnTimer = 0;
-    spawnBomb();
+  // ========== WAVE SYSTEM UPDATE ==========
+  if (isInterWave) {
+    // Inter-wave break
+    interWaveTimer++;
+    if (interWaveTimer >= interWaveDuration) {
+      isInterWave = false;
+      startWave(currentWave + 1);
+    }
+  } else {
+    // Active wave
+    waveTimer++;
+    
+    // Check if it's time to spawn a bomb
+    if (bombsSpawnedThisWave < waveSpawnSchedule.length && 
+        waveTimer >= waveSpawnSchedule[bombsSpawnedThisWave]) {
+      spawnBomb();
+      bombsSpawnedThisWave++;
+    }
+    
+    // Check if wave should end
+    if (waveTimer >= currentWaveConfig.waveDurationFrames && bombs.length === 0) {
+      endWave();
+    }
   }
-
-  // 增加难度
-  if (frameCount % 600 === 0) {
-    difficulty++;
-    spawnInterval = Math.max(40, 120 - difficulty * 10);
-  }
+  // ========== END WAVE SYSTEM UPDATE ==========
 
   // 更新炸弹
   for (let i = bombs.length - 1; i >= 0; i--) {
@@ -1005,7 +1291,7 @@ function update() {
         // 计算分数：第n次击中 = n x 100
         const points = createScorePopup(b.x, b.y, p.hits);
         score += points;
-        createExplosion(b.x, b.y, points);
+        createExplosion(b.x, b.y, points, b.bombType);
         bombs.splice(j, 1);
         // 不删除投射物，让它可以继续飞行击中其他炸弹
       }
@@ -1066,13 +1352,20 @@ function resetGame() {
   projectiles = [];
   explosions = [];
   scorePopups = [];
-  spawnTimer = 0;
-  spawnInterval = 120;
-  difficulty = 0;
   frameCount = 0;
   dragging = false;
   dragStart = null;
   dragCurrent = null;
+  
+  // Reset wave system
+  currentWave = 0;
+  waveTimer = 0;
+  interWaveTimer = 0;
+  isInterWave = true; // Start with a break to let player prepare
+  interWaveDuration = 180; // 3 seconds to start
+  bombsSpawnedThisWave = 0;
+  totalBombsThisWave = 0;
+  waveSpawnSchedule = [];
 }
 
 // --- Input Handling ---
