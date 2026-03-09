@@ -829,36 +829,43 @@ function drawScorePopup(popup) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   
-  // 绘制 "n x 100" 文字
   const fontSize = Math.floor(sx(20) * scale);
   ctx.font = `bold ${fontSize}px Arial`;
   
-  // 连击数字使用金色，x和100使用白色
-  const comboText = `${popup.combo}`;
-  const xText = ' x ';
-  const scoreText = '100';
-  
-  // 计算总宽度以居中
-  const comboWidth = ctx.measureText(comboText).width;
-  const xWidth = ctx.measureText(xText).width;
-  const scoreWidth = ctx.measureText(scoreText).width;
-  const totalWidth = comboWidth + xWidth + scoreWidth;
-  
-  const startX = cx - totalWidth / 2;
-  
-  // 绘制连击数字（金色带发光效果）
-  ctx.fillStyle = '#FFD700';
-  ctx.shadowColor = '#FF8C00';
-  ctx.shadowBlur = sx(4);
-  ctx.fillText(comboText, startX + comboWidth / 2, cy);
-  
-  // 绘制 "x"（白色）
-  ctx.fillStyle = '#FFFFFF';
-  ctx.shadowBlur = 0;
-  ctx.fillText(xText, startX + comboWidth + xWidth / 2, cy);
-  
-  // 绘制 "100"（白色）
-  ctx.fillText(scoreText, startX + comboWidth + xWidth + scoreWidth / 2, cy);
+  if (popup.combo === 1) {
+    // Single hit: just show "100"
+    ctx.fillStyle = '#FFD700';
+    ctx.shadowColor = '#FF8C00';
+    ctx.shadowBlur = sx(4);
+    ctx.fillText('+100', cx, cy);
+    ctx.shadowBlur = 0;
+  } else {
+    // Combo: show "n x 100"
+    const comboText = `${popup.combo}`;
+    const xText = ' x ';
+    const scoreText = '100';
+    
+    const comboWidth = ctx.measureText(comboText).width;
+    const xWidth = ctx.measureText(xText).width;
+    const scoreWidth = ctx.measureText(scoreText).width;
+    const totalWidth = comboWidth + xWidth + scoreWidth;
+    
+    const startX = cx - totalWidth / 2;
+    
+    // Draw combo number (gold with glow)
+    ctx.fillStyle = '#FFD700';
+    ctx.shadowColor = '#FF8C00';
+    ctx.shadowBlur = sx(4);
+    ctx.fillText(comboText, startX + comboWidth / 2, cy);
+    
+    // Draw "x" (white)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowBlur = 0;
+    ctx.fillText(xText, startX + comboWidth + xWidth / 2, cy);
+    
+    // Draw "100" (white)
+    ctx.fillText(scoreText, startX + comboWidth + xWidth + scoreWidth / 2, cy);
+  }
   
   ctx.restore();
 }
