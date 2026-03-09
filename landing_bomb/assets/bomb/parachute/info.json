@@ -4,8 +4,8 @@
   "description": "降落伞，随炸弹一起下落",
   "file": "parachute.png",
   "size": {
-    "width": 96,
-    "height": 96
+    "width": 66,
+    "height": 37
   },
   "anchor": {
     "x": 0.5,

@@ -151,6 +151,7 @@ let gameStarted = false;
 let bombs = [];
 let projectiles = [];
 let explosions = [];
+let scorePopups = []; // 分数弹出动画
 let clouds = [];
 let spawnTimer = 0;
 let spawnInterval = 120;
@@ -173,7 +174,7 @@ const sling = { x: W / 2, y: H - 130, prongW: 12, prongH: 50 };
 let dragging = false;
 let dragStart = null;
 let dragCurrent = null;
-const maxDrag = 120;
+const maxDrag = 300; // 允许拉到更远的距离，接近屏幕边缘
 
 // 花朵配置
 const healthFlowerColors = ['#FF5252', '#FF4081', '#FFAB40', '#E040FB'];
@@ -649,13 +650,60 @@ function drawExplosion(exp) {
     ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha})`;
     ctx.fill();
   });
+}
 
-  if (exp.points) {
-    ctx.fillStyle = `rgba(255,255,255,${1 - progress})`;
-    ctx.font = `bold ${sx(18)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`+${exp.points}`, cx, cy - sy(20 + progress * 30));
+// 绘制分数弹出动画
+function drawScorePopup(popup) {
+  const progress = popup.frame / popup.maxFrames;
+  const cx = sx(popup.x);
+  const cy = sy(popup.y - 20 - progress * 30); // 向上飘动
+  
+  // 缩放效果：从大到小 (zoom out)
+  const scale = 1.5 - progress * 0.8; // 从1.5倍缩小到0.7倍
+  
+  // 透明度：先保持一段时间，然后淡出
+  let alpha = 1;
+  if (progress > 0.5) {
+    alpha = 1 - (progress - 0.5) * 2; // 后半段淡出
   }
+  
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // 绘制 "n x 100" 文字
+  const fontSize = Math.floor(sx(20) * scale);
+  ctx.font = `bold ${fontSize}px Arial`;
+  
+  // 连击数字使用金色，x和100使用白色
+  const comboText = `${popup.combo}`;
+  const xText = ' x ';
+  const scoreText = '100';
+  
+  // 计算总宽度以居中
+  const comboWidth = ctx.measureText(comboText).width;
+  const xWidth = ctx.measureText(xText).width;
+  const scoreWidth = ctx.measureText(scoreText).width;
+  const totalWidth = comboWidth + xWidth + scoreWidth;
+  
+  const startX = cx - totalWidth / 2;
+  
+  // 绘制连击数字（金色带发光效果）
+  ctx.fillStyle = '#FFD700';
+  ctx.shadowColor = '#FF8C00';
+  ctx.shadowBlur = sx(4);
+  ctx.fillText(comboText, startX + comboWidth / 2, cy);
+  
+  // 绘制 "x"（白色）
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowBlur = 0;
+  ctx.fillText(xText, startX + comboWidth + xWidth / 2, cy);
+  
+  // 绘制 "100"（白色）
+  ctx.fillText(scoreText, startX + comboWidth + xWidth + scoreWidth / 2, cy);
+  
+  ctx.restore();
 }
 
 function drawUI() {
@@ -812,7 +860,22 @@ function createExplosion(x, y, points) {
       r: c.r, g: c.g, b: c.b
     });
   }
-  explosions.push({ x, y, frame: 0, maxFrames: 40, particles, points });
+  explosions.push({ x, y, frame: 0, maxFrames: 40, particles, points: null });
+}
+
+// 创建分数弹出动画
+function createScorePopup(x, y, combo) {
+  const baseScore = 100;
+  const totalScore = baseScore * combo;
+  scorePopups.push({
+    x, y,
+    combo,           // 连击数
+    baseScore,       // 基础分数
+    totalScore,      // 总分
+    frame: 0,
+    maxFrames: 50    // 动画持续帧数
+  });
+  return totalScore;
 }
 
 function createGroundExplosion(x, y) {
@@ -942,17 +1005,34 @@ function update() {
       continue;
     }
 
+    // 初始化连击计数（如果是新投射物）
+    if (typeof p.hits === 'undefined') {
+      p.hits = 0;
+    }
+
     for (let j = bombs.length - 1; j >= 0; j--) {
       const b = bombs[j];
       const dx = p.x - b.x;
       const dy = p.y - b.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < p.radius + b.radius + 5) {
-        const points = 100 + Math.floor((H - 80 - b.y) / H * 100);
+        // 增加连击数
+        p.hits++;
+        // 计算分数：第n次击中 = n x 100
+        const points = createScorePopup(b.x, b.y, p.hits);
         score += points;
         createExplosion(b.x, b.y, points);
         bombs.splice(j, 1);
+        // 不删除投射物，让它可以继续飞行击中其他炸弹
       }
+    }
+  }
+
+  // 更新分数弹出动画
+  for (let i = scorePopups.length - 1; i >= 0; i--) {
+    scorePopups[i].frame++;
+    if (scorePopups[i].frame >= scorePopups[i].maxFrames) {
+      scorePopups.splice(i, 1);
     }
   }
 
@@ -976,6 +1056,7 @@ function draw() {
   bombs.forEach(drawBomb);
   projectiles.forEach(drawProjectile);
   explosions.forEach(drawExplosion);
+  scorePopups.forEach(drawScorePopup);
   drawSlingshot();
   drawUI();
 
@@ -1000,6 +1081,7 @@ function resetGame() {
   bombs = [];
   projectiles = [];
   explosions = [];
+  scorePopups = [];
   spawnTimer = 0;
   spawnInterval = 120;
   difficulty = 0;
@@ -1039,11 +1121,10 @@ function handleStart(e) {
     return;
   }
 
-  if (gp.y > H * 0.5) {
-    dragging = true;
-    dragStart = gp;
-    dragCurrent = gp;
-  }
+  // 允许在屏幕任何位置开始拖拽（除了UI按钮区域）
+  dragging = true;
+  dragStart = gp;
+  dragCurrent = gp;
 }
 
 function handleMove(e) {
