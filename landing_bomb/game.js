@@ -6,6 +6,8 @@ const ctx = canvas.getContext('2d');
 
 // 引入动画加载器
 const { animationLoader } = require('./js/animationLoader.js');
+// 引入降落伞模块
+const { Parachute } = require('./js/parachute.js');
 
 // 获取系统信息
 const systemInfo = wx.getSystemInfoSync();
@@ -548,28 +550,8 @@ function drawSlingshotBands(leftTip, rightTip, pivotX, pivotY) {
 function drawBomb(bomb) {
   if (bomb.exploding) return;
   
-  // 降落伞位置偏移（在炸弹上方）
-  const parachuteOffset = 50;
-  
-  // 绘制降落伞
-  if (resourcesLoaded && resources.parachute?.image && resources.parachute.image.width > 0) {
-    const size = animationLoader.getSize(resources.parachute);
-    const anchor = animationLoader.getAnchor(resources.parachute);
-    const result = drawImageProportional(
-      resources.parachute.image,
-      bomb.x,
-      bomb.y - parachuteOffset,
-      size.width * 0.6,  // 目标宽度（游戏坐标）
-      anchor.x,
-      anchor.y
-    );
-    if (!result) {
-      drawPlaceholder(bomb.x, bomb.y - parachuteOffset, 96, 96, 'CHUTE', RESOURCE_COLORS.parachute, 0.5, 0.8);
-    }
-  } else {
-    // 使用示意方块绘制降落伞 - 使用 config 中的标准尺寸 96x96
-    drawPlaceholder(bomb.x, bomb.y - parachuteOffset, 96, 96, 'CHUTE', RESOURCE_COLORS.parachute, 0.5, 0.8);
-  }
+  // 使用降落伞模块绘制降落伞（包含连接线、旋转和缩放变化）
+  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount);
   
   // 绘制炸弹
   let usePlaceholder = true;
@@ -836,7 +818,9 @@ function spawnBomb() {
     speed: 0.6 + Math.random() * 0.5 + difficulty * 0.05,
     sway: Math.random() * 0.3,
     swayOffset: Math.random() * Math.PI * 2,
-    exploding: false
+    exploding: false,
+    // 初始化降落伞属性（随机缩放和旋转偏移）
+    parachute: Parachute.createBombParachute()
   });
 }
 
