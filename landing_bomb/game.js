@@ -59,7 +59,8 @@ let resources = {
   cloud: null,
   rainbow: null,
   slingshot: null,
-  background: null
+  background: null,
+  sun: null
 };
 
 // 8色色板 - 用于图片未加载时的示意方块
@@ -82,7 +83,8 @@ const RESOURCE_COLORS = {
   cloud: 2,       // SKY - 天空色
   rainbow: 6,     // SEAFOAM - 彩虹相关
   slingshot: 1,   // TEAL - 木质感
-  background: 3   // MINT - 地面色
+  background: 3,  // MINT - 地面色
+  sun: 7          // LEMON - 太阳色
 };
 
 // 云朵变体使用不同颜色
@@ -140,13 +142,16 @@ async function loadResources() {
   
   resources.background = await animationLoader.load('background');
   console.log('背景资源:', resources.background ? '已加载' : '失败');
+  
+  resources.sun = await animationLoader.load('sun');
+  console.log('太阳资源:', resources.sun ? '已加载' : '失败');
 
   // 初始化云朵变体
   initClouds();
   
   // 检查是否有任何资源成功加载
   const anyLoaded = resources.bomb || resources.parachute || resources.flower || 
-                    resources.cloud || resources.rainbow || resources.slingshot || resources.background;
+                    resources.cloud || resources.rainbow || resources.slingshot || resources.background || resources.sun;
   
   if (anyLoaded) {
     resourcesLoaded = true;
@@ -350,28 +355,25 @@ function drawSky() {
 }
 
 function drawSun() {
-  const cx = sx(380), cy = sy(70), r = sx(35);
-  const glow = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 2.5);
-  glow.addColorStop(0, 'rgba(255,255,100,0.6)');
-  glow.addColorStop(1, 'rgba(255,255,100,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(cx - r * 3, cy - r * 3, r * 6, r * 6);
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFE44D';
-  ctx.fill();
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = sx(2);
-  ctx.stroke();
-  ctx.strokeStyle = '#FFE44D';
-  ctx.lineWidth = sx(3);
-  for (let i = 0; i < 12; i++) {
-    const angle = (i / 12) * Math.PI * 2 + frameCount * 0.005;
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(angle) * r * 1.2, cy + Math.sin(angle) * r * 1.2);
-    ctx.lineTo(cx + Math.cos(angle) * r * 1.6, cy + Math.sin(angle) * r * 1.6);
-    ctx.stroke();
+  if (resourcesLoaded && resources.sun?.image && resources.sun.image.width > 0) {
+    const size = animationLoader.getSize(resources.sun);
+    const anchor = animationLoader.getAnchor(resources.sun);
+    const pos = resources.sun.config.position || { x: 380, y: 70 };
+    
+    const result = drawImageProportional(
+      resources.sun.image,
+      pos.x,
+      pos.y,
+      size.width,
+      anchor.x,
+      anchor.y
+    );
+    
+    if (result) return;
   }
+  
+  // Fallback: placeholder
+  drawPlaceholder(380, 70, 80, 80, 'SUN', RESOURCE_COLORS.sun, 0.5, 0.5);
 }
 
 /**

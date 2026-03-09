@@ -1,0 +1,18 @@
+{
+  "name": "sun",
+  "type": "static",
+  "description": "太阳",
+  "file": "sun.png",
+  "size": {
+    "width": 80,
+    "height": 80
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.5
+  },
+  "position": {
+    "x": 380,
+    "y": 70
+  }
+}
