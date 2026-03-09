@@ -1367,6 +1367,7 @@ function update() {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = 1; // Reset transparency
   drawSky();
   drawSun();
   drawRainbow();
