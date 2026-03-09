@@ -325,7 +325,7 @@ function initClouds() {
     const depthFactor = 1 - (finalScale - 0.25) / 1.05 * 0.5; // 0.5 - 1.0
     
     clouds.push({
-      x: Math.random() * W,
+      x: Math.random() * (W + 200),  // 初始化时分布在更宽的区域
       y: 30 + Math.random() * 150,
       variant: variant,
       scale: finalScale,           // 个体缩放比例
@@ -1227,10 +1227,10 @@ function update() {
     animationLoader.update(resources.flower, deltaTime);
   }
 
-  // 更新云朵
+  // 更新云朵（从右往左移动）
   clouds.forEach(c => {
-    c.x += c.speed;
-    if (c.x > W + 100) c.x = -100;
+    c.x -= c.speed;
+    if (c.x < -100) c.x = W + 100;
   });
 
   // ========== WAVE SYSTEM UPDATE ==========

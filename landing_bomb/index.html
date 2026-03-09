@@ -235,7 +235,7 @@ for (let i = 0; i < 8; i++) {
   const depthFactor = 1 - (scale - 0.25) / 1.05 * 0.5;
   
   clouds.push({
-    x: Math.random() * W,
+    x: Math.random() * (W + 200),  // Spread across wider area initially
     y: 30 + Math.random() * 150,
     w: (60 + Math.random() * 80) * scale,
     scale: scale,
@@ -1023,10 +1023,10 @@ function update() {
   if (gameOver || !gameStarted) return;
   frameCount++;
 
-  // Update clouds
+  // Update clouds (move right to left)
   clouds.forEach(c => {
-    c.x += c.speed;
-    if (c.x > W + c.w) c.x = -c.w;
+    c.x -= c.speed;
+    if (c.x < -c.w) c.x = W + c.w;
   });
 
   // ========== WAVE SYSTEM UPDATE ==========
