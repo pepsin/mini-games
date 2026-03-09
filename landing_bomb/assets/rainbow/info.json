@@ -4,15 +4,15 @@
   "description": "背景彩虹装饰",
   "file": "rainbow.png",
   "size": {
-    "width": 256,
-    "height": 128
+    "width": 287,
+    "height": 169
   },
   "anchor": {
     "x": 0.5,
     "y": 1.0
   },
   "position": {
-    "x": 80,
+    "x": 40,
     "y": 140
   }
 }
