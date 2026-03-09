@@ -300,38 +300,42 @@ function initClouds() {
     const variants = resources.cloud?.variants ? Object.keys(resources.cloud.variants) : ['small', 'medium', 'large'];
     
     // 随机选择云朵类型并设置对应的基础缩放比例
-    // small: 0.3-0.5, medium: 0.5-0.8, large: 0.8-1.2
+    // small: 0.45-0.75, medium: 0.75-1.2, large: 1.2-1.8 (缩放 1.5x 后)
     const variant = variants[Math.floor(Math.random() * variants.length)];
     let baseScale;
     switch (variant) {
       case 'small':
-        baseScale = 0.3 + Math.random() * 0.2;  // 0.3 - 0.5
+        baseScale = 0.45 + Math.random() * 0.3;  // 0.45 - 0.75
         break;
       case 'medium':
-        baseScale = 0.5 + Math.random() * 0.3;  // 0.5 - 0.8
+        baseScale = 0.75 + Math.random() * 0.45; // 0.75 - 1.2
         break;
       case 'large':
-        baseScale = 0.8 + Math.random() * 0.4;  // 0.8 - 1.2
+        baseScale = 1.2 + Math.random() * 0.6;   // 1.2 - 1.8
         break;
       default:
-        baseScale = 0.4 + Math.random() * 0.4;  // 0.4 - 0.8
+        baseScale = 0.6 + Math.random() * 0.6;   // 0.6 - 1.2
     }
     
     // 添加小的随机变化，让同类型的云也有大小差异
-    const randomVariation = (Math.random() - 0.5) * 0.15; // ±7.5%
-    const finalScale = Math.max(0.25, Math.min(1.3, baseScale + randomVariation));
+    const randomVariation = (Math.random() - 0.5) * 0.2; // ±10%
+    const finalScale = Math.max(0.4, Math.min(2.0, baseScale + randomVariation));
     
     // 根据尺寸调整速度：越大的云看起来越远，移动越慢
-    const depthFactor = 1 - (finalScale - 0.25) / 1.05 * 0.5; // 0.5 - 1.0
+    const depthFactor = 1 - (finalScale - 0.4) / 1.6 * 0.5; // 0.5 - 1.0
+    
+    // 云朵只在上半屏浮动 (y: -50 到 H/2)
+    // 允许部分云朵从屏幕外开始（y: -50）
+    const yPos = -50 + Math.random() * (H / 2 + 50);
     
     clouds.push({
       x: Math.random() * (W + 200),  // 初始化时分布在更宽的区域
-      y: 30 + Math.random() * 150,
+      y: yPos,
       variant: variant,
-      scale: finalScale,           // 个体缩放比例
+      scale: finalScale,           // 个体缩放比例（1.5x 后的尺寸）
       baseScale: baseScale,        // 基础类型缩放
       speed: (0.1 + Math.random() * 0.2) * depthFactor,
-      opacity: 0.6 + finalScale * 0.3  // 越大越不透明
+      opacity: 0.6 + Math.min(finalScale * 0.2, 0.3)  // 越大越不透明
     });
   }
   
@@ -497,8 +501,8 @@ function drawRainbow() {
 }
 
 function drawCloud(cloud) {
-  // 使用云朵自身的缩放比例
-  const scale = cloud.scale || 0.5;
+  // 使用云朵自身的缩放比例，再缩放 1.5x
+  const scale = (cloud.scale || 0.5) * 1.5;
   
   if (resourcesLoaded && resources.cloud?.variants) {
     animationLoader.setVariant(resources.cloud, cloud.variant);
@@ -508,13 +512,13 @@ function drawCloud(cloud) {
       const size = animationLoader.getSize(resources.cloud);
       const anchor = animationLoader.getAnchor(resources.cloud);
       
-      // 使用云朵个体的缩放比例
+      // 使用云朵个体的缩放比例 * 1.5
       ctx.globalAlpha = cloud.opacity || 0.9;
       const result = drawImageProportional(
         img,
         cloud.x,
         cloud.y,
-        size.width * scale,  // 使用云朵个体缩放
+        size.width * scale,  // 使用云朵个体缩放 * 1.5
         anchor.x,
         anchor.y
       );
@@ -524,7 +528,7 @@ function drawCloud(cloud) {
     }
   }
   
-  // 使用示意方块 - 使用云朵个体缩放
+  // 使用示意方块 - 使用云朵个体缩放 * 1.5
   const colorIdx = CLOUD_VARIANT_COLORS[cloud.variant] || RESOURCE_COLORS.cloud;
   drawPlaceholder(cloud.x, cloud.y, 128 * scale, 64 * scale, 'CLOUD', colorIdx, 0.5, 0.5);
 }

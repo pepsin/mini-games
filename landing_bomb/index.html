@@ -301,7 +301,9 @@ function drawRainbow() {
 }
 
 function drawCloud(cloud) {
-  const x = sx(cloud.x), y = sy(cloud.y), w = sx(cloud.w);
+  // Apply 1.5x scale to cloud size
+  const scale = 1.5;
+  const x = sx(cloud.x), y = sy(cloud.y), w = sx(cloud.w) * scale;
   const opacity = cloud.opacity || 0.9;
   
   ctx.fillStyle = `rgba(255,255,255,${opacity})`;
