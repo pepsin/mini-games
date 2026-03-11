@@ -288,11 +288,11 @@ function drawChallengeResult(ctx) {
 }
 
 // Draw challenge announcement during inter-wave
-function drawChallengeAnnounce(ctx, challenge) {
+function drawChallengeAnnounce(ctx, challenge, options) {
   if (!challenge) return;
 
   const bannerW = 280;
-  const bannerH = 80;
+  const bannerH = 100;
   const bx = (W - bannerW) / 2;
   const by = (H - bannerH) / 2 - 50;
 
@@ -309,11 +309,28 @@ function drawChallengeAnnounce(ctx, challenge) {
 
   ctx.font = `bold ${ss(18)}px Arial`;
   ctx.fillStyle = '#FFD700';
-  ctx.fillText('挑战任务!', sx(W / 2), sy(by + 24));
+  ctx.fillText('挑战任务!', sx(W / 2), sy(by + 20));
 
   ctx.font = `${ss(15)}px Arial`;
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(challenge.description, sx(W / 2), sy(by + 52));
+  ctx.fillText(challenge.description, sx(W / 2), sy(by + 46));
+
+  // Reward hint
+  let rewardHint = '';
+  if (challenge.reward.type === 'heal') {
+    if (options && !options.hasDeadFlower) {
+      rewardHint = `奖励: +${10000 * (options.wave || 1)}分`;
+    } else {
+      rewardHint = '奖励: 修复一朵花';
+    }
+  } else if (challenge.reward.type === 'score') {
+    rewardHint = `奖励: +${challenge.reward.value}分`;
+  } else if (challenge.reward.type === 'powerup') {
+    rewardHint = '奖励: 随机道具';
+  }
+  ctx.font = `${ss(12)}px Arial`;
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText(rewardHint, sx(W / 2), sy(by + 70));
 }
 
 module.exports = {

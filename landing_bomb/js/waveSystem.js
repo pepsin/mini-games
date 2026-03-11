@@ -83,6 +83,7 @@ function calculateSpawnTimes(config) {
 // Start new wave
 function startWave(waveNum) {
   currentWave = waveNum;
+  isInterWave = false;
   const config = getWaveConfig(waveNum);
   
   waveTimer = 0;

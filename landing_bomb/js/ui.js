@@ -1,8 +1,8 @@
 // UI Rendering Module
 
 const { W, H, GROUND_Y, sx, sy, ss } = require('./config.js');
-const { getScore, getHighScore, isGameOver, activePowerups } = require('./gameState.js');
-const { getCurrentWave, isInInterWave, getInterWaveTimer, getInterWaveDuration, getWaveProgress, isChallengeAnnouncing, getPendingChallenge } = require('./waveSystem.js');
+const { getScore, getHighScore, isGameOver, activePowerups, hasDeadFlower } = require('./gameState.js');
+const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
 const { drawActivePowerupHUD } = require('./powerupSystem.js');
 const { drawChallengeHUD, drawChallengeResult, drawChallengeAnnounce } = require('./challengeSystem.js');
@@ -13,8 +13,8 @@ function drawUI(ctx) {
   const highScore = getHighScore();
   const currentWave = getCurrentWave();
   const inInterWave = isInInterWave();
-  
-  // Score panel - Orange/Red gradient
+
+  // Score panel
   roundedRect()
     .position(10, 10)
     .size(150, 32)
@@ -39,41 +39,6 @@ function drawUI(ctx) {
     .align('middle', 'middle')
     .setPadding({ left: 10, right: 8, top: 6, bottom: 6 })
     .draw(ctx);
-  
-  // Wave display - Blue/Cyan gradient (changes to green during break)
-  const waveText = inInterWave 
-    ? `休息 ${Math.ceil((getInterWaveDuration() - getInterWaveTimer()) / 60)}s`
-    : `第 ${currentWave} 波`;
-  
-  roundedRect()
-    .position((W - 100) / 2, 10)
-    .size(100, 32)
-    .cornerRadius(8)
-    .background('#000000')
-    .setText(waveText)
-    .textStyle('#FFFFFF', 14, 'Arial', 'bold')
-    .align('center', 'middle')
-    .setPadding({ left: 8, right: 8, top: 6, bottom: 6 })
-    .draw(ctx);
-  
-  // Wave progress bar
-  if (!inInterWave) {
-    const progress = getWaveProgress();
-    const fixedBarWidth = 80;
-    const barWidth = ss(fixedBarWidth);
-    const barHeight = ss(4);
-    const barX = sx((W - fixedBarWidth) / 2);
-    const barY = sy(10) + ss(32) - ss(8);
-    const progressColor = progress > 0.8 ? '#FF6B6B' : (progress > 0.5 ? '#FFD700' : '#4CAF50');
-    
-    // Background
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-    
-    // Progress
-    ctx.fillStyle = progressColor;
-    ctx.fillRect(barX, barY, barWidth * Math.max(0,(1 - progress)), barHeight);
-  }
 
   // Active powerup icons
   drawActivePowerupHUD(ctx, activePowerups);
@@ -84,7 +49,7 @@ function drawUI(ctx) {
 
   // Challenge announce during inter-wave
   if (inInterWave && isChallengeAnnouncing()) {
-    drawChallengeAnnounce(ctx, getPendingChallenge());
+    drawChallengeAnnounce(ctx, getPendingChallenge(), { hasDeadFlower: hasDeadFlower(), wave: currentWave + 1 });
   }
 }
 

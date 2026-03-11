@@ -56,6 +56,9 @@ const {
   drawExplosion, drawScorePopup
 } = require('./js/entities/explosion.js');
 
+// Wave announce
+const { triggerWaveAnnounce, updateWaveAnnounce, drawWaveAnnounce } = require('./js/waveAnnounce.js');
+
 // UI and Input
 const { drawUI, drawGameOver, drawStartScreen } = require('./js/ui.js');
 const { setupInput, registerCallbacks } = require('./js/inputHandler.js');
@@ -86,12 +89,14 @@ function init() {
       resetWaves();
       resetChallenges();
       startWave(1);
+      triggerWaveAnnounce(1);
     },
     onGameReset: () => {
       resetGame();
       resetWaves();
       resetChallenges();
       startWave(1);
+      triggerWaveAnnounce(1);
     },
     onFire: (proj) => {
       if (proj) projectiles.push(proj);
@@ -108,7 +113,7 @@ function handleChallengeReward(reward) {
     if (hasDeadFlower()) {
       healFlower();
     } else {
-      addScore(500);
+      addScore(10000 * getCurrentWave());
     }
   } else if (reward.type === 'score') {
     addScore(reward.value);
@@ -152,6 +157,7 @@ function update() {
   const waveAction = updateWaves(bombs.length);
   if (waveAction.action === 'start_wave') {
     startWave(waveAction.wave);
+    triggerWaveAnnounce(waveAction.wave);
   } else if (waveAction.action === 'spawn_bomb') {
     const waveConfig = getCurrentWaveConfig();
     const bomb = createBomb(waveConfig, getCurrentWave());
@@ -165,6 +171,9 @@ function update() {
 
   // Update active powerups
   updateActivePowerups(activePowerups);
+
+  // Update wave announce animation
+  updateWaveAnnounce();
 
   // Update challenge
   updateChallenge(frameCount);
@@ -357,6 +366,9 @@ function draw() {
 
   // Draw powerup burst effects
   powerupBursts.forEach(b => drawPowerupBurst(ctx, b));
+
+  // Wave announce arc
+  drawWaveAnnounce(ctx);
 
   // UI
   drawUI(ctx);
