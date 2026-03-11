@@ -17,27 +17,14 @@ function drawUI(ctx) {
   // Score panel
   roundedRect()
     .position(10, 10)
-    .size(150, 32)
+    .size(W - 20, 40)
     .cornerRadius(8)
-    .background('#338833bb')
-    .border(1, "#fff")
-    .setText(`分数: ${score}`)
-    .textStyle('#FFFFFF', 15, 'Arial', 'bold')
-    .align('middle', 'middle')
-    .setPadding({ left: 12, right: 8, top: 6, bottom: 6 })
-    .draw(ctx);
-
-  // High score panel - Purple/Pink gradient
-  roundedRect()
-    .position(W - 160, 10)
-    .size(150, 32)
-    .cornerRadius(8)
-    .background('#ffaf58bb')
-    .border(1, "#ffe200")
-    .setText(`最高分: ${highScore}`)
-    .textStyle('#FFFFFF', 15, 'Arial', 'bold')
-    .align('middle', 'middle')
-    .setPadding({ left: 12, right: 8, top: 6, bottom: 6 })
+    .background('#ffffff55')
+    .border(2, "#444")
+    .setText(`分数: ${score}  最高: ${highScore}`)
+    .textStyle('#444', 20, 'Arial', 'bold')
+    .align('left', 'middle')
+    .setPadding({ left: 12, right: 8, top: 10, bottom: 10 })
     .draw(ctx);
 
   // Active powerup icons
@@ -64,7 +51,7 @@ function drawGameOver(ctx, canvas) {
 
   // White background panel using roundedRect
   roundedRect()
-    .position((W - 320) / 2, (H - 280) / 2)
+    .position((W - 300) / 2, (H - 280) / 2)
     .size(300, 280)
     .cornerRadius(16)
     .background('#FFFFFF')
