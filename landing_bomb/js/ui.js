@@ -65,27 +65,26 @@ function drawGameOver(ctx, canvas) {
   // White background panel using roundedRect
   roundedRect()
     .position((W - 320) / 2, (H - 280) / 2)
-    .size(320, 280)
+    .size(300, 280)
     .cornerRadius(16)
     .background('#FFFFFF')
-    .border(4, '#FFD700')
-    .shadow('rgba(0,0,0,0.4)', 15, 0, 5)
+    .border(6, '#FF6B35')
     .draw(ctx);
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#FF4444';
+  ctx.fillStyle = '#FF6B35';
   ctx.font = `bold ${ss(32)}px Arial`;
   ctx.fillText('游戏结束', sx(W / 2), sy(H / 2) - ss(90));
 
-  ctx.fillStyle = '#FFD700';
-  ctx.font = `bold ${ss(24)}px Arial`;
+  ctx.fillStyle = '#333';
+  ctx.font = `${ss(24)}px Arial`;
   ctx.fillText(`坚持到第 ${currentWave} 波!`, sx(W / 2), sy(H / 2) - ss(50));
 
   ctx.fillStyle = '#333';
   ctx.font = `bold ${ss(20)}px Arial`;
   ctx.fillText(`分数: ${score}`, sx(W / 2), sy(H / 2) - ss(10));
 
-  ctx.fillStyle = '#9C27B0';
+  ctx.fillStyle = '#ff6f00';
   ctx.font = `bold ${ss(16)}px Arial`;
   ctx.fillText(`最高分: ${highScore}`, sx(W / 2), sy(H / 2) + ss(20));
 
@@ -117,16 +116,15 @@ function drawGameOver(ctx, canvas) {
 
   // Play again button - Orange
   roundedRect()
-    .position((W - 140) / 2, (H / 2) + ss(90))
-    .size(140, 44)
+    .position((W - 160) / 2, (H / 2) + ss(70))
+    .size(160, 50)
     .cornerRadius(12)
     .linearGradient(['#FF6B35', '#FF4500'], 90)
     .border(3, '#FFFFFF')
-    .shadow('rgba(0,0,0,0.3)', 8, 0, 3)
     .setText('再来一次')
-    .textStyle('#FFFFFF', 18, 'Arial', 'bold')
+    .textStyle('#FFFFFF', 22, 'Arial', 'bold')
     .align('center', 'middle')
-    .setPadding({ left: 10, right: 10, top: 8, bottom: 8 })
+    .setPadding({ left: 15, right: 15, top: 10, bottom: 10 })
     .draw(ctx);
 }
 
