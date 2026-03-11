@@ -3,7 +3,7 @@
 const { W, H, toGame } = require('./config.js');
 const { isGameStarted, isGameOver, resetGame, activePowerups } = require('./gameState.js');
 const { createProjectile } = require('./entities/projectile.js');
-const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag } = require('./entities/slingshot.js');
+const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 
 // Game reference for firing
@@ -58,7 +58,20 @@ function handleTouchEnd(e) {
   if (!isDragging()) return;
 
   const sling = getSlingshot();
+  const dragStart = getDragStart();
   const dragCurrent = setDragCurrent();
+  
+  // Calculate actual drag distance (from touch start to release)
+  const dx = dragCurrent.x - dragStart.x;
+  const dy = dragCurrent.y - dragStart.y;
+  const dragDistance = Math.sqrt(dx * dx + dy * dy);
+  
+  // Minimum drag distance required to shoot (prevents simple taps/clicks)
+  const minDragDistance = 30;
+  if (dragDistance < minDragDistance) {
+    clearDrag();
+    return;
+  }
 
   const proj = createProjectile(sling, dragCurrent, SLING_CONFIG.maxDrag);
   if (proj && gameCallbacks.onFire) {

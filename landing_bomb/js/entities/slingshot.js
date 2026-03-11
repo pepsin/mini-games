@@ -100,6 +100,20 @@ function drawSlingshotBands(ctx, leftTip, rightTip, pivotX, pivotY) {
     const dx = dragCurrent.x - pivotX;
     const dy = dragCurrent.y - pivotY;
     const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Minimum drag distance to show band stretching (prevents flicker on clicks)
+    const minShowDistance = 10;
+    if (dist < minShowDistance) {
+      // Draw relaxed bands (same as not dragging)
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = ss(4);
+      ctx.beginPath();
+      ctx.moveTo(sx(leftTip.x), sy(leftTip.y));
+      ctx.quadraticCurveTo(sx(pivotX), sy(pivotY + 20), sx(rightTip.x), sy(rightTip.y));
+      ctx.stroke();
+      return;
+    }
+    
     const clampDist = Math.min(dist, SLING_CONFIG.maxDrag);
     const angle = Math.atan2(dy, dx);
     const pullX = pivotX + Math.cos(angle) * clampDist;

@@ -19,7 +19,7 @@ function drawUI(ctx) {
     .position(10, 10)
     .size(150, 32)
     .cornerRadius(8)
-    .background('#338833')
+    .background('#338833bb')
     .border(1, "#fff")
     .setText(`分数: ${score}`)
     .textStyle('#FFFFFF', 15, 'Arial', 'bold')
@@ -32,12 +32,12 @@ function drawUI(ctx) {
     .position(W - 160, 10)
     .size(150, 32)
     .cornerRadius(8)
-    .background('#ffaf58')
+    .background('#ffaf58bb')
     .border(1, "#ffe200")
     .setText(`最高分: ${highScore}`)
-    .textStyle('#FFFFFF', 13, 'Arial', 'bold')
+    .textStyle('#FFFFFF', 15, 'Arial', 'bold')
     .align('middle', 'middle')
-    .setPadding({ left: 10, right: 8, top: 6, bottom: 6 })
+    .setPadding({ left: 12, right: 8, top: 6, bottom: 6 })
     .draw(ctx);
 
   // Active powerup icons
