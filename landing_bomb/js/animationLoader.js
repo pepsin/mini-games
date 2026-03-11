@@ -23,15 +23,17 @@ class AnimationLoader {
   /**
    * 加载单个资源文件夹
    * @param {string} folder - 资源文件夹名 (如 'bomb', 'flower')
+   * @param {string} partName - 可选，加载特定部件 (如 'inner', 'outer')
    * @returns {Promise<Object>} 资源对象
    */
-  async load(folder) {
-    if (this.cache.has(folder)) {
-      return this.cache.get(folder);
+  async load(folder, partName = null) {
+    const cacheKey = partName ? `${folder}_${partName}` : folder;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
     }
 
     try {
-      console.log(`=== 开始加载资源: ${folder} ===`);
+      console.log(`=== 开始加载资源: ${folder}${partName ? `/${partName}` : ''} ===`);
       const configPath = `${this.basePath}${folder}/info.json`;
       console.log(`配置文件路径: ${configPath}`);
       
@@ -58,15 +60,15 @@ class AnimationLoader {
         if (config.type === 'animation') {
           await this.loadAnimation(resource, folder, config);
         } else if (config.type === 'static') {
-          await this.loadStatic(resource, folder, config);
+          await this.loadStatic(resource, folder, config, partName);
         }
       } catch (loadErr) {
         console.error(`加载资源内容失败:`, loadErr);
         throw loadErr;
       }
 
-      this.cache.set(folder, resource);
-      console.log(`=== 资源 ${folder} 加载完成 ===`);
+      this.cache.set(cacheKey, resource);
+      console.log(`=== 资源 ${folder}${partName ? `/${partName}` : ''} 加载完成 ===`);
       return resource;
     } catch (e) {
       console.error(`加载资源 [${folder}] 失败:`, e.message || e);
@@ -103,7 +105,47 @@ class AnimationLoader {
   /**
    * 加载静态资源
    */
-  async loadStatic(resource, folder, config) {
+  async loadStatic(resource, folder, config, partName = null) {
+    // 如果指定了部件名，只加载该部件
+    if (partName && config.parts && Array.isArray(config.parts)) {
+      const part = config.parts.find(p => p.id === partName);
+      if (part) {
+        try {
+          const path = `${this.basePath}${folder}/${part.file}`;
+          console.log(`加载部件: ${path}`);
+          resource.image = await this.loadImage(path);
+          resource.partConfig = part;
+        } catch (e) {
+          console.error(`加载部件失败: ${part.file}`, e);
+        }
+      }
+      return;
+    }
+    
+    // 多部件静态图
+    if (config.parts && Array.isArray(config.parts)) {
+      resource.parts = {};
+      for (const partConfig of config.parts) {
+        try {
+          const path = `${this.basePath}${folder}/${partConfig.file}`;
+          console.log(`加载部件: ${path}`);
+          const img = await this.loadImage(path);
+          resource.parts[partConfig.id] = {
+            image: img,
+            config: partConfig
+          };
+        } catch (e) {
+          console.error(`加载部件失败: ${partConfig.file}`, e);
+        }
+      }
+      // 默认使用第一个部件作为主图
+      const firstPart = config.parts[0];
+      if (firstPart && resource.parts[firstPart.id]) {
+        resource.image = resource.parts[firstPart.id].image;
+      }
+      return;
+    }
+    
     // 多版本静态图
     if (config.variants) {
       resource.variants = {};
@@ -327,6 +369,10 @@ class AnimationLoader {
    */
   getSize(resource) {
     if (!resource || !resource.config) return { width: 0, height: 0 };
+    // 优先使用部件配置中的尺寸
+    if (resource.partConfig?.size) {
+      return resource.partConfig.size;
+    }
     return resource.config.size || { width: 0, height: 0 };
   }
 
@@ -335,7 +381,22 @@ class AnimationLoader {
    */
   getAnchor(resource) {
     if (!resource || !resource.config) return { x: 0.5, y: 0.5 };
+    // 优先使用部件配置中的锚点
+    if (resource.partConfig?.anchor) {
+      return resource.partConfig.anchor;
+    }
     return resource.config.anchor || { x: 0.5, y: 0.5 };
+  }
+
+  /**
+   * 获取部件旋转速度
+   */
+  getRotationSpeed(resource) {
+    if (!resource || !resource.config) return 0;
+    if (resource.partConfig?.rotation?.speed) {
+      return resource.partConfig.rotation.speed;
+    }
+    return 0;
   }
 
   /**

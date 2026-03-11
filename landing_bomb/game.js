@@ -4,6 +4,9 @@
 const canvas = wx.createCanvas();
 const ctx = canvas.getContext('2d');
 
+// Module-level deltaTime for use in render
+let lastDeltaTime = 16;
+
 // Core modules
 const config = require('./js/config.js');
 const { W, H, updateScale } = config;
@@ -130,6 +133,7 @@ function update() {
 
   const currentTime = Date.now();
   const deltaTime = currentTime - getLastTime();
+  lastDeltaTime = deltaTime;
   setLastTime(currentTime);
 
   incrementFrameCount();
@@ -332,7 +336,7 @@ function draw() {
   ctx.beginPath();
   ctx.rect(config.offsetX, 0, W * config.scale, canvas.height);
   ctx.clip();
-  drawSun(ctx);
+  drawSun(ctx, lastDeltaTime);
   drawRainbow(ctx);
 
   // Game entities (clipped to game area)

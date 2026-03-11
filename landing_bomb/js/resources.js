@@ -12,7 +12,9 @@ const resources = {
   rainbow: null,
   slingshot: null,
   background: null,
-  sun: null
+  sun: null,
+  sunInner: null,
+  sunOuter: null
 };
 
 let resourcesLoaded = false;
@@ -47,13 +49,15 @@ async function loadResources() {
   resources.background = await animationLoader.load('background');
   console.log('Background resource:', resources.background ? 'loaded' : 'failed');
   
-  resources.sun = await animationLoader.load('sun');
-  console.log('Sun resource:', resources.sun ? 'loaded' : 'failed');
+  resources.sunInner = await animationLoader.load('sun', 'inner');
+  resources.sunOuter = await animationLoader.load('sun', 'outer');
+  console.log('Sun inner:', resources.sunInner ? 'loaded' : 'failed');
+  console.log('Sun outer:', resources.sunOuter ? 'loaded' : 'failed');
   
   // Check if any resource loaded
   const anyLoaded = resources.bomb || resources.parachute || resources.flower || 
                     resources.cloud || resources.rainbow || resources.slingshot || 
-                    resources.background || resources.sun;
+                    resources.background || resources.sunInner || resources.sunOuter;
   
   resourcesLoaded = anyLoaded;
   console.log(anyLoaded ? '=== Resources loaded, using image mode ===' : '=== No resources loaded, using placeholder mode ===');

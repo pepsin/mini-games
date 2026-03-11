@@ -121,7 +121,9 @@ class ParachuteClass {
       // Random scale within configured range
       scale: scaleRange.min + Math.random() * (scaleRange.max - scaleRange.min),
       // Rotation offset for this specific bomb (adds variety)
-      rotationOffset: (Math.random() - 0.5) * 0.1
+      rotationOffset: (Math.random() - 0.5) * 0.1,
+      // Random X flip for visual variety
+      flipX: Math.random() < 0.5
     };
   }
 
@@ -285,6 +287,11 @@ class ParachuteClass {
     // Translate to parachute position, rotate, then draw
     ctx.translate(screenParachuteX, screenParachuteY);
     ctx.rotate(rotation);
+    
+    // Apply X flip based on bomb's flipX property
+    if (bomb.parachute?.flipX) {
+      ctx.scale(-1, 1);
+    }
     
     // Draw the parachute image
     const img = parachuteResource.image;

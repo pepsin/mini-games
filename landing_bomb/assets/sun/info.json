@@ -2,15 +2,35 @@
   "name": "sun",
   "type": "static",
   "description": "太阳",
-  "file": "sun.png",
-  "size": {
-    "width": 180,
-    "height": 180
-  },
-  "anchor": {
-    "x": 0.5,
-    "y": 0.5
-  },
+  "parts": [
+    {
+      "id": "inner",
+      "file": "sun_inner.png",
+      "size": {
+        "width": 180,
+        "height": 180
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "id": "outer",
+      "file": "sun_outer.png",
+      "size": {
+        "width": 180,
+        "height": 180
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "rotation": {
+        "speed": -0.2
+      }
+    }
+  ],
   "position": {
     "x": 380,
     "y": 70

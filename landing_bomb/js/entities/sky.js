@@ -5,6 +5,9 @@ const { isResourcesLoaded, getResource } = require('../resources.js');
 const { drawImageProportional, drawPlaceholder } = require('../renderer.js');
 const { animationLoader } = require('../animationLoader.js');
 
+// Sun rotation state
+let sunOuterRotation = 0;
+
 // Draw sky background
 function drawSky(ctx, canvas) {
   // Fill top area (above game) with top sky color
@@ -30,23 +33,54 @@ function drawSky(ctx, canvas) {
   }
 }
 
-// Draw sun
-function drawSun(ctx) {
-  const sunRes = getResource('sun');
+// Draw sun (inner + outer with rotation)
+function drawSun(ctx, deltaTime) {
+  const sunInnerRes = getResource('sunInner');
+  const sunOuterRes = getResource('sunOuter');
   
-  if (isResourcesLoaded() && sunRes?.image && sunRes.image.width > 0) {
-    const size = animationLoader.getSize(sunRes);
-    const anchor = animationLoader.getAnchor(sunRes);
-    const pos = sunRes.config?.position || { x: 380, y: 70 };
+  if (isResourcesLoaded() && sunInnerRes?.image && sunOuterRes?.image) {
+    // Get position from config
+    const pos = sunInnerRes.config?.position || { x: 380, y: 70 };
     
-    const result = drawImageProportional(
-      ctx, sunRes.image,
+    // Get size and anchor for inner sun
+    const innerSize = animationLoader.getSize(sunInnerRes);
+    const innerAnchor = animationLoader.getAnchor(sunInnerRes);
+    
+    // Get size and anchor for outer sun
+    const outerSize = animationLoader.getSize(sunOuterRes);
+    const outerAnchor = animationLoader.getAnchor(sunOuterRes);
+    const rotationSpeed = animationLoader.getRotationSpeed(sunOuterRes);
+    
+    // Update rotation
+    if (deltaTime) {
+      sunOuterRotation += rotationSpeed * deltaTime / 1000;
+    }
+    
+    // Draw outer sun with rotation
+    ctx.save();
+    const outerX = sx(pos.x);
+    const outerY = sy(pos.y);
+    ctx.translate(outerX, outerY);
+    ctx.rotate(sunOuterRotation);
+    ctx.translate(-outerX, -outerY);
+    
+    const outerResult = drawImageProportional(
+      ctx, sunOuterRes.image,
       pos.x, pos.y,
-      size.width,
-      anchor.x, anchor.y
+      outerSize.width,
+      outerAnchor.x, outerAnchor.y
+    );
+    ctx.restore();
+    
+    // Draw inner sun (no rotation)
+    const innerResult = drawImageProportional(
+      ctx, sunInnerRes.image,
+      pos.x, pos.y,
+      innerSize.width,
+      innerAnchor.x, innerAnchor.y
     );
     
-    if (result) return;
+    if (outerResult && innerResult) return;
   }
   
   // Fallback placeholder
