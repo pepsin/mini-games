@@ -1,5 +1,7 @@
 // Wave System Module
 
+const { isChallengeWave, generateChallenge, completeChallenge } = require('./challengeSystem.js');
+
 // Wave state
 let currentWave = 1;
 let waveTimer = 0;
@@ -11,6 +13,12 @@ let bombsSpawnedThisWave = 0;
 let totalBombsThisWave = 0;
 let nextSpawnTime = 0;
 let waveSpawnSchedule = [];
+
+// Challenge announce state
+let challengeAnnounce = false;
+let challengeAnnounceTimer = 0;
+const CHALLENGE_ANNOUNCE_DURATION = 120; // 2 seconds
+let pendingChallenge = null;
 
 // Get wave configuration
 function getWaveConfig(wave) {
@@ -90,10 +98,25 @@ function startWave(waveNum) {
 
 // End current wave
 function endWave() {
+  // Complete any active challenge
+  const challengeResult = completeChallenge();
+
   isInterWave = true;
   interWaveTimer = 0;
   interWaveDuration = Math.max(60, 120 - currentWave * 0.5);
+
+  // Check if next wave is a challenge wave
+  const nextWave = currentWave + 1;
+  if (isChallengeWave(nextWave)) {
+    pendingChallenge = generateChallenge(nextWave);
+    challengeAnnounce = true;
+    challengeAnnounceTimer = 0;
+    // Extend inter-wave to include announce time
+    interWaveDuration = Math.max(interWaveDuration, CHALLENGE_ANNOUNCE_DURATION + 60);
+  }
+
   console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
+  return challengeResult;
 }
 
 // Reset wave system
@@ -106,12 +129,24 @@ function resetWaves() {
   bombsSpawnedThisWave = 0;
   totalBombsThisWave = 0;
   waveSpawnSchedule = [];
+  challengeAnnounce = false;
+  challengeAnnounceTimer = 0;
+  pendingChallenge = null;
 }
 
 // Update wave system
 function updateWaves(bombCount) {
   if (isInterWave) {
     interWaveTimer++;
+
+    // Handle challenge announce phase
+    if (challengeAnnounce) {
+      challengeAnnounceTimer++;
+      if (challengeAnnounceTimer >= CHALLENGE_ANNOUNCE_DURATION) {
+        challengeAnnounce = false;
+      }
+    }
+
     if (interWaveTimer >= interWaveDuration) {
       isInterWave = false;
       return { action: 'start_wave', wave: currentWave + 1 };
@@ -119,18 +154,19 @@ function updateWaves(bombCount) {
   } else {
     waveTimer++;
     const config = getWaveConfig(currentWave);
-    
-    if (bombsSpawnedThisWave < waveSpawnSchedule.length && 
+
+    if (bombsSpawnedThisWave < waveSpawnSchedule.length &&
         waveTimer >= waveSpawnSchedule[bombsSpawnedThisWave]) {
       bombsSpawnedThisWave++;
       return { action: 'spawn_bomb' };
     }
-    
+
     if (waveTimer >= config.waveDurationFrames && bombCount === 0) {
-      endWave();
+      const challengeResult = endWave();
+      return { action: 'wave_ended', challengeResult: challengeResult };
     }
   }
-  
+
   return { action: 'none' };
 }
 
@@ -145,6 +181,8 @@ function getWaveProgress() {
   const config = getWaveConfig(currentWave);
   return waveTimer / config.waveDurationFrames;
 }
+function isChallengeAnnouncing() { return challengeAnnounce; }
+function getPendingChallenge() { return pendingChallenge; }
 
 module.exports = {
   getWaveConfig,
@@ -159,5 +197,7 @@ module.exports = {
   getInterWaveTimer,
   getInterWaveDuration,
   getCurrentWaveConfig,
-  getWaveProgress
+  getWaveProgress,
+  isChallengeAnnouncing,
+  getPendingChallenge
 };

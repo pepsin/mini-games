@@ -102,9 +102,10 @@ function createBomb(waveConfig, currentWave) {
 }
 
 // Update bomb position
-function updateBomb(bomb, frameCount) {
-  bomb.y += bomb.speed;
-  bomb.x += Math.sin(frameCount * 0.02 + bomb.swayOffset) * bomb.sway;
+function updateBomb(bomb, frameCount, speedMultiplier) {
+  const sm = speedMultiplier || 1;
+  bomb.y += bomb.speed * sm;
+  bomb.x += Math.sin(frameCount * 0.02 + bomb.swayOffset) * bomb.sway * sm;
 }
 
 module.exports = {

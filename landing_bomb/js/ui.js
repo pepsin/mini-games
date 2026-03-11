@@ -1,9 +1,11 @@
 // UI Rendering Module
 
 const { W, H, GROUND_Y, sx, sy, ss } = require('./config.js');
-const { getScore, getHighScore, isGameOver } = require('./gameState.js');
-const { getCurrentWave, isInInterWave, getInterWaveTimer, getInterWaveDuration, getWaveProgress } = require('./waveSystem.js');
+const { getScore, getHighScore, isGameOver, activePowerups } = require('./gameState.js');
+const { getCurrentWave, isInInterWave, getInterWaveTimer, getInterWaveDuration, getWaveProgress, isChallengeAnnouncing, getPendingChallenge } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
+const { drawActivePowerupHUD } = require('./powerupSystem.js');
+const { drawChallengeHUD, drawChallengeResult, drawChallengeAnnounce } = require('./challengeSystem.js');
 
 // Draw score panel
 function drawUI(ctx) {
@@ -71,6 +73,18 @@ function drawUI(ctx) {
     // Progress
     ctx.fillStyle = progressColor;
     ctx.fillRect(barX, barY, barWidth * Math.max(0,(1 - progress)), barHeight);
+  }
+
+  // Active powerup icons
+  drawActivePowerupHUD(ctx, activePowerups);
+
+  // Challenge HUD
+  drawChallengeHUD(ctx);
+  drawChallengeResult(ctx);
+
+  // Challenge announce during inter-wave
+  if (inInterWave && isChallengeAnnouncing()) {
+    drawChallengeAnnounce(ctx, getPendingChallenge());
   }
 }
 

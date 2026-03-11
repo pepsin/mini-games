@@ -1,10 +1,10 @@
 // Input Handling Module
 
 const { W, H, toGame } = require('./config.js');
-const { isGameStarted, isGameOver, resetGame } = require('./gameState.js');
+const { isGameStarted, isGameOver, resetGame, activePowerups } = require('./gameState.js');
 const { createProjectile } = require('./entities/projectile.js');
 const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag } = require('./entities/slingshot.js');
-const { startWave, resetWaves } = require('./waveSystem.js');
+const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -56,15 +56,35 @@ function handleTouchMove(e) {
 // Handle touch end
 function handleTouchEnd(e) {
   if (!isDragging()) return;
-  
+
   const sling = getSlingshot();
   const dragCurrent = setDragCurrent();
-  
+
   const proj = createProjectile(sling, dragCurrent, SLING_CONFIG.maxDrag);
   if (proj && gameCallbacks.onFire) {
     gameCallbacks.onFire(proj);
+
+    // Multi-shot: create two extra projectiles at ±8°
+    if (isPowerupActive(activePowerups, 'multi_shot')) {
+      const spreadAngle = 8 * Math.PI / 180;
+      for (const sign of [-1, 1]) {
+        const angle = Math.atan2(proj.vy, proj.vx) + sign * spreadAngle;
+        const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy);
+        const extraProj = {
+          x: proj.x,
+          y: proj.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: proj.radius,
+          gravity: proj.gravity,
+          hits: 0
+        };
+        gameCallbacks.onFire(extraProj);
+      }
+      consumePowerupUse(activePowerups, 'multi_shot');
+    }
   }
-  
+
   clearDrag();
 }
 

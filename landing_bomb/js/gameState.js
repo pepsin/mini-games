@@ -19,6 +19,11 @@ const explosions = [];
 const scorePopups = [];
 const clouds = [];
 
+// Powerup arrays
+const powerups = [];
+const activePowerups = [];
+const powerupBursts = [];
+
 // Flower state
 const flowerAlive = [true, true, true, true];
 const flowerFrameIndices = [0, 1, 2, 3];
@@ -62,6 +67,9 @@ function resetGame() {
   projectiles.length = 0;
   explosions.length = 0;
   scorePopups.length = 0;
+  powerups.length = 0;
+  activePowerups.length = 0;
+  powerupBursts.length = 0;
   
   gameOver = false;
   frameCount = 0;
@@ -96,6 +104,23 @@ function damageFlower(index) {
   return false;
 }
 
+// Heal first dead flower
+function healFlower() {
+  for (let i = 0; i < 4; i++) {
+    if (!flowerAlive[i]) {
+      flowerAlive[i] = true;
+      lives++;
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check if any flower is dead
+function hasDeadFlower() {
+  return flowerAlive.some(a => !a);
+}
+
 // Getters
 function getScore() { return score; }
 function getHighScore() { return highScore; }
@@ -123,19 +148,20 @@ function incrementFrameCount() { frameCount++; }
 module.exports = {
   // Arrays (direct export for mutation)
   bombs, projectiles, explosions, scorePopups, clouds,
+  powerups, activePowerups, powerupBursts,
   flowerAlive, flowerFrameIndices,
-  
+
   // Getters
   getScore, getHighScore, getLives,
   isGameOver, isGameStarted,
   getFrameCount, getLastTime,
   getBombs, getProjectiles, getExplosions, getScorePopups, getClouds,
   getFlowerAlive, getFlowerFrameIndices, getFlowerPositions,
-  
+
   // Setters
   setScore, addScore, setGameOver, setGameStarted,
   setLastTime, incrementFrameCount,
-  
+
   // Actions
-  resetGame, saveHighScore, damageFlower
+  resetGame, saveHighScore, damageFlower, healFlower, hasDeadFlower
 };

@@ -47,44 +47,51 @@ function clearDrag() {
   dragCurrent = null;
 }
 
-// Draw slingshot
-function drawSlingshot(ctx) {
-  const pivotX = sling.x;
-  const pivotY = sling.y - sling.prongH;
+// Draw slingshot body only (no bands)
+function drawSlingshotBody(ctx) {
   const slingshotRes = getResource('slingshot');
-  
+
   if (isResourcesLoaded() && slingshotRes?.image && slingshotRes.image.width > 0) {
     const size = animationLoader.getSize(slingshotRes);
     const anchor = animationLoader.getAnchor(slingshotRes);
-    
+
     const result = drawImageProportional(
       ctx, slingshotRes.image,
       sling.x, sling.y,
       size.width,
       anchor.x, anchor.y
     );
-    
-    if (result) {
-      const parts = slingshotRes.config.parts;
-      const leftTip = {
-        x: sling.x + parts.leftTip.x,
-        y: sling.y + parts.leftTip.y
-      };
-      const rightTip = {
-        x: sling.x + parts.rightTip.x,
-        y: sling.y + parts.rightTip.y
-      };
-      drawSlingshotBands(ctx, leftTip, rightTip, pivotX, pivotY);
-      return;
-    }
+
+    if (result) return;
   }
-  
+
   // Fallback placeholder
   drawPlaceholder(ctx, sling.x, sling.y, 64, 96, 'SLING', 1, 0.5, 1.0);
-  
-  const leftTip = { x: sling.x - 24, y: sling.y };
-  const rightTip = { x: sling.x + 24, y: sling.y };
+}
+
+// Draw slingshot bands only
+function drawSlingshotBandsOnly(ctx) {
+  const pivotX = sling.x;
+  const pivotY = sling.y - sling.prongH;
+  const slingshotRes = getResource('slingshot');
+
+  let leftTip, rightTip;
+  if (isResourcesLoaded() && slingshotRes?.config?.parts) {
+    const parts = slingshotRes.config.parts;
+    leftTip = { x: sling.x + parts.leftTip.x, y: sling.y + parts.leftTip.y };
+    rightTip = { x: sling.x + parts.rightTip.x, y: sling.y + parts.rightTip.y };
+  } else {
+    leftTip = { x: sling.x - 24, y: sling.y };
+    rightTip = { x: sling.x + 24, y: sling.y };
+  }
+
   drawSlingshotBands(ctx, leftTip, rightTip, pivotX, pivotY);
+}
+
+// Draw slingshot (body + bands together, for backward compat)
+function drawSlingshot(ctx) {
+  drawSlingshotBody(ctx);
+  drawSlingshotBandsOnly(ctx);
 }
 
 // Draw slingshot bands
@@ -139,5 +146,7 @@ module.exports = {
   clearDrag,
   updateSlingshotPosition,
   drawSlingshot,
+  drawSlingshotBody,
+  drawSlingshotBandsOnly,
   drawSlingshotBands
 };
