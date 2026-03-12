@@ -203,7 +203,7 @@ function drawPowerup(ctx, p) {
   switch (p.type) {
     case 'time_slow':
       // Hourglass
-      drawHourglass(ctx, px, py, r);
+      drawIce(ctx, px, py, r);
       break;
     case 'multi_shot':
       // Three arrows
@@ -226,19 +226,39 @@ function drawPowerup(ctx, p) {
 }
 
 // Icon drawing helpers
-function drawHourglass(ctx, px, py, r) {
+function drawIce(ctx, px, py, r) {
   const s = r * 0.55;
   ctx.strokeStyle = '#FFFFFF';
   ctx.lineWidth = ss(1.5);
+  // Vertical line
   ctx.beginPath();
-  ctx.moveTo(px - s, py - s);
-  ctx.lineTo(px + s, py - s);
-  ctx.lineTo(px - s * 0.3, py);
-  ctx.lineTo(px + s, py + s);
-  ctx.lineTo(px - s, py + s);
-  ctx.lineTo(px + s * 0.3, py);
-  ctx.closePath();
+  ctx.moveTo(px, py - s);
+  ctx.lineTo(px, py + s);
   ctx.stroke();
+  // Diagonal lines (6-pointed snowflake)
+  ctx.beginPath();
+  ctx.moveTo(px - s * 0.87, py - s * 0.5);
+  ctx.lineTo(px + s * 0.87, py + s * 0.5);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(px - s * 0.87, py + s * 0.5);
+  ctx.lineTo(px + s * 0.87, py - s * 0.5);
+  ctx.stroke();
+  // Small branches on each arm
+  const br = s * 0.3;
+  for (let i = 0; i < 6; i++) {
+    const angle = i * Math.PI / 3;
+    const ax = px + Math.cos(angle) * s * 0.55;
+    const ay = py - Math.sin(angle) * s * 0.55;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax + Math.cos(angle + Math.PI / 3) * br, ay - Math.sin(angle + Math.PI / 3) * br);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax + Math.cos(angle - Math.PI / 3) * br, ay - Math.sin(angle - Math.PI / 3) * br);
+    ctx.stroke();
+  }
 }
 
 function drawTripleArrow(ctx, px, py, r) {
@@ -390,7 +410,7 @@ function drawActivePowerupHUD(ctx, activePowerups) {
     } else {
       // Draw mini icon
       switch (ap.type) {
-        case 'time_slow': drawHourglass(ctx, cx, cy, r * 0.7); break;
+        case 'time_slow': drawIce(ctx, cx, cy, r * 0.7); break;
         case 'shield': drawShield(ctx, cx, cy, r * 0.7); break;
       }
     }

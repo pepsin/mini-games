@@ -57,7 +57,7 @@ const KILL_STREAK_WINDOW = 90; // 1.5 seconds to maintain streak
 
 // Check if wave should have a challenge
 function isChallengeWave(wave) {
-  return wave >= 4 && wave % 4 === 0;
+  return wave >= 5 && wave % 3 === 0 && Math.random() > 0.3;
 }
 
 // Generate a challenge for the given wave
