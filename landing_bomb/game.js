@@ -267,9 +267,9 @@ function update() {
 
         // Notify challenge
         const challengeComplete = onBombKilled(frameCount);
-        if (challengeComplete) {
-          const challenge = getCurrentChallenge();
-          // Challenge completed mid-wave - will be settled at wave end
+        if (challengeComplete && challengeComplete.completed) {
+          // Kill streak fulfilled - give reward immediately
+          handleChallengeReward(challengeComplete.reward);
         }
 
         // Explosive powerup: area damage

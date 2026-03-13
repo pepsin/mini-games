@@ -100,6 +100,7 @@ function updateChallenge(frameCount) {
 }
 
 // Notify challenge of a bomb kill
+// Returns { completed: true, reward } if kill_streak challenge is fulfilled immediately
 function onBombKilled(frameCount) {
   if (!currentChallenge || currentChallenge.failed) return false;
 
@@ -115,7 +116,17 @@ function onBombKilled(frameCount) {
       currentChallenge.progress++;
       lastKillFrame = frameCount;
       if (currentChallenge.progress >= currentChallenge.target) {
-        return true; // Challenge completed
+        // Kill streak fulfilled - immediately complete and reward
+        const reward = currentChallenge.reward;
+        challengeResult = {
+          success: true,
+          reward: reward,
+          description: currentChallenge.description,
+          frame: 0,
+          maxFrames: 120
+        };
+        currentChallenge = null;
+        return { completed: true, reward };
       }
     } else {
       currentChallenge.progress = 1; // Restart streak
