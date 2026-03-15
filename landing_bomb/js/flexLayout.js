@@ -682,7 +682,7 @@ class FlexItem {
         const metrics = ctx.measureText(this.content);
         contentW = metrics.width;
         contentH = this.style.fontSize * scale;
-      } else if (this.content instanceof Image) {
+      } else if (typeof Image !== 'undefined' && this.content instanceof Image) {
         contentW = this.contentWidth * scale;
         contentH = this.contentHeight * scale;
       } else if (typeof this.content === 'function') {
@@ -777,7 +777,7 @@ class FlexItem {
       textY = y + height / 2;
       ctx.fillText(this.content, textX, textY);
       ctx.restore();
-    } else if (this.content instanceof Image) {
+    } else if (typeof Image !== 'undefined' && this.content instanceof Image) {
       const padding = this.style.padding;
       const drawX = x + padding.left * scale;
       const drawY = y + padding.top * scale;
