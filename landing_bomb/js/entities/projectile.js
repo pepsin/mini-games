@@ -67,7 +67,7 @@ function createProjectile(sling, dragCurrent, maxDrag) {
     y: pullY,
     vx: vx,
     vy: vy,
-    radius: 12,
+    radius: 18,
     gravity: 0.12,
     hits: 0
   };

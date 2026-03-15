@@ -43,6 +43,8 @@ function updateWaveAnnounce() {
 }
 
 function drawWaveAnnounce(ctx) {
+  // Hide wave indicator UI
+  return;
   if (!active || !loaded || !frames) return;
 
   const elapsed = Date.now() - startTime;
