@@ -6,25 +6,34 @@ const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChalleng
 const { roundedRect } = require('./roundedRect.js');
 const { drawActivePowerupHUD } = require('./powerupSystem.js');
 const { drawChallengeHUD, drawChallengeResult, drawChallengeAnnounce } = require('./challengeSystem.js');
+const { flexContainer, flexItem } = require('./flexLayout.js');
 
-// Draw score panel
+// Draw score panel using flex layout
 function drawUI(ctx) {
   const score = getScore();
   const highScore = getHighScore();
   const currentWave = getCurrentWave();
   const inInterWave = isInInterWave();
 
-  // Score panel
-  roundedRect()
+  // Score panel with flex layout - auto-sizing container
+  flexContainer()
     .position(10, 10)
-    .size(W - 20, 40)
-    .cornerRadius(8)
+    .size(W - 20, 40) // Fixed width, fixed height
+    .direction('row')
+    .justify('space-between')
+    .align('center')
+    .setPadding({ left: 12, right: 12, top: 0, bottom: 0 })
     .background('#ffffff55')
-    .border(2, "#444")
-    .setText(`分数: ${score}  最高: ${highScore}`)
-    .textStyle('#444', 20, 'Arial', 'bold')
-    .align('left', 'middle')
-    .setPadding({ left: 12, right: 8, top: 10, bottom: 10 })
+    .border(2, '#444')
+    .cornerRadius(8)
+    .addChildren(
+      flexItem()
+        .text(`分数: ${score}`, 20)
+        .textStyle('#444', 20, 'Arial', 'bold'),
+      flexItem()
+        .text(`最高: ${highScore}`, 16)
+        .textStyle('#666', 16)
+    )
     .draw(ctx);
 
   // Active powerup icons
@@ -40,7 +49,7 @@ function drawUI(ctx) {
   }
 }
 
-// Draw game over screen
+// Draw game over screen using flex layout
 function drawGameOver(ctx, canvas) {
   const score = getScore();
   const highScore = getHighScore();
@@ -49,39 +58,7 @@ function drawGameOver(ctx, canvas) {
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // White background panel using roundedRect
-  roundedRect()
-    .position((W - 300) / 2, (H - 280) / 2)
-    .size(300, 280)
-    .cornerRadius(16)
-    .background('#FFFFFF')
-    .border(6, '#FF6B35')
-    .draw(ctx);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FF6B35';
-  ctx.font = `bold ${ss(32)}px Arial`;
-  ctx.fillText('游戏结束', sx(W / 2), sy(H / 2) - ss(90));
-
-  ctx.fillStyle = '#333';
-  ctx.font = `${ss(24)}px Arial`;
-  ctx.fillText(`坚持到第 ${currentWave} 波!`, sx(W / 2), sy(H / 2) - ss(50));
-
-  ctx.fillStyle = '#333';
-  ctx.font = `bold ${ss(20)}px Arial`;
-  ctx.fillText(`分数: ${score}`, sx(W / 2), sy(H / 2) - ss(10));
-
-  ctx.fillStyle = '#ff6f00';
-  ctx.font = `bold ${ss(16)}px Arial`;
-  ctx.fillText(`最高分: ${highScore}`, sx(W / 2), sy(H / 2) + ss(20));
-
-  if (score >= highScore && score > 0) {
-    ctx.fillStyle = '#FFD700';
-    ctx.font = `bold ${ss(14)}px Arial`;
-    ctx.fillText('✨ 新纪录! ✨', sx(W / 2), sy(H / 2) + ss(45));
-  }
-  
-  // Rating
+  // Rating text
   let rating = '';
   let ratingColor = '#333';
   if (currentWave >= 100) {
@@ -94,74 +71,144 @@ function drawGameOver(ctx, canvas) {
     rating = '🌻 干得漂亮! 🌻';
     ratingColor = '#4ECDC4';
   }
-  
-  if (rating) {
-    ctx.fillStyle = ratingColor;
-    ctx.font = `bold ${ss(14)}px Arial`;
-    ctx.fillText(rating, sx(W / 2), sy(H / 2) + ss(65));
+
+  // Game over panel with flex layout
+  const gameOverPanel = flexContainer()
+    .position((W - 300) / 2, (H - 320) / 2)
+    .size(300, null) // Fixed width, auto height
+    .direction('column')
+    .justify('center')
+    .align('center')
+    .setGap(12)
+    .setPadding(20)
+    .background('#FFFFFF')
+    .border(6, '#FF6B35')
+    .cornerRadius(16);
+
+  // Title
+  gameOverPanel.addChild(
+    flexItem()
+      .text('游戏结束', 32)
+      .textStyle('#FF6B35', 32, 'Arial', 'bold')
+  );
+
+  // Stats container
+  const statsContainer = flexContainer()
+    .direction('column')
+    .justify('center')
+    .align('center')
+    .setGap(8)
+    .addChildren(
+      flexItem()
+        .text(`坚持到第 ${currentWave} 波!`, 24)
+        .textStyle('#333', 24),
+      flexItem()
+        .text(`分数: ${score}`, 20)
+        .textStyle('#333', 20, 'Arial', 'bold'),
+      flexItem()
+        .text(`最高分: ${highScore}`, 16)
+        .textStyle('#ff6f00', 16, 'Arial', 'bold')
+    );
+
+  if (score >= highScore && score > 0) {
+    statsContainer.addChild(
+      flexItem()
+        .text('✨ 新纪录! ✨', 14)
+        .textStyle('#FFD700', 14, 'Arial', 'bold')
+    );
   }
 
-  // Play again button - Orange
-  roundedRect()
-    .position((W - 160) / 2, (H / 2) + ss(70))
-    .size(160, 50)
-    .cornerRadius(12)
-    .linearGradient(['#FF6B35', '#FF4500'], 90)
-    .border(3, '#FFFFFF')
-    .setText('再来一次')
-    .textStyle('#FFFFFF', 22, 'Arial', 'bold')
-    .align('center', 'middle')
-    .setPadding({ left: 15, right: 15, top: 10, bottom: 10 })
-    .draw(ctx);
+  if (rating) {
+    statsContainer.addChild(
+      flexItem()
+        .text(rating, 14)
+        .textStyle(ratingColor, 14, 'Arial', 'bold')
+    );
+  }
+
+  gameOverPanel.addChild(statsContainer);
+
+  // Play again button
+  gameOverPanel.addChild(
+    flexItem()
+      .text('再来一次', 22)
+      .textStyle('#FFFFFF', 22, 'Arial', 'bold')
+      .background('#FF6B35')
+      .padding({ left: 40, right: 40, top: 12, bottom: 12 })
+      .cornerRadius(12)
+  );
+
+  gameOverPanel.draw(ctx);
 }
 
-// Draw start screen
+// Draw start screen using flex layout
 function drawStartScreen(ctx, canvas) {
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // White background panel
-  const panelWidth = 300;
-  const panelHeight = 360;
-  roundedRect()
-    .position((W - panelWidth) / 2, (H - panelHeight) / 2)
-    .size(panelWidth, panelHeight)
-    .cornerRadius(20)
+  // Start screen panel with flex layout
+  flexContainer()
+    .position((W - 300) / 2, (H - 400) / 2)
+    .size(300, null) // Fixed width, auto height
+    .direction('column')
+    .justify('center')
+    .align('center')
+    .setGap(15)
+    .setPadding(25)
     .background('#FFFFFF')
     .border(6, '#FF6B35')
-    .draw(ctx);
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#FF6B35';
-  ctx.font = `bold ${ss(42)}px Arial`;
-  ctx.fillText('一起来护花!', sx(W / 2), sy(H / 2) - ss(100));
-
-  ctx.fillStyle = '#666';
-  ctx.font = `${ss(15)}px Arial`;
-  ctx.fillText('拖动弹弓瞄准,松开发射!', sx(W / 2), sy(H / 2) - ss(50));
-  ctx.fillText('在炸弹落地前击碎它们!', sx(W / 2), sy(H / 2) - ss(25));
-
-  // Bomb icon
-  ctx.beginPath();
-  ctx.arc(sx(W / 2), sy(H / 2) + ss(20), ss(18), 0, Math.PI * 2);
-  ctx.fillStyle = '#333';
-  ctx.fill();
-  ctx.fillStyle = '#FF6B35';
-  ctx.beginPath();
-  ctx.arc(sx(W / 2), sy(H / 2) + ss(5), ss(5), 0, Math.PI * 2);
-  ctx.fill();
-
-  // Start button - Orange
-  roundedRect()
-    .position((W - 160) / 2, (H / 2) + ss(70))
-    .size(160, 50)
-    .cornerRadius(15)
-    .linearGradient(['#FF6B35', '#FF4500'], 90)
-    .border(3, '#FFFFFF')
-    .setText('开始游戏')
-    .textStyle('#FFFFFF', 22, 'Arial', 'bold')
-    .align('center', 'middle')
-    .setPadding({ left: 15, right: 15, top: 10, bottom: 10 })
+    .cornerRadius(20)
+    .addChildren(
+      // Title
+      flexItem()
+        .text('一起来护花!', 42)
+        .textStyle('#FF6B35', 42, 'Arial', 'bold'),
+      
+      // Instructions container
+      flexContainer()
+        .direction('column')
+        .justify('center')
+        .align('center')
+        .setGap(5)
+        .addChildren(
+          flexItem()
+            .text('拖动弹弓瞄准,松开发射!', 15)
+            .textStyle('#666', 15),
+          flexItem()
+            .text('在炸弹落地前击碎它们!', 15)
+            .textStyle('#666', 15)
+        ),
+      
+      // Bomb icon (using custom render)
+      flexItem()
+        .size(40, 40)
+        .render((ctx, x, y, w, h, scale) => {
+          const cx = x + w / 2;
+          const cy = y + h / 2;
+          const radius = 18 * scale;
+          
+          // Bomb body
+          ctx.beginPath();
+          ctx.arc(cx, cy + 5 * scale, radius, 0, Math.PI * 2);
+          ctx.fillStyle = '#333';
+          ctx.fill();
+          
+          // Fuse
+          ctx.fillStyle = '#FF6B35';
+          ctx.beginPath();
+          ctx.arc(cx, cy - 10 * scale, 5 * scale, 0, Math.PI * 2);
+          ctx.fill();
+        }),
+      
+      // Start button
+      flexItem()
+        .text('开始游戏', 22)
+        .textStyle('#FFFFFF', 22, 'Arial', 'bold')
+        .background('#FF6B35')
+        .linearGradient(['#FF6B35', '#FF4500'], 90)
+        .padding({ left: 50, right: 50, top: 12, bottom: 12 })
+        .cornerRadius(15)
+    )
     .draw(ctx);
 }
 
