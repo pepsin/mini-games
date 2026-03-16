@@ -718,25 +718,29 @@ class FlexItem {
   draw(ctx, x, y, width, height, scale) {
     // Draw background
     if (this.style.backgroundColor || this.style.backgroundGradient) {
+      // Ensure valid dimensions
+      const validWidth = Math.max(0.1, width);
+      const validHeight = Math.max(0.1, height);
+      
       ctx.save();
       const r = this.style.borderRadius * scale;
-      this._createPath(ctx, x, y, width, height, r);
+      this._createPath(ctx, x, y, validWidth, validHeight, r);
       
       if (this.style.backgroundGradient) {
         let grad;
         if (this.style.backgroundGradient.type === 'linear') {
           const angle = this.style.backgroundGradient.angle * Math.PI / 180;
-          const cx = x + width / 2;
-          const cy = y + height / 2;
-          const x1 = cx - (width / 2) * Math.cos(angle);
-          const y1 = cy - (height / 2) * Math.sin(angle);
-          const x2 = cx + (width / 2) * Math.cos(angle);
-          const y2 = cy + (height / 2) * Math.sin(angle);
+          const cx = x + validWidth / 2;
+          const cy = y + validHeight / 2;
+          const x1 = cx - (validWidth / 2) * Math.cos(angle);
+          const y1 = cy - (validHeight / 2) * Math.sin(angle);
+          const x2 = cx + (validWidth / 2) * Math.cos(angle);
+          const y2 = cy + (validHeight / 2) * Math.sin(angle);
           grad = ctx.createLinearGradient(x1, y1, x2, y2);
         } else {
           grad = ctx.createRadialGradient(
-            x + width / 2, y + height / 2, 0,
-            x + width / 2, y + height / 2, Math.max(width, height) / 2
+            x + validWidth / 2, y + validHeight / 2, 0,
+            x + validWidth / 2, y + validHeight / 2, Math.max(validWidth, validHeight) / 2
           );
         }
         
