@@ -166,8 +166,8 @@ function drawStartScreen(ctx, canvas) {
     .addChildren(
       // Title
       flexItem()
-        .text('一起来护花!', 42)
-        .textStyle('#FF6B35', 42, 'Arial', 'bold'),
+        .text('一起来护花!', 28)
+        .textStyle('#FF6B35', 28, 'Arial', 'bold'),
       
       // Instructions container
       flexContainer()
@@ -180,7 +180,7 @@ function drawStartScreen(ctx, canvas) {
             .text('拖动弹弓瞄准,松开发射!', 15)
             .textStyle('#666', 15),
           flexItem()
-            .text('在炸弹落地前击碎它们!', 15)
+            .text('在炸弹落地前打穿它们!', 15)
             .textStyle('#666', 15)
         ),
       
