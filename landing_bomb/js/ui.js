@@ -103,8 +103,7 @@ function drawGameOver(ctx, canvas) {
     .setGap(8)
     .addChildren(
       flexItem()
-        .text(`坚持到第 ${currentWave} 波!`, 24)
-        .textStyle('#333', 24),
+        .size(10, 30),
       flexItem()
         .text(`分数: ${score}`, 20)
         .textStyle('#333', 20, 'Arial', 'bold'),
