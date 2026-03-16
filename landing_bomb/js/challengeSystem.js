@@ -2,6 +2,10 @@
 
 const { W, H, sx, sy, ss } = require('./config.js');
 const { roundedRect } = require('./roundedRect.js');
+const { CountdownTimer } = require('./countdownTimer.js');
+
+// Reusable countdown timer instance for HUD
+const hudTimer = new CountdownTimer({ radius: 10, lineWidth: 3, showText: true });
 
 // Challenge types
 const CHALLENGE_TYPES = {
@@ -187,12 +191,12 @@ function resetChallenges() {
 }
 
 // Draw challenge HUD (during wave)
-function drawChallengeHUD(ctx) {
+function drawChallengeHUD(ctx, frameCount) {
   if (!currentChallenge) return;
   const ch = currentChallenge;
 
   // Challenge banner at top center
-  const bannerW = 220;
+  const bannerW = 244;
   const bannerH = 44;
   const bx = (W - bannerW) / 2;
   const by = 48;
@@ -232,14 +236,28 @@ function drawChallengeHUD(ctx) {
     ctx.fillRect(barX, barY, ss(barW) * progress, ss(barH));
   }
 
-  // Timer for time-limited challenges
+  // Countdown timer for time-limited challenges
   if (ch.type === 'kill_n_in_time' && ch.timeLimit > 0) {
     const remaining = Math.max(0, ch.timeLimit - ch.timeElapsed);
-    const secs = Math.ceil(remaining / 60);
-    ctx.textAlign = 'right';
-    ctx.font = `bold ${ss(11)}px Arial`;
-    ctx.fillStyle = remaining < 180 ? '#FF6666' : '#FFFFFF';
-    ctx.fillText(`${secs}s`, sx(bx + bannerW - 8), sy(by + 4));
+    const timerProgress = remaining / ch.timeLimit;
+    const remainingSecs = remaining / 60;
+    hudTimer.x = bx + bannerW - 18;
+    hudTimer.y = by + bannerH / 2;
+    hudTimer.draw(ctx, timerProgress, remainingSecs, frameCount);
+  }
+
+  // Countdown timer for kill streak (shows time window between kills)
+  if (ch.type === 'kill_streak' && ch.progress > 0 && frameCount !== undefined) {
+    const elapsed = frameCount - lastKillFrame;
+    const streakRemaining = Math.max(0, KILL_STREAK_WINDOW - elapsed);
+    const timerProgress = streakRemaining / KILL_STREAK_WINDOW;
+    if (timerProgress > 0) {
+      hudTimer.x = bx + bannerW - 18;
+      hudTimer.y = by + bannerH / 2;
+      hudTimer.showText = false;
+      hudTimer.draw(ctx, timerProgress, null, frameCount);
+      hudTimer.showText = true;
+    }
   }
 }
 
