@@ -2,6 +2,7 @@
 
 const { GROUND_Y, FLOWER_CONFIG } = require('./config.js');
 const { getResource } = require('./resources.js');
+const { resetSpawnTimer } = require('./powerupSystem.js');
 
 // Game state variables
 let score = 0;
@@ -70,6 +71,9 @@ function resetGame() {
   powerups.length = 0;
   activePowerups.length = 0;
   powerupBursts.length = 0;
+  
+  // Reset powerup spawn timer so first powerup can spawn immediately
+  resetSpawnTimer();
   
   gameOver = false;
   frameCount = 0;

@@ -293,7 +293,7 @@ function update() {
         }
 
         // Try to spawn powerup on kill
-        trySpawnPowerup(powerups);
+        trySpawnPowerup(powerups, frameCount);
       }
     }
   }

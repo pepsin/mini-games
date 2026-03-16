@@ -15,6 +15,15 @@ const POWERUP_TYPES = {
 const SPAWN_CHANCE = 0.15;
 const POWERUP_RADIUS = 28;
 
+// Track spawn timing: only one powerup at a time, minimum 10 second gap
+let lastSpawnTime = -Infinity;
+const MIN_SPAWN_INTERVAL = 600; // 10 seconds at 60fps
+
+// Reset spawn timer (call on game restart)
+function resetSpawnTimer() {
+  lastSpawnTime = -Infinity;
+}
+
 // Get loaded image for a powerup type (or null if not loaded)
 function getPowerupImage(type) {
   const res = getResource('powerup');
@@ -37,8 +46,13 @@ function randomPowerupType() {
 }
 
 // Try to spawn a powerup (called on bomb kill)
-function trySpawnPowerup(powerups) {
+function trySpawnPowerup(powerups, frameCount) {
+  // Only one powerup at a time
+  if (powerups.length > 0) return null;
+  // Minimum 10 second gap between powerups
+  if (frameCount - lastSpawnTime < MIN_SPAWN_INTERVAL) return null;
   if (Math.random() > SPAWN_CHANCE) return null;
+  
   const type = randomPowerupType();
   const baseY = 150 + Math.random() * 500;
   const powerup = {
@@ -53,6 +67,7 @@ function trySpawnPowerup(powerups) {
     trail: []
   };
   powerups.push(powerup);
+  lastSpawnTime = frameCount;
   return powerup;
 }
 
@@ -479,5 +494,6 @@ module.exports = {
   drawPowerupBurst,
   drawActivePowerupHUD,
   drawShieldEffect,
-  randomPowerupType
+  randomPowerupType,
+  resetSpawnTimer
 };

@@ -82,7 +82,7 @@ function createScorePopup(x, y, combo) {
     x, y,
     combo,
     baseScore: 100,
-    totalScore: 100 * combo,
+    totalScore: 100 * Math.pow(2, combo - 1),
     frame: 0,
     maxFrames: 50
   };
@@ -138,7 +138,7 @@ function drawScorePopup(ctx, popup) {
   const fontSize = Math.floor(sx(24) * comboScale);
   ctx.font = `bold ${fontSize}px Arial`;
   
-  const totalScore = popup.combo * 100;
+  const totalScore = popup.totalScore;
   ctx.fillText(`+${totalScore}`, cx, cy);
   
   ctx.restore();
