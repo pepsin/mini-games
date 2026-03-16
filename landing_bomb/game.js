@@ -351,8 +351,6 @@ function draw() {
 
   drawHealthFlowers(ctx);
 
-  const frameCount = getFrameCount();
-  bombs.forEach(b => drawBomb(ctx, b, frameCount));
   // Slingshot body (below projectiles)
   drawSlingshotBody(ctx);
 
@@ -370,6 +368,10 @@ function draw() {
 
   // Draw powerup burst effects
   powerupBursts.forEach(b => drawPowerupBurst(ctx, b));
+
+  // Bombs at top of z-index (drawn last among game entities)
+  const frameCount = getFrameCount();
+  bombs.forEach(b => drawBomb(ctx, b, frameCount));
 
   // Wave announce arc
   drawWaveAnnounce(ctx);

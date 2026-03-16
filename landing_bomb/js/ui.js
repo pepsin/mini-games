@@ -18,8 +18,8 @@ function drawUI(ctx) {
 
   // Score panel with flex layout - auto-sizing container
   flexContainer()
-    .position(10, 10)
-    .size(W - 20, 40) // Fixed width, fixed height
+    .position(10, 8)
+    .size(W - 20, 36) // Fixed width, fixed height
     .direction('row')
     .justify('space-between')
     .align('center')

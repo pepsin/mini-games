@@ -390,7 +390,7 @@ function drawActivePowerupHUD(ctx, activePowerups) {
   if (activePowerups.length === 0) return;
 
   const startX = 10;
-  const startY = 50;
+  const startY = 52;
   const iconSize = 24;
   const gap = 6;
 

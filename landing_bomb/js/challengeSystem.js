@@ -199,7 +199,7 @@ function drawChallengeHUD(ctx, frameCount) {
   const bannerW = 244;
   const bannerH = 44;
   const bx = (W - bannerW) / 2;
-  const by = 48;
+  const by = 52;
 
   // Background
   const bgColor = ch.failed ? 'rgba(255,50,50,0.7)' : 'rgba(0,0,0,0.6)';
