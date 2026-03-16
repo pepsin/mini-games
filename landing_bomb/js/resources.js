@@ -14,7 +14,8 @@ const resources = {
   background: null,
   sun: null,
   sunInner: null,
-  sunOuter: null
+  sunOuter: null,
+  powerup: null
 };
 
 let resourcesLoaded = false;
@@ -53,7 +54,10 @@ async function loadResources() {
   resources.sunOuter = await animationLoader.load('sun', 'outer');
   console.log('Sun inner:', resources.sunInner ? 'loaded' : 'failed');
   console.log('Sun outer:', resources.sunOuter ? 'loaded' : 'failed');
-  
+
+  resources.powerup = await animationLoader.load('powerup');
+  console.log('Powerup resource:', resources.powerup ? 'loaded' : 'failed');
+
   // Check if any resource loaded
   const anyLoaded = resources.bomb || resources.parachute || resources.flower || 
                     resources.cloud || resources.rainbow || resources.slingshot || 

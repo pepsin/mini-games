@@ -1,6 +1,7 @@
 // Powerup System Module
 
 const { W, H, sx, sy, ss } = require('./config.js');
+const { getResource } = require('./resources.js');
 
 // Powerup definitions
 const POWERUP_TYPES = {
@@ -13,6 +14,15 @@ const POWERUP_TYPES = {
 
 const SPAWN_CHANCE = 0.15;
 const POWERUP_RADIUS = 28;
+
+// Get loaded image for a powerup type (or null if not loaded)
+function getPowerupImage(type) {
+  const res = getResource('powerup');
+  if (res && res.variants && res.variants[type]) {
+    return res.variants[type];
+  }
+  return null;
+}
 
 // Weighted random selection
 function randomPowerupType() {
@@ -193,36 +203,39 @@ function drawPowerup(ctx, p) {
   ctx.lineWidth = ss(1.5);
   ctx.stroke();
 
-  // Icon
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `${ss(14)}px Arial`;
-  ctx.fillStyle = '#FFFFFF';
+  // Icon - use image asset if available, otherwise fall back to canvas drawing
+  const img = getPowerupImage(p.type);
+  if (img && img.width > 0) {
+    // Draw the image centered on the powerup
+    const imgSize = r * 1.6;
+    ctx.drawImage(img, px - imgSize, py - imgSize, imgSize * 2, imgSize * 2);
+  } else {
+    // Fallback: programmatic canvas icon
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${ss(14)}px Arial`;
+    ctx.fillStyle = '#FFFFFF';
 
-  switch (p.type) {
-    case 'time_slow':
-      // Hourglass
-      drawIce(ctx, px, py, r);
-      break;
-    case 'multi_shot':
-      // Three arrows
-      drawTripleArrow(ctx, px, py, r);
-      break;
-    case 'explosive':
-      // Flame
-      drawFlame(ctx, px, py, r);
-      break;
-    case 'heal':
-      // Heart
-      drawHeart(ctx, px, py, r);
-      break;
-    case 'shield':
-      // Shield
-      drawShield(ctx, px, py, r);
-      break;
+    switch (p.type) {
+      case 'time_slow':
+        drawIce(ctx, px, py, r);
+        break;
+      case 'multi_shot':
+        drawTripleArrow(ctx, px, py, r);
+        break;
+      case 'explosive':
+        drawFlame(ctx, px, py, r);
+        break;
+      case 'heal':
+        drawHeart(ctx, px, py, r);
+        break;
+      case 'shield':
+        drawShield(ctx, px, py, r);
+        break;
+    }
+    ctx.restore();
   }
-  ctx.restore();
 }
 
 // Icon drawing helpers
@@ -408,10 +421,17 @@ function drawActivePowerupHUD(ctx, activePowerups) {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillText(`${ap.remaining}`, cx, cy);
     } else {
-      // Draw mini icon
-      switch (ap.type) {
-        case 'time_slow': drawIce(ctx, cx, cy, r * 0.7); break;
-        case 'shield': drawShield(ctx, cx, cy, r * 0.7); break;
+      // Draw mini icon - use image if available
+      const img = getPowerupImage(ap.type);
+      if (img && img.width > 0) {
+        const imgSize = r * 0.8;
+        ctx.drawImage(img, cx - imgSize, cy - imgSize, imgSize * 2, imgSize * 2);
+      } else {
+        // Fallback: canvas drawing
+        switch (ap.type) {
+          case 'time_slow': drawIce(ctx, cx, cy, r * 0.7); break;
+          case 'shield': drawShield(ctx, cx, cy, r * 0.7); break;
+        }
       }
     }
   });
