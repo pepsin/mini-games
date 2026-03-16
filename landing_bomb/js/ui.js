@@ -7,6 +7,7 @@ const { roundedRect } = require('./roundedRect.js');
 const { drawActivePowerupHUD } = require('./powerupSystem.js');
 const { drawChallengeHUD, drawChallengeResult, drawChallengeAnnounce } = require('./challengeSystem.js');
 const { flexContainer, flexItem } = require('./flexLayout.js');
+const { setButtonBounds } = require('./uiState.js');
 
 // Draw score panel using flex layout
 function drawUI(ctx) {
@@ -31,8 +32,10 @@ function drawUI(ctx) {
         .text(`分数: ${score}`, 20)
         .textStyle('#444', 20, 'Arial', 'bold'),
       flexItem()
+        .size(20,20),
+      flexItem()
         .text(`最高: ${highScore}`, 16)
-        .textStyle('#666', 16)
+        .textStyle('#666', 20)
     )
     .draw(ctx);
 
@@ -131,6 +134,7 @@ function drawGameOver(ctx, canvas) {
   // Play again button
   gameOverPanel.addChild(
     flexItem()
+      .tag('restartButton')
       .text('再来一次', 22)
       .textStyle('#FFFFFF', 22, 'Arial', 'bold')
       .background('#FF6B35')
@@ -139,6 +143,8 @@ function drawGameOver(ctx, canvas) {
   );
 
   gameOverPanel.draw(ctx);
+  const restartBounds = gameOverPanel.getTaggedBounds('restartButton');
+  if (restartBounds) setButtonBounds('restartButton', restartBounds.x, restartBounds.y, restartBounds.width, restartBounds.height);
 }
 
 // Draw start screen using flex layout
@@ -147,7 +153,7 @@ function drawStartScreen(ctx, canvas) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Start screen panel with flex layout
-  flexContainer()
+  const panel = flexContainer()
     .position((W - 300) / 2, (H - 400) / 2)
     .size(300, null) // Fixed width, auto height
     .direction('column')
@@ -202,14 +208,18 @@ function drawStartScreen(ctx, canvas) {
       
       // Start button
       flexItem()
+        .tag('startButton')
         .text('开始游戏', 22)
         .textStyle('#FFFFFF', 22, 'Arial', 'bold')
         .background('#FF6B35')
         .linearGradient(['#FF6B35', '#FF4500'], 90)
         .padding({ left: 50, right: 50, top: 12, bottom: 12 })
         .cornerRadius(15)
-    )
-    .draw(ctx);
+    );
+
+  panel.draw(ctx);
+  const startBounds = panel.getTaggedBounds('startButton');
+  if (startBounds) setButtonBounds('startButton', startBounds.x, startBounds.y, startBounds.width, startBounds.height);
 }
 
 module.exports = {

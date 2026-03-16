@@ -272,18 +272,18 @@ class FlexContainer {
     if (this.width !== null) {
       containerWidth = this.width * p.scale;
     } else {
-      containerWidth = Math.max(p.padding.left + p.padding.right + contentWidth, p.minWidth * p.scale);
-      if (p.maxWidth !== Infinity) {
-        containerWidth = Math.min(containerWidth, p.maxWidth * p.scale);
+      containerWidth = Math.max(p.padding.left + p.padding.right + contentWidth, this.minWidth * p.scale);
+      if (this.maxWidth !== Infinity) {
+        containerWidth = Math.min(containerWidth, this.maxWidth * p.scale);
       }
     }
     
     if (this.height !== null) {
       containerHeight = this.height * p.scale;
     } else {
-      containerHeight = Math.max(p.padding.top + p.padding.bottom + contentHeight, p.minHeight * p.scale);
-      if (p.maxHeight !== Infinity) {
-        containerHeight = Math.min(containerHeight, p.maxHeight * p.scale);
+      containerHeight = Math.max(p.padding.top + p.padding.bottom + contentHeight, this.minHeight * p.scale);
+      if (this.maxHeight !== Infinity) {
+        containerHeight = Math.min(containerHeight, this.maxHeight * p.scale);
       }
     }
     
@@ -395,31 +395,39 @@ class FlexContainer {
   // Draw the container and all children
   draw(ctx) {
     const p = this._getPixelValues();
-    
+
     // Calculate layout
     const childMetrics = this.calculateLayout(ctx);
-    
+
+    // Collect tagged item bounds (in game coordinates)
+    this._taggedBounds = {};
+
     // Draw container background
     this._drawBackground(ctx, p);
-    
+
     // Draw children
     ctx.save();
     ctx.beginPath();
     ctx.rect(p.x, p.y, this.computedWidth, this.computedHeight);
     ctx.clip();
-    
+
     childMetrics.forEach(m => {
       this._drawChild(ctx, m, p);
     });
-    
+
     ctx.restore();
-    
+
     // Draw container border
     if (this.style.borderWidth > 0) {
       this._drawBorder(ctx, p);
     }
-    
+
     return this;
+  }
+
+  // Get bounds of a tagged item in game coordinates (call after draw)
+  getTaggedBounds(tag) {
+    return this._taggedBounds && this._taggedBounds[tag] || null;
   }
   
   // Get pixel values based on coordinate system
@@ -508,31 +516,41 @@ class FlexContainer {
   // Draw a child element
   _drawChild(ctx, metrics, p) {
     const { child, computedX, computedY, computedWidth, computedHeight } = metrics;
-    
+
     const absoluteX = p.x + computedX;
     const absoluteY = p.y + computedY;
-    
+
+    // Convert to game coordinates for tagged bounds
+    const gameX = (absoluteX - sx(0)) / ss(1);
+    const gameY = (absoluteY - sy(0)) / ss(1);
+    const gameW = computedWidth / p.scale;
+    const gameH = computedHeight / p.scale;
+
     if (child instanceof FlexContainer) {
       // Recursively draw child container
-      child.x = (absoluteX - sx(0)) / ss(1);
-      child.y = (absoluteY - sy(0)) / ss(1);
+      child.x = gameX;
+      child.y = gameY;
       child.useGameCoords = this.useGameCoords;
       child.draw(ctx);
+      // Propagate tagged bounds from child containers
+      if (child._taggedBounds) {
+        Object.assign(this._taggedBounds, child._taggedBounds);
+      }
     } else if (child instanceof RoundedRectangle) {
       // Update rounded rect position and size
-      child.x = (absoluteX - sx(0)) / ss(1);
-      child.y = (absoluteY - sy(0)) / ss(1);
-      if (child.width !== computedWidth / p.scale) {
-        child.width = computedWidth / p.scale;
-      }
-      if (child.height !== computedHeight / p.scale) {
-        child.height = computedHeight / p.scale;
-      }
+      child.x = gameX;
+      child.y = gameY;
+      if (child.width !== gameW) child.width = gameW;
+      if (child.height !== gameH) child.height = gameH;
       child.useGameCoords = this.useGameCoords;
       child.draw(ctx);
     } else if (child instanceof FlexItem) {
       // Draw flex item content
       child.draw(ctx, absoluteX, absoluteY, computedWidth, computedHeight, p.scale);
+      // Record tagged item bounds in game coordinates
+      if (child._tag) {
+        this._taggedBounds[child._tag] = { x: gameX, y: gameY, width: gameW, height: gameH };
+      }
     }
   }
 }
@@ -554,6 +572,9 @@ class FlexItem {
     this.flexShrink = 1;
     this.flexBasis = null; // null = use width/height
     this.alignSelf = 'auto'; // 'auto', 'flex-start', 'center', 'flex-end', 'stretch'
+
+    // Tag for identifying items after layout
+    this._tag = null;
     
     // Content
     this.content = null; // Can be string (text), Image, or custom render function
@@ -590,7 +611,13 @@ class FlexItem {
     this.maxHeight = maxHeight;
     return this;
   }
-  
+
+  // Tag for identifying this item after layout
+  tag(name) {
+    this._tag = name;
+    return this;
+  }
+
   // Flex properties
   flex(grow = 0, shrink = 1, basis = null) {
     this.flexGrow = grow;
@@ -807,7 +834,7 @@ class FlexItem {
     ctx.lineTo(x + radius, y + h);
     ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
     ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, x, y, x + radius, y);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
   }
 }

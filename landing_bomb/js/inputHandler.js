@@ -5,6 +5,7 @@ const { isGameStarted, isGameOver, resetGame, activePowerups } = require('./game
 const { createProjectile } = require('./entities/projectile.js');
 const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
+const { hitTest } = require('./uiState.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -18,24 +19,16 @@ function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
   
   if (!isGameStarted()) {
-    // Start button check - matches roundedRect button in ui.js
-    const btnW = 160;
-    const btnH = 50;
-    const btnTop = H / 2 + 70;
-    if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
-        gp.y > btnTop && gp.y < btnTop + btnH) {
+    // Start button - use bounds from flex layout
+    if (hitTest('startButton', gp.x, gp.y)) {
       gameCallbacks.onGameStart && gameCallbacks.onGameStart();
     }
     return;
   }
-  
+
   if (isGameOver()) {
-    // Play again button check - matches roundedRect button in ui.js
-    const btnW = 140;
-    const btnH = 44;
-    const btnTop = H / 2 + 90;
-    if (gp.x > W / 2 - btnW / 2 && gp.x < W / 2 + btnW / 2 && 
-        gp.y > btnTop && gp.y < btnTop + btnH) {
+    // Play again button - use bounds from flex layout
+    if (hitTest('restartButton', gp.x, gp.y)) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();
     }
     return;
