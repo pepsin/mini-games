@@ -191,23 +191,23 @@ function drawPowerup(ctx, p) {
   ctx.fill();
 
   // Main circle
-  const mainGrad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
-  mainGrad.addColorStop(0, '#FFFFFF');
-  mainGrad.addColorStop(0.4, def.color);
-  mainGrad.addColorStop(1, def.color);
-  ctx.beginPath();
-  ctx.arc(px, py, r, 0, Math.PI * 2);
-  ctx.fillStyle = mainGrad;
-  ctx.fill();
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = ss(1.5);
-  ctx.stroke();
+  // const mainGrad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
+  // mainGrad.addColorStop(0, '#FFFFFF');
+  // mainGrad.addColorStop(0.4, def.color);
+  // mainGrad.addColorStop(1, def.color);
+  // ctx.beginPath();
+  // ctx.arc(px, py, r, 0, Math.PI * 2);
+  // ctx.fillStyle = mainGrad;
+  // ctx.fill();
+  // ctx.strokeStyle = '#FFFFFF';
+  // ctx.lineWidth = ss(1.5);
+  // ctx.stroke();
 
   // Icon - use image asset if available, otherwise fall back to canvas drawing
   const img = getPowerupImage(p.type);
   if (img && img.width > 0) {
     // Draw the image centered on the powerup
-    const imgSize = r * 1.6;
+    const imgSize = r;
     ctx.drawImage(img, px - imgSize, py - imgSize, imgSize * 2, imgSize * 2);
   } else {
     // Fallback: programmatic canvas icon

@@ -8,6 +8,6 @@
     { "id": "heal", "file": "heal.png" },
     { "id": "shield", "file": "shield.png" }
   ],
-  "size": { "width": 56, "height": 56 },
+  "size": { "width": 22, "height": 22 },
   "anchor": { "x": 0.5, "y": 0.5 }
 }
