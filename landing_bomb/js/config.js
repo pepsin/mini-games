@@ -1,5 +1,14 @@
 // Game Configuration - Constants and screen setup
 
+// Topbar layout constants
+const TOPBAR_CONFIG = {
+  marginX: 10,
+  marginY: 23,
+  buttonSize: 36,
+  gap: 8,
+  get baseHeight() { return this.marginY + this.buttonSize; }
+};
+
 // Get system info
 const systemInfo = wx.getSystemInfoSync();
 const screenWidth = systemInfo.windowWidth;
@@ -109,5 +118,6 @@ module.exports = {
   CLOUD_VARIANT_COLORS,
   FLOWER_COLOR_MAP,
   SLING_CONFIG,
-  FLOWER_CONFIG
+  FLOWER_CONFIG,
+  TOPBAR_CONFIG
 };

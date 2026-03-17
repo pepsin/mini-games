@@ -489,73 +489,6 @@ function drawPowerupBurst(ctx, burst) {
   ctx.globalAlpha = 1;
 }
 
-// Draw active powerup HUD icons
-function drawActivePowerupHUD(ctx, activePowerups) {
-  if (activePowerups.length === 0) return;
-
-  const startX = 10;
-  const startY = 52;
-  const iconSize = 24;
-  const gap = 6;
-
-  activePowerups.forEach((ap, idx) => {
-    const def = POWERUP_TYPES[ap.type];
-    const cx = sx(startX + (iconSize + gap) * idx + iconSize / 2);
-    const cy = sy(startY + iconSize / 2);
-    const r = ss(iconSize / 2);
-
-    // Background circle with progress
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fill();
-
-    // Progress arc
-    let progress = 1;
-    const maxDuration = POWERUP_TYPES[ap.type].duration;
-    if (maxDuration > 0) {
-      progress = ap.remaining / maxDuration;
-    }
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
-    ctx.closePath();
-    ctx.fillStyle = def.color;
-    ctx.globalAlpha = 0.7;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Border
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = ss(1.5);
-    ctx.stroke();
-
-    // Remaining text for shot-based
-    if (ap.type === 'multi_shot' || ap.type === 'explosive') {
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `bold ${ss(11)}px Arial`;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillText(`${ap.remaining}`, cx, cy);
-    } else {
-      // Draw mini icon - use image if available
-      const img = getPowerupImage(ap.type);
-      if (img && img.width > 0) {
-        const imgSize = r * 0.8;
-        ctx.drawImage(img, cx - imgSize, cy - imgSize, imgSize * 2, imgSize * 2);
-      } else {
-        // Fallback: canvas drawing
-        switch (ap.type) {
-          case 'time_slow': drawIce(ctx, cx, cy, r * 0.7); break;
-          case 'shield': drawShield(ctx, cx, cy, r * 0.7); break;
-        }
-      }
-    }
-  });
-}
-
 // Draw shield visual effect on flowers when active
 function drawShieldEffect(ctx, flowerPositions, flowerAlive, frameCount) {
   const pulse = Math.sin(frameCount * 0.1) * 0.15 + 0.85;
@@ -596,12 +529,13 @@ module.exports = {
   drawPowerup,
   createPowerupBurst,
   drawPowerupBurst,
-  drawActivePowerupHUD,
+
   drawShieldEffect,
   randomPowerupType,
   resetSpawnTimer,
   updateTimeSlowFlash,
   updateFlashAnimations,
   drawBombFlash,
-  getBombFlashAnimations
+  getBombFlashAnimations,
+  getPowerupImage
 };

@@ -191,15 +191,15 @@ function resetChallenges() {
 }
 
 // Draw challenge HUD (during wave)
-function drawChallengeHUD(ctx, frameCount) {
+function drawChallengeHUD(ctx, frameCount, topbarHeight = 66) {
   if (!currentChallenge) return;
   const ch = currentChallenge;
 
-  // Challenge banner at top center
+  // Challenge banner at top center, positioned below the topbar
   const bannerW = 244;
   const bannerH = 44;
   const bx = (W - bannerW) / 2;
-  const by = 52;
+  const by = topbarHeight + 10; // 10px gap below topbar
 
   // Background
   const bgColor = ch.failed ? 'rgba(255,50,50,0.7)' : 'rgba(0,0,0,0.6)';
