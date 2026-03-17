@@ -15,11 +15,11 @@ const FLASH_RADIUS_MULTIPLIER = 1.5;
 
 // Powerup definitions
 const POWERUP_TYPES = {
-  time_slow: { color: '#4488FF', glowColor: 'rgba(68,136,255,0.4)', label: '减速', weight: 25, duration: 300 },
-  multi_shot: { color: '#FF8800', glowColor: 'rgba(255,136,0,0.4)', label: '散射', weight: 25, duration: 3 },
-  explosive: { color: '#FF3333', glowColor: 'rgba(255,51,51,0.4)', label: '爆破', weight: 20, duration: 0 },
-  heal: { color: '#FF66AA', glowColor: 'rgba(255,102,170,0.4)', label: '治愈', weight: 15, duration: 0 },
-  shield: { color: '#44DDDD', glowColor: 'rgba(68,221,221,0.4)', label: '护盾', weight: 15, duration: 480 }
+  time_slow: { color: '#719508', glowColor: '#ffffff', label: '减速', weight: 25, duration: 300 },
+  multi_shot: { color: '#719508', glowColor: '#ffffff', label: '散射', weight: 25, duration: 3 },
+  explosive: { color: '#719508', glowColor: '#ffffff', label: '爆破', weight: 20, duration: 0 },
+  heal: { color: '#719508', glowColor: '#ffffff', label: '治愈', weight: 15, duration: 0 },
+  shield: { color: '#719508', glowColor: '#ffffff', label: '护盾', weight: 15, duration: 480 }
 };
 
 const SPAWN_CHANCE = 0.15;
@@ -303,10 +303,10 @@ function getOrCreateBadge(powerup) {
       radiusY: 24,
       x: 0, // Will be updated in draw
       y: 0, // Will be updated in draw
-      imageWidth: 56,
-      imageHeight: 56,
-      coverRadius: 0.4,
-      maxLines: 6
+      imageWidth: 40,
+      imageHeight: 40,
+      coverRadius: 0.2,
+      maxLines: 0
     });
     
     powerupBadges.set(powerup, badge);
@@ -333,16 +333,6 @@ function drawPowerup(ctx, p, frameCount = 0) {
     ctx.fill();
   });
   ctx.globalAlpha = 1;
-
-  // Pulsing glow aura
-  const glowSize = r * (1.8 + Math.sin(p.glowPhase) * 0.4);
-  const glowGrad = ctx.createRadialGradient(px, py, r * 0.5, px, py, glowSize);
-  glowGrad.addColorStop(0, def.glowColor);
-  glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glowGrad;
-  ctx.beginPath();
-  ctx.arc(px, py, glowSize, 0, Math.PI * 2);
-  ctx.fill();
 
   // Use ElectricBadge to draw the powerup icon
   const img = getPowerupImage(p.type);

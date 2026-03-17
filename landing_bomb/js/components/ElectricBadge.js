@@ -23,7 +23,7 @@ class ElectricBadge {
     
     // Electric effect properties
     this.electricLines = [];
-    this.maxLines = 12;
+    this.maxLines = options.maxLines != undefined ? options.maxLines : 12;
     this.lineLifetime = 150; // ms
     this.lastUpdate = Date.now();
     
@@ -166,16 +166,14 @@ class ElectricBadge {
     );
     let colors = this.generateBrightColors(this.color)
     gradient.addColorStop(0, colors[0]);
-    gradient.addColorStop(0.7, colors[1]);
+    gradient.addColorStop(0.6, colors[1]);
     gradient.addColorStop(1, colors[2]);
     ctx.fillStyle = gradient;
     ctx.fill();
     
     // Draw oval border with glow
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 2;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 15;
+    ctx.lineWidth = 1;
     ctx.stroke();
     
     // Reset shadow for image
@@ -191,6 +189,25 @@ class ElectricBadge {
         this.imageHeight
       );
     }
+
+        
+    // Draw top-left highlight (small white oval at top edge)
+    const highlightWidth = this.radiusX * 0.3;
+    const highlightHeight = this.radiusY * 0.15;
+    const highlightX = this.x - this.radiusX * 0.5;
+    const highlightY = this.y - this.radiusY * 0.5;
+    
+    ctx.beginPath();
+    ctx.ellipse(highlightX, highlightY, highlightWidth, highlightHeight, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fill();
+
+    // Draw bottom highlight arc (from right middle to bottom middle)
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, Math.max(this.radiusX, this.radiusY) * 0.85, Math.PI * 0, Math.PI * 0.45);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
     
     // Draw electric lines
     ctx.lineCap = 'round';
