@@ -1,0 +1,14 @@
+{
+  "name": "flower_covered",
+  "type": "static",
+  "description": "受保护的花朵静态图",
+  "file": "flower_covered.png",
+  "size": {
+    "width": 90,
+    "height": 147
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.8
+  }
+}

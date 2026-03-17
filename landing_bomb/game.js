@@ -31,8 +31,8 @@ const {
 // Powerup system
 const {
   trySpawnPowerup, updatePowerups, checkPowerupCollision,
-  activatePowerup, updateActivePowerups, isPowerupActive, getActivePowerup,
-  consumePowerupUse, getSpeedMultiplier,
+  activatePowerup, updateActivePowerups, isPowerupActive,
+  getSpeedMultiplier,
   drawPowerup, createPowerupBurst, drawPowerupBurst,
   drawShieldEffect, randomPowerupType,
   updateTimeSlowFlash, updateFlashAnimations, drawBombFlash
@@ -111,6 +111,30 @@ function init() {
   setupInput();
 }
 
+// Explode all bombs on screen (for explosive powerup)
+function explodeAllBombs() {
+  const frameCount = getFrameCount();
+  const bombCount = bombs.length;
+  
+  // Explode each bomb and give 100 score per bomb
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const b = bombs[i];
+    explosions.push(createExplosion(b.x, b.y, b.bombType));
+    bombs.splice(i, 1);
+    onBombKilled(frameCount);
+  }
+  
+  // Add score: 100 points per bomb
+  if (bombCount > 0) {
+    addScore(bombCount * 100);
+    // Create a big score popup
+    const popup = createScorePopup(W / 2, H / 2, bombCount);
+    popup.totalScore = bombCount * 100;
+    popup.text = `+${bombCount * 100}`;
+    scorePopups.push(popup);
+  }
+}
+
 // Handle challenge reward
 function handleChallengeReward(reward) {
   if (!reward) return;
@@ -125,7 +149,7 @@ function handleChallengeReward(reward) {
   } else if (reward.type === 'powerup') {
     // Grant a random powerup directly
     const type = randomPowerupType();
-    activatePowerup(type, activePowerups, { healFlower });
+    activatePowerup(type, activePowerups, { healFlower, explodeAllBombs });
   }
 }
 
@@ -234,7 +258,6 @@ function update() {
   updatePowerups(powerups, frameCount);
 
   // Update projectiles
-  const hasExplosive = isPowerupActive(activePowerups, 'explosive');
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
     updateProjectile(p);
@@ -250,7 +273,7 @@ function update() {
       const pu = powerups[k];
       if (checkPowerupCollision(p, pu)) {
         // Activate the powerup
-        activatePowerup(pu.type, activePowerups, { healFlower });
+        activatePowerup(pu.type, activePowerups, { healFlower, explodeAllBombs });
         // Burst effect
         powerupBursts.push(createPowerupBurst(pu.x, pu.y, pu.type));
         powerups.splice(k, 1);
@@ -267,8 +290,6 @@ function update() {
         addScore(popup.totalScore);
         explosions.push(createExplosion(b.x, b.y, b.bombType));
 
-        const bombX = b.x;
-        const bombY = b.y;
         bombs.splice(j, 1);
 
         // Notify challenge
@@ -276,26 +297,6 @@ function update() {
         if (challengeComplete && challengeComplete.completed) {
           // Kill streak fulfilled - give reward immediately
           handleChallengeReward(challengeComplete.reward);
-        }
-
-        // Explosive powerup: area damage
-        if (hasExplosive) {
-          for (let m = bombs.length - 1; m >= 0; m--) {
-            const other = bombs[m];
-            const dx = other.x - bombX;
-            const dy = other.y - bombY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 50) {
-              p.hits++;
-              const aoePopup = createScorePopup(other.x, other.y, p.hits);
-              scorePopups.push(aoePopup);
-              addScore(aoePopup.totalScore);
-              explosions.push(createExplosion(other.x, other.y, other.bombType));
-              bombs.splice(m, 1);
-              onBombKilled(frameCount);
-            }
-          }
-          consumePowerupUse(activePowerups, 'explosive');
         }
 
         // Try to spawn powerup on kill
@@ -350,12 +351,13 @@ function draw() {
   drawWall(ctx);
 
   // Shield effect on flowers
-  if (isPowerupActive(activePowerups, 'shield')) {
+  const hasShield = isPowerupActive(activePowerups, 'shield');
+  if (hasShield) {
     const frameCount = getFrameCount();
     drawShieldEffect(ctx, getFlowerPositions(), flowerAlive, frameCount);
   }
 
-  drawHealthFlowers(ctx);
+  drawHealthFlowers(ctx, hasShield);
 
   // Slingshot body (below projectiles)
   drawSlingshotBody(ctx);

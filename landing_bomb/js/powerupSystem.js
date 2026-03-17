@@ -16,7 +16,7 @@ const FLASH_RADIUS_MULTIPLIER = 1.5;
 const POWERUP_TYPES = {
   time_slow: { color: '#4488FF', glowColor: 'rgba(68,136,255,0.4)', label: '减速', weight: 25, duration: 300 },
   multi_shot: { color: '#FF8800', glowColor: 'rgba(255,136,0,0.4)', label: '散射', weight: 25, duration: 3 },
-  explosive: { color: '#FF3333', glowColor: 'rgba(255,51,51,0.4)', label: '爆破', weight: 20, duration: 3 },
+  explosive: { color: '#FF3333', glowColor: 'rgba(255,51,51,0.4)', label: '爆破', weight: 20, duration: 0 },
   heal: { color: '#FF66AA', glowColor: 'rgba(255,102,170,0.4)', label: '治愈', weight: 15, duration: 0 },
   shield: { color: '#44DDDD', glowColor: 'rgba(68,221,221,0.4)', label: '护盾', weight: 15, duration: 480 }
 };
@@ -216,6 +216,14 @@ function activatePowerup(type, activePowerups, gameState) {
     // Instant: heal first dead flower
     if (gameState.healFlower) {
       gameState.healFlower();
+    }
+    return;
+  }
+
+  if (type === 'explosive') {
+    // Explosive is now instant: explode all bombs on screen
+    if (gameState.explodeAllBombs) {
+      gameState.explodeAllBombs();
     }
     return;
   }

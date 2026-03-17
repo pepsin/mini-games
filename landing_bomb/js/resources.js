@@ -9,6 +9,7 @@ const resources = {
   iced_bomb: null,
   parachute: null,
   flower: null,
+  flower_covered: null,
   cloud: null,
   rainbow: null,
   slingshot: null,
@@ -42,7 +43,11 @@ async function loadResources() {
   
   resources.flower = await animationLoader.load('flower');
   console.log('Flower resource:', resources.flower ? 'loaded' : 'failed');
-  
+
+  // Load flower_covered as a static image
+  resources.flower_covered = await animationLoader.load('flower/flower_covered');
+  console.log('Flower covered resource:', resources.flower_covered ? 'loaded' : 'failed');
+
   resources.cloud = await animationLoader.load('cloud');
   console.log('Cloud resource:', resources.cloud ? 'loaded' : 'failed');
   

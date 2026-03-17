@@ -87,6 +87,9 @@ function isOutOfBounds(proj) {
 
 // Check collision with bomb
 function checkCollision(proj, bomb) {
+  if (!bomb || typeof bomb.x !== 'number' || typeof bomb.y !== 'number') {
+    return false;
+  }
   const dx = proj.x - bomb.x;
   const dy = proj.y - bomb.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
