@@ -1,7 +1,7 @@
 // UI Rendering Module
 
 const { W, H, GROUND_Y, sx, sy, ss } = require('./config.js');
-const { getScore, getHighScore, isGameOver, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
+const { getScore, getHighScore, isGameOver, isGamePaused, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
 const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
 const { drawActivePowerupHUD } = require('./powerupSystem.js');
@@ -16,10 +16,17 @@ function drawUI(ctx) {
   const currentWave = getCurrentWave();
   const inInterWave = isInInterWave();
 
+  // Independent pause button on the left
+  const isPaused = isGamePaused();
+  const pauseButtonSize = 36;
+  const pauseButtonX = 10;
+  const pauseButtonY = 23;
+  
   // Score panel with flex layout - auto-sizing container
+  const scorePanelWidth = W - 20 - 44; // Leave space for pause button (36 + 8 gap)
   flexContainer()
-    .position(10, 8)
-    .size(W - 20, 36) // Fixed width, fixed height
+    .position(10 + pauseButtonSize + 8, 23)
+    .size(scorePanelWidth, 36) // Fixed width, fixed height
     .direction('row')
     .justify('space-between')
     .align('center')
@@ -38,6 +45,65 @@ function drawUI(ctx) {
         .textStyle('#666', 20)
     )
     .draw(ctx);
+
+  // Pause button rendering - same style as topbar
+  
+  flexItem()
+    .tag('pauseButton')
+    .size(pauseButtonSize, pauseButtonSize)
+    .render((ctx, x, y, w, h, scale) => {
+      const cornerRadius = 8 * scale;
+      
+      // Draw rounded square background - same as topbar (#ffffff55)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x + cornerRadius, y);
+      ctx.lineTo(x + w - cornerRadius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + cornerRadius);
+      ctx.lineTo(x + w, y + h - cornerRadius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - cornerRadius, y + h);
+      ctx.lineTo(x + cornerRadius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - cornerRadius);
+      ctx.lineTo(x, y + cornerRadius);
+      ctx.quadraticCurveTo(x, y, x + cornerRadius, y);
+      ctx.closePath();
+      
+      // Fill with same background as topbar
+      ctx.fillStyle = '#ffffff55';
+      ctx.fill();
+      
+      // Draw border - same as topbar (#444)
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 2 * scale;
+      ctx.stroke();
+      ctx.restore();
+      
+      // Draw pause icon (two vertical bars) or play icon (triangle) - same color as border (#444)
+      ctx.fillStyle = '#444';
+      if (isPaused) {
+        // Play icon (triangle) - centered
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.35, y + h * 0.25);
+        ctx.lineTo(x + w * 0.35, y + h * 0.75);
+        ctx.lineTo(x + w * 0.7, y + h * 0.5);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Pause icon (two vertical bars) - centered
+        const barWidth = w * 0.2;
+        const gap = w * 0.15;
+        const totalWidth = barWidth * 2 + gap;
+        const startX = x + (w - totalWidth) / 2;
+        const startY = y + h * 0.28;
+        const barHeight = h * 0.44;
+        ctx.fillRect(startX, startY, barWidth, barHeight);
+        ctx.fillRect(startX + barWidth + gap, startY, barWidth, barHeight);
+      }
+    })
+    .draw(ctx, sx(pauseButtonX), sy(pauseButtonY), ss(pauseButtonSize), ss(pauseButtonSize), ss(1));
+  
+  // Store pause button bounds for hit testing
+  setButtonBounds('pauseButton', pauseButtonX, pauseButtonY, pauseButtonSize, pauseButtonSize);
 
   // Active powerup icons
   drawActivePowerupHUD(ctx, activePowerups);
@@ -147,7 +213,7 @@ function drawGameOver(ctx, canvas) {
 }
 
 // Draw start screen using flex layout
-function drawStartScreen(ctx, canvas) {
+function drawStartScreen(ctx, canvas, isPaused = false) {
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -166,11 +232,11 @@ function drawStartScreen(ctx, canvas) {
     .addChildren(
       // Title
       flexItem()
-        .text('一起来护花!', 28)
+        .text(isPaused ? '游戏暂停' : '一起来护花!', 28)
         .textStyle('#FF6B35', 28, 'Arial', 'bold'),
       
-      // Instructions container
-      flexContainer()
+      // Instructions container (only show when not paused)
+      !isPaused ? flexContainer()
         .direction('column')
         .justify('center')
         .align('center')
@@ -182,10 +248,10 @@ function drawStartScreen(ctx, canvas) {
           flexItem()
             .text('在炸弹落地前打穿它们!', 15)
             .textStyle('#666', 15)
-        ),
+        ) : flexItem().size(0, 0),
       
-      // Bomb icon (using custom render)
-      flexItem()
+      // Bomb icon (only show when not paused)
+      !isPaused ? flexItem()
         .size(40, 40)
         .render((ctx, x, y, w, h, scale) => {
           const cx = x + w / 2;
@@ -203,12 +269,12 @@ function drawStartScreen(ctx, canvas) {
           ctx.beginPath();
           ctx.arc(cx, cy - 10 * scale, 5 * scale, 0, Math.PI * 2);
           ctx.fill();
-        }),
+        }) : flexItem().size(0, 0),
       
-      // Start button
+      // Start/Resume button
       flexItem()
         .tag('startButton')
-        .text('开始游戏', 22)
+        .text(isPaused ? '继续' : '开始游戏', 22)
         .textStyle('#FFFFFF', 22, 'Arial', 'bold')
         .background('#FF6B35')
         .linearGradient(['#FF6B35', '#FF4500'], 90)
@@ -221,8 +287,13 @@ function drawStartScreen(ctx, canvas) {
   if (startBounds) setButtonBounds('startButton', startBounds.x, startBounds.y, startBounds.width, startBounds.height);
 }
 
+function drawPauseScreen(ctx, canvas) {
+  drawStartScreen(ctx, canvas, true);
+}
+
 module.exports = {
   drawUI,
   drawGameOver,
-  drawStartScreen
+  drawStartScreen,
+  drawPauseScreen
 };

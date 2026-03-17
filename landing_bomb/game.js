@@ -15,8 +15,8 @@ const { animationLoader } = require('./js/animationLoader.js');
 
 // Game state - direct array exports
 const {
-  resetGame, addScore, setGameStarted, setGameOver, setLastTime, incrementFrameCount,
-  getScore, getFrameCount, getLastTime, isGameOver, isGameStarted,
+  resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount,
+  getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused,
   getFlowerPositions, damageFlower, healFlower, hasDeadFlower,
   bombs, projectiles, explosions, scorePopups, clouds,
   powerups, activePowerups, powerupBursts,
@@ -63,7 +63,7 @@ const {
 const { triggerWaveAnnounce, updateWaveAnnounce, drawWaveAnnounce } = require('./js/waveAnnounce.js');
 
 // UI and Input
-const { drawUI, drawGameOver, drawStartScreen } = require('./js/ui.js');
+const { drawUI, drawGameOver, drawStartScreen, drawPauseScreen } = require('./js/ui.js');
 const { setupInput, registerCallbacks } = require('./js/inputHandler.js');
 
 // Setup canvas size
@@ -129,7 +129,7 @@ function handleChallengeReward(reward) {
 
 // Update game logic
 function update() {
-  if (isGameOver() || !isGameStarted()) return;
+  if (isGameOver() || !isGameStarted() || isGamePaused()) return;
 
   const currentTime = Date.now();
   const deltaTime = currentTime - getLastTime();
@@ -387,6 +387,8 @@ function draw() {
     drawGameOver(ctx, canvas);
   } else if (!isGameStarted()) {
     drawStartScreen(ctx, canvas);
+  } else if (isGamePaused()) {
+    drawPauseScreen(ctx, canvas);
   }
 }
 

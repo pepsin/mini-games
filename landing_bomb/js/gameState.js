@@ -10,6 +10,7 @@ let highScore = 0;
 let lives = 4;
 let gameOver = false;
 let gameStarted = false;
+let gamePaused = false;
 let frameCount = 0;
 let lastTime = Date.now();
 
@@ -76,6 +77,7 @@ function resetGame() {
   resetSpawnTimer();
   
   gameOver = false;
+  gamePaused = false;
   frameCount = 0;
 }
 
@@ -131,6 +133,7 @@ function getHighScore() { return highScore; }
 function getLives() { return lives; }
 function isGameOver() { return gameOver; }
 function isGameStarted() { return gameStarted; }
+function isGamePaused() { return gamePaused; }
 function getFrameCount() { return frameCount; }
 function getLastTime() { return lastTime; }
 function getBombs() { return bombs; }
@@ -146,6 +149,7 @@ function setScore(val) { score = val; }
 function addScore(val) { score += val; }
 function setGameOver(val) { gameOver = val; }
 function setGameStarted(val) { gameStarted = val; }
+function setGamePaused(val) { gamePaused = val; }
 function setLastTime(val) { lastTime = val; }
 function incrementFrameCount() { frameCount++; }
 
@@ -157,13 +161,13 @@ module.exports = {
 
   // Getters
   getScore, getHighScore, getLives,
-  isGameOver, isGameStarted,
+  isGameOver, isGameStarted, isGamePaused,
   getFrameCount, getLastTime,
   getBombs, getProjectiles, getExplosions, getScorePopups, getClouds,
   getFlowerAlive, getFlowerFrameIndices, getFlowerPositions,
 
   // Setters
-  setScore, addScore, setGameOver, setGameStarted,
+  setScore, addScore, setGameOver, setGameStarted, setGamePaused,
   setLastTime, incrementFrameCount,
 
   // Actions

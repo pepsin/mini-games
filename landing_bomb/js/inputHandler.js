@@ -1,7 +1,7 @@
 // Input Handling Module
 
 const { W, H, toGame } = require('./config.js');
-const { isGameStarted, isGameOver, resetGame, activePowerups } = require('./gameState.js');
+const { isGameStarted, isGameOver, isGamePaused, setGamePaused, activePowerups } = require('./gameState.js');
 const { createProjectile } = require('./entities/projectile.js');
 const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
@@ -31,6 +31,20 @@ function handleTouchStart(e) {
     if (hitTest('restartButton', gp.x, gp.y)) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();
     }
+    return;
+  }
+
+  // Check if game is paused - handle resume button click
+  if (isGamePaused()) {
+    if (hitTest('startButton', gp.x, gp.y)) {
+      setGamePaused(false);
+    }
+    return;
+  }
+
+  // Check pause button click
+  if (hitTest('pauseButton', gp.x, gp.y)) {
+    setGamePaused(!isGamePaused());
     return;
   }
   
