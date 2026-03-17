@@ -34,7 +34,8 @@ const {
   activatePowerup, updateActivePowerups, isPowerupActive, getActivePowerup,
   consumePowerupUse, getSpeedMultiplier,
   drawPowerup, createPowerupBurst, drawPowerupBurst,
-  drawShieldEffect, randomPowerupType
+  drawShieldEffect, randomPowerupType,
+  updateTimeSlowFlash, updateFlashAnimations, drawBombFlash
 } = require('./js/powerupSystem.js');
 
 // Challenge system
@@ -52,7 +53,7 @@ const {
   updateSlingshotPosition, drawSlingshot, drawSlingshotBody, drawSlingshotBandsOnly,
   clearDrag, getDragCurrent, isDragging, getSlingshot
 } = require('./js/entities/slingshot.js');
-const { drawBomb, createBomb, updateBomb } = require('./js/entities/bomb.js');
+const { drawBomb, createBomb, updateBomb, clearBombFrameStorage } = require('./js/entities/bomb.js');
 const { drawProjectile, updateProjectile, isOutOfBounds, checkCollision } = require('./js/entities/projectile.js');
 const {
   createExplosion, createGroundExplosion, createScorePopup,
@@ -98,6 +99,7 @@ function init() {
       resetGame();
       resetWaves();
       resetChallenges();
+      clearBombFrameStorage();
       startWave(1);
       triggerWaveAnnounce(1);
     },
@@ -175,6 +177,10 @@ function update() {
 
   // Update active powerups
   updateActivePowerups(activePowerups);
+
+  // Update time_slow flash animations
+  updateTimeSlowFlash(activePowerups, bombs);
+  updateFlashAnimations();
 
   // Update wave announce animation
   updateWaveAnnounce();
@@ -371,7 +377,11 @@ function draw() {
 
   // Bombs at top of z-index (drawn last among game entities)
   const frameCount = getFrameCount();
-  bombs.forEach(b => drawBomb(ctx, b, frameCount));
+  const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');
+  bombs.forEach(b => {
+    drawBomb(ctx, b, frameCount, isTimeSlowActive);
+    drawBombFlash(ctx, b, frameCount);
+  });
 
   // Wave announce arc
   drawWaveAnnounce(ctx);

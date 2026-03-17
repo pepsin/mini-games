@@ -7,43 +7,73 @@ const { animationLoader } = require('../animationLoader.js');
 const { Parachute } = require('../parachute.js');
 const { sx, sy, ss } = require('../config.js');
 
+// Store original animation frame for each bomb when time_slow starts
+const bombOriginalFrames = new Map();
+
 // Draw bomb
-function drawBomb(ctx, bomb, frameCount) {
+function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
   if (bomb.exploding) return;
-  
+
   // Draw parachute
   const resources = {
     bomb: getResource('bomb'),
     parachute: getResource('parachute')
   };
   Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss);
-  
+
   // Draw bomb body
   let usePlaceholder = true;
   const bombRes = getResource('bomb');
-  
+
   if (isResourcesLoaded() && bombRes) {
-    const img = animationLoader.getCurrentFrame(bombRes);
+    let img = null;
+
+    if (isTimeSlowActive) {
+      // Use iced_bomb.png during time_slow
+      // Store original frame index when freezing starts
+      if (!bombOriginalFrames.has(bomb)) {
+        bombOriginalFrames.set(bomb, bombRes.currentFrame);
+      }
+
+      // Load iced bomb image
+      const icedBombRes = getResource('iced_bomb');
+      if (icedBombRes && icedBombRes.image && icedBombRes.image.width > 0) {
+        img = icedBombRes.image;
+      }
+    } else {
+      // Time_slow ended - restore animation will happen gradually
+      // Remove stored frame
+      bombOriginalFrames.delete(bomb);
+
+      // Use normal animation
+      img = animationLoader.getCurrentFrame(bombRes);
+    }
+
     if (img && img.width > 0 && img.height > 0) {
       const size = animationLoader.getSize(bombRes);
       const anchor = animationLoader.getAnchor(bombRes);
-      
+
       const result = drawImageProportional(
         ctx, img,
         bomb.x, bomb.y,
         size.width * 0.8,
         anchor.x, anchor.y
       );
-      
+
       if (result) {
         usePlaceholder = false;
       }
     }
   }
-  
+
   if (usePlaceholder) {
     drawPlaceholder(ctx, bomb.x, bomb.y, 64, 64, 'BOMB', RESOURCE_COLORS.bomb, 0.5, 0.5);
   }
+}
+
+// Clear stored frames (call on game reset)
+function clearBombFrameStorage() {
+  bombOriginalFrames.clear();
 }
 
 // Create bomb properties based on wave config
@@ -111,5 +141,6 @@ function updateBomb(bomb, frameCount, speedMultiplier) {
 module.exports = {
   drawBomb,
   createBomb,
-  updateBomb
+  updateBomb,
+  clearBombFrameStorage
 };

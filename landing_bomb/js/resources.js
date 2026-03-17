@@ -6,6 +6,7 @@ const { GROUND_Y } = require('./config.js');
 // Resource object
 const resources = {
   bomb: null,
+  iced_bomb: null,
   parachute: null,
   flower: null,
   cloud: null,
@@ -31,7 +32,11 @@ async function loadResources() {
   
   resources.bomb = await animationLoader.load('bomb');
   console.log('Bomb resource:', resources.bomb ? 'loaded' : 'failed');
-  
+
+  // Load iced_bomb as a static image
+  resources.iced_bomb = await animationLoader.load('bomb/iced_bomb');
+  console.log('Iced bomb resource:', resources.iced_bomb ? 'loaded' : 'failed');
+
   resources.parachute = await animationLoader.load('bomb/parachute');
   console.log('Parachute resource:', resources.parachute ? 'loaded' : 'failed');
   

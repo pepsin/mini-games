@@ -3,6 +3,15 @@
 const { W, H, sx, sy, ss } = require('./config.js');
 const { getResource } = require('./resources.js');
 
+// Track time_slow state changes and flash animations
+let wasTimeSlowActive = false;
+const bombFlashAnimations = new Map(); // bomb -> { frame, maxFrames, type }
+
+// Flash animation constants
+const FLASH_MAX_FRAMES = 20;
+const FLASH_COLOR = 'rgba(135, 206, 250, 0.8)'; // Light blue flash
+const FLASH_RADIUS_MULTIPLIER = 1.5;
+
 // Powerup definitions
 const POWERUP_TYPES = {
   time_slow: { color: '#4488FF', glowColor: 'rgba(68,136,255,0.4)', label: '减速', weight: 25, duration: 300 },
@@ -22,6 +31,93 @@ const MIN_SPAWN_INTERVAL = 600; // 10 seconds at 60fps
 // Reset spawn timer (call on game restart)
 function resetSpawnTimer() {
   lastSpawnTime = -Infinity;
+}
+
+// Get time_slow flash animations for bombs
+function getBombFlashAnimations() {
+  return bombFlashAnimations;
+}
+
+// Check if time_slow state changed and trigger flash animations
+function updateTimeSlowFlash(activePowerups, bombs) {
+  const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');
+  
+  // Time_slow just activated - add flash to all existing bombs
+  if (isTimeSlowActive && !wasTimeSlowActive) {
+    bombs.forEach(bomb => {
+      if (!bomb.exploding) {
+        bombFlashAnimations.set(bomb, {
+          frame: 0,
+          maxFrames: FLASH_MAX_FRAMES,
+          type: 'freeze'
+        });
+      }
+    });
+  }
+  
+  // Time_slow just ended - add flash to all existing bombs
+  if (!isTimeSlowActive && wasTimeSlowActive) {
+    bombs.forEach(bomb => {
+      if (!bomb.exploding) {
+        bombFlashAnimations.set(bomb, {
+          frame: 0,
+          maxFrames: FLASH_MAX_FRAMES,
+          type: 'unfreeze'
+        });
+      }
+    });
+  }
+  
+  wasTimeSlowActive = isTimeSlowActive;
+}
+
+// Update flash animations
+function updateFlashAnimations() {
+  for (const [bomb, anim] of bombFlashAnimations.entries()) {
+    anim.frame++;
+    if (anim.frame >= anim.maxFrames) {
+      bombFlashAnimations.delete(bomb);
+    }
+  }
+}
+
+// Draw flash effect on a bomb
+function drawBombFlash(ctx, bomb, frameCount) {
+  const anim = bombFlashAnimations.get(bomb);
+  if (!anim) return;
+  
+  const progress = anim.frame / anim.maxFrames;
+  const alpha = Math.sin(progress * Math.PI) * 0.8; // Fade in then out
+  const radius = bomb.radius * FLASH_RADIUS_MULTIPLIER * (1 + progress * 0.3);
+  
+  const px = sx(bomb.x);
+  const py = sy(bomb.y);
+  
+  // Draw expanding light blue circle
+  const gradient = ctx.createRadialGradient(px, py, 0, px, py, ss(radius));
+  gradient.addColorStop(0, `rgba(135, 206, 250, ${alpha})`);
+  gradient.addColorStop(0.5, `rgba(135, 206, 250, ${alpha * 0.5})`);
+  gradient.addColorStop(1, 'rgba(135, 206, 250, 0)');
+  
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(px, py, ss(radius), 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Draw sparkles
+  const sparkleCount = 8;
+  for (let i = 0; i < sparkleCount; i++) {
+    const angle = (i / sparkleCount) * Math.PI * 2 + frameCount * 0.1;
+    const dist = radius * (0.6 + Math.sin(progress * Math.PI * 2 + i) * 0.2);
+    const sx_pos = px + Math.cos(angle) * ss(dist);
+    const sy_pos = py + Math.sin(angle) * ss(dist);
+    const size = ss(3 + Math.sin(progress * Math.PI * 3 + i) * 2);
+    
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(sx_pos, sy_pos, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // Get loaded image for a powerup type (or null if not loaded)
@@ -495,5 +591,9 @@ module.exports = {
   drawActivePowerupHUD,
   drawShieldEffect,
   randomPowerupType,
-  resetSpawnTimer
+  resetSpawnTimer,
+  updateTimeSlowFlash,
+  updateFlashAnimations,
+  drawBombFlash,
+  getBombFlashAnimations
 };
