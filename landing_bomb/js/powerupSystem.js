@@ -2,6 +2,7 @@
 
 const { W, H, sx, sy, ss } = require('./config.js');
 const { getResource } = require('./resources.js');
+const { ElectricBadge } = require('./components/ElectricBadge.js');
 
 // Track time_slow state changes and flash animations
 let wasTimeSlowActive = false;
@@ -195,6 +196,7 @@ function updatePowerups(powerups, frameCount) {
 
     // Remove if off screen left
     if (p.x < -30) {
+      removePowerupBadge(p);
       powerups.splice(i, 1);
     }
   }
@@ -284,8 +286,41 @@ function getSpeedMultiplier(activePowerups) {
   return isPowerupActive(activePowerups, 'time_slow') ? 0.5 : 1.0;
 }
 
+// Store ElectricBadge instances for each powerup
+const powerupBadges = new Map();
+
+// Get or create ElectricBadge for a powerup
+function getOrCreateBadge(powerup) {
+  if (!powerupBadges.has(powerup)) {
+    const def = POWERUP_TYPES[powerup.type];
+    const img = getPowerupImage(powerup.type);
+    
+    // Create badge with demo.html settings
+    const badge = new ElectricBadge({
+      image: img,
+      color: def.color,
+      radiusX: 24,
+      radiusY: 24,
+      x: 0, // Will be updated in draw
+      y: 0, // Will be updated in draw
+      imageWidth: 56,
+      imageHeight: 56,
+      coverRadius: 0.4,
+      maxLines: 6
+    });
+    
+    powerupBadges.set(powerup, badge);
+  }
+  return powerupBadges.get(powerup);
+}
+
+// Clean up badge when powerup is removed
+function removePowerupBadge(powerup) {
+  powerupBadges.delete(powerup);
+}
+
 // Draw a flying powerup
-function drawPowerup(ctx, p) {
+function drawPowerup(ctx, p, frameCount = 0) {
   const def = POWERUP_TYPES[p.type];
   const px = sx(p.x), py = sy(p.y), r = ss(p.radius);
 
@@ -309,25 +344,14 @@ function drawPowerup(ctx, p) {
   ctx.arc(px, py, glowSize, 0, Math.PI * 2);
   ctx.fill();
 
-  // Main circle
-  // const mainGrad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
-  // mainGrad.addColorStop(0, '#FFFFFF');
-  // mainGrad.addColorStop(0.4, def.color);
-  // mainGrad.addColorStop(1, def.color);
-  // ctx.beginPath();
-  // ctx.arc(px, py, r, 0, Math.PI * 2);
-  // ctx.fillStyle = mainGrad;
-  // ctx.fill();
-  // ctx.strokeStyle = '#FFFFFF';
-  // ctx.lineWidth = ss(1.5);
-  // ctx.stroke();
-
-  // Icon - use image asset if available, otherwise fall back to canvas drawing
+  // Use ElectricBadge to draw the powerup icon
   const img = getPowerupImage(p.type);
   if (img && img.width > 0) {
-    // Draw the image centered on the powerup
-    const imgSize = r;
-    ctx.drawImage(img, px - imgSize, py - imgSize, imgSize * 2, imgSize * 2);
+    const badge = getOrCreateBadge(p);
+    // Update badge position and draw
+    badge.setPosition(px, py);
+    badge.update();
+    badge.draw(ctx);
   } else {
     // Fallback: programmatic canvas icon
     ctx.save();

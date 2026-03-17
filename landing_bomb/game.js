@@ -369,7 +369,7 @@ function draw() {
   drawSlingshotBandsOnly(ctx);
 
   // Draw flying powerups
-  powerups.forEach(p => drawPowerup(ctx, p));
+  powerups.forEach(p => drawPowerup(ctx, p, frameCount));
 
   explosions.forEach(e => drawExplosion(ctx, e));
   scorePopups.forEach(s => drawScorePopup(ctx, s));
