@@ -151,14 +151,15 @@ function trySpawnPowerup(powerups, frameCount) {
   if (Math.random() > SPAWN_CHANCE) return null;
   
   const type = randomPowerupType();
-  const baseY = 150 + Math.random() * 500;
+  const baseX = 50 + Math.random() * (W - 100);
   const powerup = {
-    x: W + 20,
-    y: baseY,
+    x: baseX,
+    y: H + 20,
     type: type,
     radius: POWERUP_RADIUS,
-    vx: -(2 + Math.random() * 1.5),
-    baseY: baseY,
+    vx: 0,
+    vy: -(1 + Math.random() * 0.5),
+    baseX: baseX,
     phase: Math.random() * Math.PI * 2,
     glowPhase: 0,
     trail: []
@@ -172,15 +173,15 @@ function trySpawnPowerup(powerups, frameCount) {
 function updatePowerups(powerups, frameCount) {
   for (let i = powerups.length - 1; i >= 0; i--) {
     const p = powerups[i];
-    p.x += p.vx;
+    p.y += p.vy;
     p.phase += 0.05;
-    p.y = p.baseY + Math.sin(p.phase) * 30;
+    p.x = p.baseX + Math.sin(p.phase) * 30;
     p.glowPhase += 0.08;
 
     // Add trail particle
     p.trail.push({
-      x: p.x + 5 + Math.random() * 6,
-      y: p.y + (Math.random() - 0.5) * 10,
+      x: p.x + (Math.random() - 0.5) * 10,
+      y: p.y + 5 + Math.random() * 6,
       alpha: 0.7,
       size: 2 + Math.random() * 3
     });
@@ -194,8 +195,8 @@ function updatePowerups(powerups, frameCount) {
       if (t.alpha <= 0) p.trail.splice(j, 1);
     }
 
-    // Remove if off screen left
-    if (p.x < -30) {
+    // Remove if off screen top
+    if (p.y < -30) {
       removePowerupBadge(p);
       powerups.splice(i, 1);
     }
