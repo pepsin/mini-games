@@ -330,8 +330,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
         .tag('skinGalleryButton')
         .text('弹弓图鉴', 16)
         .textStyle('#FF6B35', 16, 'Arial', 'bold')
-        .background('#FFFFFF')
-        .border(2, '#FF6B35')
+        .background('#FFE5E0')
         .padding({ left: 30, right: 30, top: 8, bottom: 8 })
         .cornerRadius(10) : flexItem().size(0, 0)
     );
