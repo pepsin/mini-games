@@ -30,13 +30,19 @@ const {
 
 // Powerup system
 const {
-  trySpawnPowerup, updatePowerups, checkPowerupCollision,
+  trySpawnPowerup, updatePowerups, checkPowerupCollision, pickupPowerup,
   activatePowerup, updateActivePowerups, isPowerupActive,
   getSpeedMultiplier,
   drawPowerup, createPowerupBurst, drawPowerupBurst,
   drawShieldEffect, randomPowerupType,
   updateTimeSlowFlash, updateFlashAnimations, drawBombFlash
 } = require('./js/powerupSystem.js');
+
+// Powerup inventory system
+const {
+  resetInventory, updateFlyingPowerups, drawInventorySlots, drawFlyingPowerups,
+  usePowerupFromInventory, hitTestInventory
+} = require('./js/powerupInventory.js');
 
 // Challenge system
 const {
@@ -96,6 +102,7 @@ function init() {
       resetGame();
       resetWaves();
       resetChallenges();
+      resetInventory();
       startWave(1);
       triggerWaveAnnounce(1);
     },
@@ -103,12 +110,17 @@ function init() {
       resetGame();
       resetWaves();
       resetChallenges();
+      resetInventory();
       clearBombFrameStorage();
       startWave(1);
       triggerWaveAnnounce(1);
     },
     onFire: (proj) => {
       if (proj) projectiles.push(proj);
+    },
+    onInventoryClick: (slotIndex) => {
+      const gameState = { healFlower, explodeAllBombs };
+      usePowerupFromInventory(slotIndex, activePowerups, gameState);
     }
   });
 
@@ -261,6 +273,9 @@ function update() {
   // Update flying powerups
   updatePowerups(powerups, frameCount);
 
+  // Update inventory fly-in animations
+  updateFlyingPowerups();
+
   // Update projectiles
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
@@ -276,11 +291,8 @@ function update() {
     for (let k = powerups.length - 1; k >= 0; k--) {
       const pu = powerups[k];
       if (checkPowerupCollision(p, pu)) {
-        // Activate the powerup
-        activatePowerup(pu.type, activePowerups, { healFlower, explodeAllBombs });
-        // Burst effect
-        powerupBursts.push(createPowerupBurst(pu.x, pu.y, pu.type));
-        powerups.splice(k, 1);
+        // Pickup powerup (adds to inventory with fly-in animation)
+        pickupPowerup(pu, powerups, k);
       }
     }
 
@@ -353,6 +365,9 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.globalAlpha = 1;
 
+  // Get frame count once for the entire draw function
+  const frameCount = getFrameCount();
+
   // Background (drawn without clipping)
   drawSky(ctx, canvas);
 
@@ -371,7 +386,6 @@ function draw() {
   // Shield effect on flowers
   const hasShield = isPowerupActive(activePowerups, 'shield');
   if (hasShield) {
-    const frameCount = getFrameCount();
     drawShieldEffect(ctx, getFlowerPositions(), flowerAlive, frameCount);
   }
 
@@ -398,6 +412,12 @@ function draw() {
   // Draw flying powerups
   powerups.forEach(p => drawPowerup(ctx, p, frameCount));
 
+  // Draw inventory slots (bottom right)
+  drawInventorySlots(ctx, frameCount);
+
+  // Draw flying powerups (animating to inventory)
+  drawFlyingPowerups(ctx, frameCount);
+
   explosions.forEach(e => drawExplosion(ctx, e));
   scorePopups.forEach(s => drawScorePopup(ctx, s));
 
@@ -405,7 +425,6 @@ function draw() {
   powerupBursts.forEach(b => drawPowerupBurst(ctx, b));
 
   // Bombs at top of z-index (drawn last among game entities)
-  const frameCount = getFrameCount();
   const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');
   bombs.forEach(b => {
     drawBomb(ctx, b, frameCount, isTimeSlowActive);

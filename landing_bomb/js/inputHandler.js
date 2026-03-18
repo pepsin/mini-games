@@ -8,6 +8,7 @@ const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
+const { hitTestInventory } = require('./powerupInventory.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -59,7 +60,14 @@ function handleTouchStart(e) {
     setGamePaused(!isGamePaused());
     return;
   }
-  
+
+  // Check powerup inventory click
+  const inventorySlot = hitTestInventory(gp.x, gp.y);
+  if (inventorySlot >= 0) {
+    gameCallbacks.onInventoryClick && gameCallbacks.onInventoryClick(inventorySlot);
+    return;
+  }
+
   // Start dragging
   setDragging(true);
   setDragStart(gp);

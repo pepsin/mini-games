@@ -3,6 +3,7 @@
 const { W, H, sx, sy, ss } = require('./config.js');
 const { getResource } = require('./resources.js');
 const { ElectricBadge } = require('./components/ElectricBadge.js');
+const { addPowerupToInventory, isInventoryFull } = require('./powerupInventory.js');
 
 // Track time_slow state changes and flash animations
 let wasTimeSlowActive = false;
@@ -224,6 +225,25 @@ function checkPowerupCollision(proj, powerup) {
   const dy = proj.y - powerup.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
   return dist < proj.radius + powerup.radius + 5;
+}
+
+// Handle powerup pickup - add to inventory instead of immediate activation
+function pickupPowerup(powerup, powerups, index) {
+  // If inventory is full, don't pick up
+  if (isInventoryFull()) {
+    return false;
+  }
+  
+  // Add to inventory with fly-in animation
+  const success = addPowerupToInventory(powerup.type, powerup.x, powerup.y);
+  
+  if (success) {
+    // Remove from flying powerups
+    removePowerupBadge(powerup);
+    powerups.splice(index, 1);
+  }
+  
+  return success;
 }
 
 // Activate a powerup effect
@@ -550,6 +570,7 @@ module.exports = {
   trySpawnPowerup,
   updatePowerups,
   checkPowerupCollision,
+  pickupPowerup,
   activatePowerup,
   updateActivePowerups,
   isPowerupActive,

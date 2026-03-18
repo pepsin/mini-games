@@ -196,7 +196,7 @@ function drawChallengeHUD(ctx, frameCount, topbarHeight = 66) {
   const ch = currentChallenge;
 
   // Challenge banner at top center, positioned below the topbar
-  const bannerW = 244;
+  const bannerW = 200;  // 缩小避免与道具槽重叠
   const bannerH = 44;
   const bx = (W - bannerW) / 2;
   const by = topbarHeight + 10; // 10px gap below topbar
@@ -278,7 +278,7 @@ function drawChallengeResult(ctx) {
   ctx.save();
   ctx.globalAlpha = alpha;
 
-  const bannerW = 240;
+  const bannerW = 200;  // 缩小避免与道具槽重叠
   const bannerH = 60;
   const bx = (W - bannerW) / 2;
   const by = 200;
