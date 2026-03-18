@@ -54,7 +54,7 @@ const { drawWall } = require('./js/entities/wall.js');
 const { drawHealthFlowers } = require('./js/entities/flower.js');
 const {
   updateSlingshotPosition, drawSlingshot, drawSlingshotBody, drawSlingshotBandsOnly,
-  clearDrag, getDragCurrent, isDragging, getSlingshot
+  clearDrag, getDragCurrent, isDragging, getSlingshot, drawTrajectoryPrediction, SLING_CONFIG
 } = require('./js/entities/slingshot.js');
 const { drawBomb, createBomb, updateBomb, clearBombFrameStorage } = require('./js/entities/bomb.js');
 const { drawProjectile, updateProjectile, isOutOfBounds, checkCollision } = require('./js/entities/projectile.js');
@@ -296,6 +296,10 @@ function update() {
 
         bombs.splice(j, 1);
 
+        // Screen shake feedback on hit
+        const shakeIntensity = Math.min(p.hits * 2, 10);
+        wx.vibrateShort({ type: shakeIntensity > 5 ? 'heavy' : 'medium' });
+
         // Notify challenge
         const challengeComplete = onBombKilled(frameCount);
         if (challengeComplete && challengeComplete.completed) {
@@ -375,6 +379,15 @@ function draw() {
 
   // Slingshot body (below projectiles)
   drawSlingshotBody(ctx);
+
+  // Draw trajectory prediction when dragging
+  if (isDragging()) {
+    const sling = getSlingshot();
+    const dragCurrent = getDragCurrent();
+    if (dragCurrent) {
+      drawTrajectoryPrediction(ctx, sling, dragCurrent, SLING_CONFIG.maxDrag);
+    }
+  }
 
   // Projectiles (above slingshot body, below bands)
   projectiles.forEach(p => drawProjectile(ctx, p));
