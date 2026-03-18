@@ -1,3 +1,4 @@
+V20260318 [DONE]
 1. make the waves start from 30 rather than 50
 2. powerup 飞的速度太快，减慢一些，另外将飞行方向改为从屏幕下往上飞
 3. 添加一个新 powerup， 大火龙子弹，射出去后的子弹打击范围是三分之一个屏幕宽度
