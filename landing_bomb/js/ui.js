@@ -146,7 +146,7 @@ function drawPowerupHUD(ctx, activePowerups, startX, startY) {
     ctx.stroke();
 
     // Icon or text
-    if (ap.type === 'multi_shot' || ap.type === 'explosive') {
+    if (ap.type === 'multi_shot' || ap.type === 'explosive' || ap.type === 'dragon_bullet') {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `bold ${ss(11)}px Arial`;

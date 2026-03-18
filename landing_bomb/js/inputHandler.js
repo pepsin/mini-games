@@ -82,6 +82,13 @@ function handleTouchEnd(e) {
 
   const proj = createProjectile(sling, dragCurrent, SLING_CONFIG.maxDrag);
   if (proj && gameCallbacks.onFire) {
+    // Dragon bullet: large radius projectile (1/3 screen width)
+    if (isPowerupActive(activePowerups, 'dragon_bullet')) {
+      proj.radius = W / 3; // 1/3 screen width hit range
+      proj.isDragonBullet = true;
+      consumePowerupUse(activePowerups, 'dragon_bullet');
+    }
+
     gameCallbacks.onFire(proj);
 
     // Multi-shot: create two extra projectiles at ±8°
@@ -97,7 +104,8 @@ function handleTouchEnd(e) {
           vy: Math.sin(angle) * speed,
           radius: proj.radius,
           gravity: proj.gravity,
-          hits: 0
+          hits: 0,
+          isDragonBullet: proj.isDragonBullet || false
         };
         gameCallbacks.onFire(extraProj);
       }

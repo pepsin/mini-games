@@ -100,26 +100,69 @@ function checkCollision(proj, bomb) {
 function drawProjectile(ctx, proj) {
   const px = sx(proj.x), py = sy(proj.y), r = ss(proj.radius);
   
-  ctx.beginPath();
-  ctx.arc(px, py, r, 0, Math.PI * 2);
-  const grad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
-  grad.addColorStop(0, '#777');
-  grad.addColorStop(1, '#222');
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = ss(1);
-  ctx.stroke();
-
-  // Trail effect
-  ctx.globalAlpha = 0.3;
-  for (let i = 1; i <= 3; i++) {
+  // Dragon bullet: draw as fireball with large radius
+  if (proj.isDragonBullet) {
+    // Outer glow
+    const glowRadius = r * 1.2;
+    const glowGrad = ctx.createRadialGradient(px, py, r * 0.5, px, py, glowRadius);
+    glowGrad.addColorStop(0, 'rgba(255, 100, 0, 0.8)');
+    glowGrad.addColorStop(0.5, 'rgba(255, 50, 0, 0.4)');
+    glowGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
     ctx.beginPath();
-    ctx.arc(sx(proj.x - proj.vx * i * 2), sy(proj.y - proj.vy * i * 2), r * (1 - i * 0.2), 0, Math.PI * 2);
-    ctx.fillStyle = '#555';
+    ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
+    ctx.fillStyle = glowGrad;
     ctx.fill();
+    
+    // Core fireball
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    const fireGrad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, r * 0.1, px, py, r);
+    fireGrad.addColorStop(0, '#FFFF00');
+    fireGrad.addColorStop(0.3, '#FF8800');
+    fireGrad.addColorStop(0.7, '#FF4400');
+    fireGrad.addColorStop(1, '#AA0000');
+    ctx.fillStyle = fireGrad;
+    ctx.fill();
+    
+    // Fire trail
+    ctx.globalAlpha = 0.5;
+    for (let i = 1; i <= 5; i++) {
+      const trailR = r * (1 - i * 0.15);
+      ctx.beginPath();
+      ctx.arc(sx(proj.x - proj.vx * i * 2), sy(proj.y - proj.vy * i * 2), trailR, 0, Math.PI * 2);
+      const trailGrad = ctx.createRadialGradient(
+        sx(proj.x - proj.vx * i * 2), sy(proj.y - proj.vy * i * 2), 0,
+        sx(proj.x - proj.vx * i * 2), sy(proj.y - proj.vy * i * 2), trailR
+      );
+      trailGrad.addColorStop(0, 'rgba(255, 200, 0, 0.6)');
+      trailGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+      ctx.fillStyle = trailGrad;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else {
+    // Normal projectile
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    const grad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 1, px, py, r);
+    grad.addColorStop(0, '#777');
+    grad.addColorStop(1, '#222');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = ss(1);
+    ctx.stroke();
+
+    // Trail effect
+    ctx.globalAlpha = 0.3;
+    for (let i = 1; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.arc(sx(proj.x - proj.vx * i * 2), sy(proj.y - proj.vy * i * 2), r * (1 - i * 0.2), 0, Math.PI * 2);
+      ctx.fillStyle = '#555';
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
 }
 
 module.exports = {

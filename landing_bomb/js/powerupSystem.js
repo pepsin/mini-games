@@ -15,11 +15,12 @@ const FLASH_RADIUS_MULTIPLIER = 1.5;
 
 // Powerup definitions
 const POWERUP_TYPES = {
-  time_slow: { color: '#719508', glowColor: '#ffffff', label: '减速', weight: 25, duration: 300 },
-  multi_shot: { color: '#719508', glowColor: '#ffffff', label: '散射', weight: 25, duration: 3 },
-  explosive: { color: '#719508', glowColor: '#ffffff', label: '爆破', weight: 20, duration: 0 },
-  heal: { color: '#719508', glowColor: '#ffffff', label: '治愈', weight: 15, duration: 0 },
-  shield: { color: '#719508', glowColor: '#ffffff', label: '护盾', weight: 15, duration: 480 }
+  time_slow: { color: '#719508', glowColor: '#ffffff', label: '减速', weight: 22, duration: 300 },
+  multi_shot: { color: '#719508', glowColor: '#ffffff', label: '散射', weight: 22, duration: 3 },
+  explosive: { color: '#719508', glowColor: '#ffffff', label: '爆破', weight: 18, duration: 0 },
+  heal: { color: '#719508', glowColor: '#ffffff', label: '治愈', weight: 13, duration: 0 },
+  shield: { color: '#719508', glowColor: '#ffffff', label: '护盾', weight: 13, duration: 480 },
+  dragon_bullet: { color: '#FF4500', glowColor: '#FFD700', label: '火龙', weight: 12, duration: 3 }
 };
 
 const SPAWN_CHANCE = 0.15;
@@ -251,7 +252,7 @@ function updateActivePowerups(activePowerups) {
     if (ap.type === 'time_slow' || ap.type === 'shield') {
       ap.remaining--;
     }
-    // Shot-based powerups (multi_shot, explosive) are decremented on use
+    // Shot-based powerups (multi_shot, explosive, dragon_bullet) are decremented on use
     if (ap.remaining <= 0) {
       activePowerups.splice(i, 1);
     }
