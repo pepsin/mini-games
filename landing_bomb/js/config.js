@@ -3,7 +3,7 @@
 // Topbar layout constants
 const TOPBAR_CONFIG = {
   marginX: 10,
-  marginY: 23,
+  marginY: 10,
   buttonSize: 36,
   gap: 8,
   get baseHeight() { return this.marginY + this.buttonSize; }
