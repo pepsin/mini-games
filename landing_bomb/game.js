@@ -62,7 +62,10 @@ const {
   updateSlingshotPosition, drawSlingshot, drawSlingshotBody, drawSlingshotBandsOnly,
   clearDrag, getDragCurrent, isDragging, getSlingshot, drawTrajectoryPrediction, SLING_CONFIG
 } = require('./js/entities/slingshot.js');
-const { drawBomb, createBomb, updateBomb, clearBombFrameStorage } = require('./js/entities/bomb.js');
+const {
+  drawBomb, createBomb, createNormalBombAt, updateBomb, clearBombFrameStorage,
+  BOMB_TYPES, isSpecialWave, getSpecialBombCountForWave
+} = require('./js/entities/bomb.js');
 const { drawProjectile, updateProjectile, isOutOfBounds, checkCollision } = require('./js/entities/projectile.js');
 const {
   createExplosion, createGroundExplosion, createScorePopup,
@@ -208,6 +211,11 @@ function update() {
     const waveConfig = getCurrentWaveConfig();
     const bomb = createBomb(waveConfig, getCurrentWave());
     bombs.push(bomb);
+  } else if (waveAction.action === 'spawn_special_bomb') {
+    // Spawn special bomb (armored or dumbbell) for waves 5, 10, 15, etc.
+    const waveConfig = getCurrentWaveConfig();
+    const bomb = createBomb(waveConfig, getCurrentWave(), waveAction.bombType);
+    bombs.push(bomb);
   } else if (waveAction.action === 'wave_ended') {
     // Handle challenge result reward
     if (waveAction.challengeResult && waveAction.challengeResult.success) {
@@ -300,10 +308,62 @@ function update() {
     for (let j = bombs.length - 1; j >= 0; j--) {
       const b = bombs[j];
       if (checkCollision(p, b)) {
+        // Check if this projectile has already hit this bomb
+        if (b.hitByProjectiles && b.hitByProjectiles.includes(p.id)) {
+          continue; // Skip if already hit by this projectile
+        }
+        
+        // Record that this projectile has hit this bomb
+        if (!b.hitByProjectiles) {
+          b.hitByProjectiles = [];
+        }
+        b.hitByProjectiles.push(p.id);
+        
         p.hits = (p.hits || 0) + 1;
         const popup = createScorePopup(b.x, b.y, p.hits);
         scorePopups.push(popup);
         addScore(popup.totalScore);
+
+        // Handle special bomb types
+        if (b.bombType === BOMB_TYPES.ARMORED) {
+          // Armored bomb: reduce health, if still has health, transform to normal
+          b.health--;
+          if (b.health > 0) {
+            // Armor broken, transform to normal bomb
+            b.bombType = BOMB_TYPES.NORMAL;
+            b.health = 1;
+            // Create armor break effect (smaller explosion)
+            explosions.push(createExplosion(b.x, b.y, 'normal'));
+            // Don't remove the bomb, it continues falling
+            continue;
+          }
+        } else if (b.bombType === BOMB_TYPES.DUMBBELL) {
+          // Dumbbell bomb: split into two normal bombs
+          const waveConfig = getCurrentWaveConfig();
+          const currentWave = getCurrentWave();
+
+          // Calculate split positions with boundary check
+          const splitDistance = 50;
+          const margin = 40; // Minimum distance from screen edge
+          const leftX = Math.max(margin, b.x - splitDistance);
+          const rightX = Math.min(W - margin, b.x + splitDistance);
+
+          // Create left split bomb
+          const leftBomb = createNormalBombAt(leftX, b.y, waveConfig, currentWave);
+          leftBomb.speed = b.speed * 1.1;
+          leftBomb.sway = b.sway * 0.8;
+          leftBomb.swayOffset = Math.PI; // Start with leftward sway
+          bombs.push(leftBomb);
+
+          // Create right split bomb
+          const rightBomb = createNormalBombAt(rightX, b.y, waveConfig, currentWave);
+          rightBomb.speed = b.speed * 1.1;
+          rightBomb.sway = b.sway * 0.8;
+          rightBomb.swayOffset = 0; // Start with rightward sway
+          bombs.push(rightBomb);
+        }
+
+        // Create explosion effect for destroyed bomb
         explosions.push(createExplosion(b.x, b.y, b.bombType));
 
         bombs.splice(j, 1);

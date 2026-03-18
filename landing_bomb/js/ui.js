@@ -88,12 +88,14 @@ function drawUI(ctx) {
   ctx.fillStyle = '#666';
   ctx.fillText(`最高: ${highScore}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2);
 
-  // Row 2: Powerup HUD (only if active)
+  // Row 2: Powerup HUD (only if active) - positioned below inventory
   let topbarHeight = TOPBAR_CONFIG.baseHeight;
   if (activePowerups.length > 0) {
-    const powerupRowY = TOPBAR_CONFIG.baseHeight + 6;
+    // Inventory is at baseHeight + 6 with buttonSize 40, so HUD goes below it
+    const inventoryBottom = TOPBAR_CONFIG.baseHeight + 6 + 40;
+    const powerupRowY = inventoryBottom + 8; // 8px gap below inventory
     drawPowerupHUD(ctx, activePowerups, marginX, powerupRowY);
-    topbarHeight = powerupRowY + 28; // 28 is icon height
+    topbarHeight = powerupRowY + 42; // 42 is icon height (28 * 1.5)
   }
 
   // Challenge HUD (drawn separately as it's centered and has different styling)
@@ -108,8 +110,8 @@ function drawUI(ctx) {
 
 // Draw powerup HUD icons at specified position
 function drawPowerupHUD(ctx, activePowerups, startX, startY) {
-  const iconSize = 24;
-  const gap = 6;
+  const iconSize = 36; // 24 * 1.5
+  const gap = 9; // 6 * 1.5
 
   activePowerups.forEach((ap, idx) => {
     const def = POWERUP_TYPES[ap.type];
@@ -142,14 +144,14 @@ function drawPowerupHUD(ctx, activePowerups, startX, startY) {
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = ss(1.5);
+    ctx.lineWidth = ss(2.25); // 1.5 * 1.5
     ctx.stroke();
 
     // Icon or text
     if (ap.type === 'multi_shot' || ap.type === 'explosive' || ap.type === 'dragon_bullet') {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `bold ${ss(11)}px Arial`;
+      ctx.font = `bold ${ss(16.5)}px Arial`; // 11 * 1.5
       ctx.fillStyle = '#FFFFFF';
       ctx.fillText(`${ap.remaining}`, cx, cy);
     } else {

@@ -128,7 +128,8 @@ function handleTouchEnd(e) {
           radius: proj.radius,
           gravity: proj.gravity,
           hits: 0,
-          isDragonBullet: proj.isDragonBullet || false
+          isDragonBullet: proj.isDragonBullet || false,
+          id: Date.now() + Math.random() + sign // Unique ID for each projectile
         };
         gameCallbacks.onFire(extraProj);
       }
@@ -149,7 +150,8 @@ function handleTouchEnd(e) {
           radius: proj.radius,
           gravity: proj.gravity,
           hits: 0,
-          isDragonBullet: proj.isDragonBullet || false
+          isDragonBullet: proj.isDragonBullet || false,
+          id: Date.now() + Math.random() + sign * 2 // Unique ID for each projectile
         };
         gameCallbacks.onFire(dualProj);
       }

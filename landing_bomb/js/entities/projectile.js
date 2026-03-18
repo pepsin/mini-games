@@ -62,6 +62,9 @@ function createProjectile(sling, dragCurrent, maxDrag) {
   const vx = (dirX / dirLength) * speed;
   const vy = (dirY / dirLength) * speed;
 
+  // Generate unique ID for this projectile
+  const projectileId = Date.now() + Math.random();
+
   return {
     x: pullX,
     y: pullY,
@@ -69,7 +72,8 @@ function createProjectile(sling, dragCurrent, maxDrag) {
     vy: vy,
     radius: 18,
     gravity: 0.12,
-    hits: 0
+    hits: 0,
+    id: projectileId
   };
 }
 

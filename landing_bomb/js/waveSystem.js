@@ -14,6 +14,10 @@ let totalBombsThisWave = 0;
 let nextSpawnTime = 0;
 let waveSpawnSchedule = [];
 
+// Special bomb tracking for waves 5, 10, 15, etc.
+let specialBombsSpawned = 0;
+let totalSpecialBombs = 0;
+
 // Challenge announce state
 let challengeAnnounce = false;
 let challengeAnnounceTimer = 0;
@@ -80,20 +84,36 @@ function calculateSpawnTimes(config) {
   return spawnTimes.sort((a, b) => a - b);
 }
 
+// Check if wave is a special wave (multiple of 5)
+function isSpecialWave(wave) {
+  return wave > 0 && wave % 5 === 0;
+}
+
+// Get special bomb spawn count for wave 5, 10, 15, etc.
+function getSpecialBombCountForWave(wave) {
+  if (!isSpecialWave(wave)) return 0;
+  // Base 2 bombs, increases by 1 every 5 waves, capped at 8
+  return Math.min(2 + Math.floor((wave - 5) / 5), 8);
+}
+
 // Start new wave
 function startWave(waveNum) {
   currentWave = waveNum;
   isInterWave = false;
   const config = getWaveConfig(waveNum);
-  
+
   waveTimer = 0;
   bombsSpawnedThisWave = 0;
   totalBombsThisWave = config.bombsPerWave;
   waveSpawnSchedule = calculateSpawnTimes(config);
   nextSpawnTime = waveSpawnSchedule.length > 0 ? waveSpawnSchedule[0] : 0;
-  
-  console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${config.waveDurationFrames / 60}s duration`);
-  
+
+  // Initialize special bomb tracking for waves 5, 10, 15, etc.
+  specialBombsSpawned = 0;
+  totalSpecialBombs = getSpecialBombCountForWave(waveNum);
+
+  console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${config.waveDurationFrames / 60}s duration${totalSpecialBombs > 0 ? `, ${totalSpecialBombs} special bombs` : ''}`);
+
   return config;
 }
 
@@ -130,6 +150,8 @@ function resetWaves() {
   bombsSpawnedThisWave = 0;
   totalBombsThisWave = 0;
   waveSpawnSchedule = [];
+  specialBombsSpawned = 0;
+  totalSpecialBombs = 0;
   challengeAnnounce = false;
   challengeAnnounceTimer = 0;
   pendingChallenge = null;
@@ -161,6 +183,15 @@ function updateWaves(bombCount) {
     if (bombsSpawnedThisWave < waveSpawnSchedule.length &&
         waveTimer >= waveSpawnSchedule[bombsSpawnedThisWave]) {
       bombsSpawnedThisWave++;
+
+      // Check if we should spawn a special bomb (for waves 5, 10, 15, etc.)
+      if (isSpecialWave(currentWave) && specialBombsSpawned < totalSpecialBombs) {
+        specialBombsSpawned++;
+        // Alternate between armored and dumbbell bombs
+        const bombType = specialBombsSpawned % 2 === 1 ? 'armored' : 'dumbbell';
+        return { action: 'spawn_special_bomb', bombType: bombType };
+      }
+
       return { action: 'spawn_bomb' };
     }
 
@@ -202,5 +233,7 @@ module.exports = {
   getCurrentWaveConfig,
   getWaveProgress,
   isChallengeAnnouncing,
-  getPendingChallenge
+  getPendingChallenge,
+  isSpecialWave,
+  getSpecialBombCountForWave
 };
