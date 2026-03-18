@@ -44,6 +44,9 @@ const {
   updateChallengeResult, resetChallenges, getCurrentChallenge
 } = require('./js/challengeSystem.js');
 
+// Slingshot skin system
+const { tryDropSkin, unlockSkin } = require('./js/slingshotSkinSystem.js');
+
 // Entities
 const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
 const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
@@ -65,6 +68,7 @@ const { triggerWaveAnnounce, updateWaveAnnounce, drawWaveAnnounce } = require('.
 
 // UI and Input
 const { drawUI, drawGameOver, drawStartScreen, drawPauseScreen } = require('./js/ui.js');
+const { drawGallery, isGalleryVisible } = require('./js/skinGallery.js');
 const { setupInput, registerCallbacks } = require('./js/inputHandler.js');
 
 // Setup canvas size
@@ -301,6 +305,16 @@ function update() {
 
         // Try to spawn powerup on kill
         trySpawnPowerup(powerups, frameCount);
+
+        // Try to drop skin (5% chance on bomb kill)
+        if (Math.random() < 0.05) {
+          const droppedSkin = tryDropSkin();
+          if (droppedSkin) {
+            unlockSkin(droppedSkin);
+            // TODO: Show skin unlock notification
+            console.log(`Unlocked skin: ${droppedSkin}`);
+          }
+        }
       }
     }
   }
@@ -401,6 +415,11 @@ function draw() {
     drawStartScreen(ctx, canvas);
   } else if (isGamePaused()) {
     drawPauseScreen(ctx, canvas);
+  }
+
+  // Skin gallery (drawn on top of everything)
+  if (isGalleryVisible()) {
+    drawGallery(ctx);
   }
 }
 

@@ -6,6 +6,8 @@ const { createProjectile } = require('./entities/projectile.js');
 const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 const { hitTest } = require('./uiState.js');
+const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
+const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -17,11 +19,21 @@ function registerCallbacks(callbacks) {
 // Handle touch start
 function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
-  
+
+  // Handle gallery touch first
+  if (isGalleryVisible()) {
+    handleGalleryTouch(gp.x, gp.y);
+    return;
+  }
+
   if (!isGameStarted()) {
     // Start button - use bounds from flex layout
     if (hitTest('startButton', gp.x, gp.y)) {
       gameCallbacks.onGameStart && gameCallbacks.onGameStart();
+    }
+    // Skin gallery button
+    if (hitTest('skinGalleryButton', gp.x, gp.y)) {
+      openGallery();
     }
     return;
   }
@@ -82,6 +94,9 @@ function handleTouchEnd(e) {
 
   const proj = createProjectile(sling, dragCurrent, SLING_CONFIG.maxDrag);
   if (proj && gameCallbacks.onFire) {
+    // Apply skin attributes
+    applySkinToProjectile(proj);
+
     // Dragon bullet: large radius projectile (1/3 screen width)
     if (isPowerupActive(activePowerups, 'dragon_bullet')) {
       proj.radius = W / 3; // 1/3 screen width hit range
@@ -110,6 +125,26 @@ function handleTouchEnd(e) {
         gameCallbacks.onFire(extraProj);
       }
       consumePowerupUse(activePowerups, 'multi_shot');
+    }
+
+    // Default dual shot from skin
+    if (isDefaultDualShot()) {
+      const dualAngle = 5 * Math.PI / 180;
+      for (const sign of [-1, 1]) {
+        const angle = Math.atan2(proj.vy, proj.vx) + sign * dualAngle;
+        const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy);
+        const dualProj = {
+          x: proj.x,
+          y: proj.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: proj.radius,
+          gravity: proj.gravity,
+          hits: 0,
+          isDragonBullet: proj.isDragonBullet || false
+        };
+        gameCallbacks.onFire(dualProj);
+      }
     }
   }
 

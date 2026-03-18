@@ -2,7 +2,8 @@
 
 const buttonBounds = {
   startButton: null,   // { x, y, width, height } in game coordinates
-  restartButton: null
+  restartButton: null,
+  skinGalleryButton: null
 };
 
 function setButtonBounds(name, x, y, width, height) {
