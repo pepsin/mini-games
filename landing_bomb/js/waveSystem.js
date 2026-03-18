@@ -150,8 +150,8 @@ function updateWaves(bombCount) {
 
     if (interWaveTimer >= interWaveDuration) {
       isInterWave = false;
-      // Jump from wave 1 to wave 50
-      const nextWave = currentWave === 1 ? 50 : currentWave + 1;
+      // Jump from wave 1 to wave 30
+      const nextWave = currentWave === 1 ? 30 : currentWave + 1;
       return { action: 'start_wave', wave: nextWave };
     }
   } else {
