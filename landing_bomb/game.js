@@ -299,8 +299,9 @@ function update() {
     for (let k = powerups.length - 1; k >= 0; k--) {
       const pu = powerups[k];
       if (checkPowerupCollision(p, pu)) {
-        // Pickup powerup (adds to inventory with fly-in animation)
-        pickupPowerup(pu, powerups, k);
+        // Pickup powerup (adds to inventory with fly-in animation, or triggers immediately if full)
+        const gameState = { healFlower, explodeAllBombs };
+        pickupPowerup(pu, powerups, k, activePowerups, gameState);
       }
     }
 
@@ -449,7 +450,7 @@ function draw() {
     drawShieldEffect(ctx, getFlowerPositions(), flowerAlive, frameCount);
   }
 
-  drawHealthFlowers(ctx, hasShield);
+  drawHealthFlowers(ctx, hasShield, lastDeltaTime);
 
   // Slingshot body (below projectiles)
   drawSlingshotBody(ctx);

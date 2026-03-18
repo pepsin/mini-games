@@ -100,6 +100,17 @@ class AnimationLoader {
     resource.frameDuration = 1000 / resource.fps;
     resource.loop = config.loop !== false;
     resource.lastFrameTime = 0;
+
+    // Load static image if specified (for post-animation static display)
+    if (config.static && config.static.file) {
+      try {
+        const staticPath = `${this.basePath}${folder}/${config.static.file}`;
+        console.log(`加载静态图(动画后显示): ${staticPath}`);
+        resource.staticImage = await this.loadImage(staticPath);
+      } catch (e) {
+        console.error(`加载静态图失败: ${config.static.file}`, e);
+      }
+    }
   }
 
   /**

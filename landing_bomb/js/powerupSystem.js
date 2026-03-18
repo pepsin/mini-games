@@ -228,10 +228,15 @@ function checkPowerupCollision(proj, powerup) {
 }
 
 // Handle powerup pickup - add to inventory instead of immediate activation
-function pickupPowerup(powerup, powerups, index) {
-  // If inventory is full, don't pick up
+// If inventory is full, trigger immediately
+function pickupPowerup(powerup, powerups, index, activePowerups, gameState) {
+  // If inventory is full, trigger immediately
   if (isInventoryFull()) {
-    return false;
+    activatePowerup(powerup.type, activePowerups, gameState);
+    // Remove from flying powerups
+    removePowerupBadge(powerup);
+    powerups.splice(index, 1);
+    return true;
   }
   
   // Add to inventory with fly-in animation

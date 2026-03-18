@@ -327,21 +327,13 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
         .padding({ left: 50, right: 50, top: 12, bottom: 12 })
         .cornerRadius(15),
       
-      // Skin gallery button (only show when not paused)
-      !isPaused ? flexItem()
-        .tag('skinGalleryButton')
-        .text('弹弓图鉴', 16)
-        .textStyle('#FF6B35', 16, 'Arial', 'bold')
-        .background('#FFE5E0')
-        .padding({ left: 30, right: 30, top: 8, bottom: 8 })
-        .cornerRadius(10) : flexItem().size(0, 0)
+      // Skin gallery button (hidden for now)
+      flexItem().size(0, 0)
     );
 
   panel.draw(ctx);
   const startBounds = panel.getTaggedBounds('startButton');
   if (startBounds) setButtonBounds('startButton', startBounds.x, startBounds.y, startBounds.width, startBounds.height);
-  const galleryBounds = panel.getTaggedBounds('skinGalleryButton');
-  if (galleryBounds) setButtonBounds('skinGalleryButton', galleryBounds.x, galleryBounds.y, galleryBounds.width, galleryBounds.height);
 }
 
 function drawPauseScreen(ctx, canvas) {

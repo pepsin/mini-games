@@ -1,8 +1,17 @@
 {
   "name": "flower_covered",
-  "type": "static",
-  "description": "受保护的花朵静态图",
-  "file": "flower_covered.png",
+  "type": "animation",
+  "description": "受保护的花朵动画",
+  "fps": 12,
+  "loop": false,
+  "frames": [
+    { "file": "flower_covered_animation_1.png", "duration": 83 },
+    { "file": "flower_covered_animation_2.png", "duration": 83 },
+    { "file": "flower_covered_animation_3.png", "duration": 83 }
+  ],
+  "static": {
+    "file": "flower_covered.png"
+  },
   "size": {
     "width": 90,
     "height": 147
