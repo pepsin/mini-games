@@ -303,8 +303,8 @@ function update() {
           handleChallengeReward(challengeComplete.reward);
         }
 
-        // Try to spawn powerup on kill
-        trySpawnPowerup(powerups, frameCount);
+        // Try to spawn powerup on kill (pass bomb count for priority adjustment)
+        trySpawnPowerup(powerups, frameCount, bombs.length);
 
         // Try to drop skin (5% chance on bomb kill)
         if (Math.random() < 0.05) {

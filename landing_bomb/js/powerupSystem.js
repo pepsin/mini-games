@@ -132,26 +132,40 @@ function getPowerupImage(type) {
 }
 
 // Weighted random selection
-function randomPowerupType() {
+function randomPowerupType(bombCount = 0) {
   const types = Object.keys(POWERUP_TYPES);
-  const totalWeight = types.reduce((sum, t) => sum + POWERUP_TYPES[t].weight, 0);
+  const isHighBombCount = bombCount > 40;
+
+  // When >40 bombs, prioritize explosive and shield
+  let weights = {};
+  for (const t of types) {
+    weights[t] = POWERUP_TYPES[t].weight;
+  }
+
+  if (isHighBombCount) {
+    // Double the weight of explosive and shield
+    weights['explosive'] *= 2;
+    weights['shield'] *= 2;
+  }
+
+  const totalWeight = types.reduce((sum, t) => sum + weights[t], 0);
   let roll = Math.random() * totalWeight;
   for (const t of types) {
-    roll -= POWERUP_TYPES[t].weight;
+    roll -= weights[t];
     if (roll <= 0) return t;
   }
   return types[types.length - 1];
 }
 
 // Try to spawn a powerup (called on bomb kill)
-function trySpawnPowerup(powerups, frameCount) {
+function trySpawnPowerup(powerups, frameCount, bombCount = 0) {
   // Only one powerup at a time
   if (powerups.length > 0) return null;
   // Minimum 10 second gap between powerups
   if (frameCount - lastSpawnTime < MIN_SPAWN_INTERVAL) return null;
   if (Math.random() > SPAWN_CHANCE) return null;
-  
-  const type = randomPowerupType();
+
+  const type = randomPowerupType(bombCount);
   const baseX = 50 + Math.random() * (W - 100);
   const powerup = {
     x: baseX,
