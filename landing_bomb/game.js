@@ -185,10 +185,13 @@ function update() {
   const frameCount = getFrameCount();
 
   // Update animations
-  const bombRes = getResource('bomb');
-  if (bombRes) {
-    animationLoader.update(bombRes, deltaTime);
-  }
+  const bombResources = ['bomb_normal', 'bomb_shielded', 'bomb_twin'];
+  bombResources.forEach(key => {
+    const bombRes = getResource(key);
+    if (bombRes) {
+      animationLoader.update(bombRes, deltaTime);
+    }
+  });
 
   // Update flowers
   if (frameCount % 15 === 0) {

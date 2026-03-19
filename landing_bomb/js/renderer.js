@@ -11,15 +11,16 @@ const { COLOR_PALETTE, sx, sy, ss } = require('./config.js');
  * @param {number} targetWidth - Target width in game coordinates (0 for original size)
  * @param {number} anchorX - Anchor X (0-1)
  * @param {number} anchorY - Anchor Y (0-1)
+ * @param {Object} spriteFrame - Optional sprite frame data {sx, sy, sw, sh}
  * @returns {Object|null} Drawn dimensions {width, height} or null if failed
  */
-function drawImageProportional(ctx, img, x, y, targetWidth, anchorX = 0.5, anchorY = 0.5) {
+function drawImageProportional(ctx, img, x, y, targetWidth, anchorX = 0.5, anchorY = 0.5, spriteFrame = null) {
   if (!img || img.width === 0 || img.height === 0) {
     return null;
   }
   
-  const originalWidth = img.width;
-  const originalHeight = img.height;
+  const originalWidth = spriteFrame ? spriteFrame.sw : img.width;
+  const originalHeight = spriteFrame ? spriteFrame.sh : img.height;
   const aspectRatio = originalWidth / originalHeight;
   
   let drawWidth, drawHeight;
@@ -35,7 +36,17 @@ function drawImageProportional(ctx, img, x, y, targetWidth, anchorX = 0.5, ancho
   const drawX = sx(x) - drawWidth * anchorX;
   const drawY = sy(y) - drawHeight * anchorY;
   
-  ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+  if (spriteFrame) {
+    // Draw sprite frame from sheet
+    ctx.drawImage(
+      img,
+      spriteFrame.sx, spriteFrame.sy, spriteFrame.sw, spriteFrame.sh,
+      drawX, drawY, drawWidth, drawHeight
+    );
+  } else {
+    // Draw full image
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+  }
   
   return { width: drawWidth, height: drawHeight };
 }

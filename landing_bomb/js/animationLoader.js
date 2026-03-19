@@ -81,8 +81,11 @@ class AnimationLoader {
    * 加载动画资源
    */
   async loadAnimation(resource, folder, config) {
-    // 带状态的动画
-    if (config.states) {
+    // Check if using sprite sheet (single image with multiple frames)
+    if (config.spriteSheet) {
+      await this.loadSpriteSheet(resource, folder, config);
+    } else if (config.states) {
+      // 带状态的动画
       resource.states = {};
       for (const [stateName, stateConfig] of Object.entries(config.states)) {
         resource.states[stateName] = await this.loadFrames(folder, stateConfig.frames);
@@ -111,6 +114,47 @@ class AnimationLoader {
         console.error(`加载静态图失败: ${config.static.file}`, e);
       }
     }
+  }
+
+  /**
+   * 加载精灵图动画 (单张图片包含多帧)
+   */
+  async loadSpriteSheet(resource, folder, config) {
+    const sheetConfig = config.spriteSheet;
+    const path = `${this.basePath}${folder}/${sheetConfig.file}`;
+    
+    console.log(`加载精灵图: ${path}`);
+    const img = await this.loadImage(path);
+    
+    // Calculate frame dimensions from actual image size
+    const frameWidth = sheetConfig.frameWidth || config.size?.width || 64;
+    const frameHeight = sheetConfig.frameHeight || config.size?.height || 64;
+    
+    // Calculate frames per row and frame count from actual image dimensions
+    const framesPerRow = Math.floor(img.width / frameWidth);
+    const totalRows = Math.floor(img.height / frameHeight);
+    const frameCount = framesPerRow * totalRows;
+    
+    console.log(`精灵图尺寸: ${img.width}x${img.height}, 每帧: ${frameWidth}x${frameHeight}, 共 ${frameCount} 帧 (${framesPerRow}列 x ${totalRows}行)`);
+    
+    // Create frame data
+    resource.frames = [];
+    for (let i = 0; i < frameCount; i++) {
+      const row = Math.floor(i / framesPerRow);
+      const col = i % framesPerRow;
+      
+      resource.frames.push({
+        image: img,
+        sx: col * frameWidth,
+        sy: row * frameHeight,
+        sw: frameWidth,
+        sh: frameHeight,
+        duration: sheetConfig.frameDuration || 125
+      });
+    }
+    
+    resource.isSpriteSheet = true;
+    console.log(`精灵图加载完成: ${frameCount} 帧`);
   }
 
   /**
@@ -347,6 +391,17 @@ class AnimationLoader {
       if (!frame.image) {
         console.log('当前帧没有图片');
         return null;
+      }
+      // For sprite sheets, return the frame data with image
+      if (resource.isSpriteSheet) {
+        return {
+          image: frame.image,
+          sx: frame.sx,
+          sy: frame.sy,
+          sw: frame.sw,
+          sh: frame.sh,
+          isSpriteFrame: true
+        };
       }
       return frame.image;
     }

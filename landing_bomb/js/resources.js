@@ -5,7 +5,9 @@ const { GROUND_Y } = require('./config.js');
 
 // Resource object
 const resources = {
-  bomb: null,
+  bomb_normal: null,
+  bomb_shielded: null,
+  bomb_twin: null,
   iced_bomb: null,
   parachute: null,
   flower: null,
@@ -30,9 +32,16 @@ function onResourcesLoaded(callback) {
 // Load all resources
 async function loadResources() {
   console.log('=== Starting resource loading ===');
-  
-  resources.bomb = await animationLoader.load('bomb');
-  console.log('Bomb resource:', resources.bomb ? 'loaded' : 'failed');
+
+  // Load new bomb type sheets (64x64 frames)
+  resources.bomb_normal = await animationLoader.load('bomb/normal_bomb');
+  console.log('Normal bomb sheet:', resources.bomb_normal ? 'loaded' : 'failed');
+
+  resources.bomb_shielded = await animationLoader.load('bomb/shielded_bomb');
+  console.log('Shielded bomb sheet:', resources.bomb_shielded ? 'loaded' : 'failed');
+
+  resources.bomb_twin = await animationLoader.load('bomb/twin_bomb');
+  console.log('Twin bomb sheet:', resources.bomb_twin ? 'loaded' : 'failed');
 
   // Load iced_bomb as a static image
   resources.iced_bomb = await animationLoader.load('bomb/iced_bomb');
@@ -69,7 +78,8 @@ async function loadResources() {
   console.log('Powerup resource:', resources.powerup ? 'loaded' : 'failed');
 
   // Check if any resource loaded
-  const anyLoaded = resources.bomb || resources.parachute || resources.flower || 
+  const anyLoaded = resources.bomb_normal || resources.bomb_shielded || resources.bomb_twin ||
+                    resources.parachute || resources.flower || 
                     resources.cloud || resources.rainbow || resources.slingshot || 
                     resources.background || resources.sunInner || resources.sunOuter;
   

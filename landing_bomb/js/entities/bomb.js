@@ -21,77 +21,30 @@ const BOMB_TYPES = {
 // Store original animation frame for each bomb when time_slow starts
 const bombOriginalFrames = new Map();
 
-// Draw armored bomb (with armor indicator)
-function drawArmoredBomb(ctx, bomb, x, y, size) {
-  // Draw main bomb body
-  ctx.fillStyle = '#8B4513'; // Brown color for armored bomb
-  ctx.fillRect(x - size/2, y - size/2, size, size);
-  
-  // Draw armor at bottom (metal plate)
-  ctx.fillStyle = '#A9A9A9'; // Gray for armor
-  ctx.fillRect(x - size/2, y + size/4, size, size/4);
-  
-  // Draw armor border
-  ctx.strokeStyle = '#696969';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x - size/2, y + size/4, size, size/4);
-  
-  // Draw armor bolts
-  ctx.fillStyle = '#696969';
-  ctx.beginPath();
-  ctx.arc(x - size/3, y + size/2.5, 3, 0, Math.PI * 2);
-  ctx.arc(x + size/3, y + size/2.5, 3, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-// Draw dumbbell bomb (two connected circles)
-function drawDumbbellBomb(ctx, bomb, x, y, size) {
-  const halfSize = size / 2;
-  const circleRadius = size / 3;
-  
-  // Draw left circle
-  ctx.fillStyle = '#4169E1'; // Royal blue
-  ctx.beginPath();
-  ctx.arc(x - halfSize/2, y, circleRadius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#1E90FF';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  
-  // Draw right circle
-  ctx.beginPath();
-  ctx.arc(x + halfSize/2, y, circleRadius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  
-  // Draw connecting bar
-  ctx.fillStyle = '#2F4F4F';
-  ctx.fillRect(x - halfSize/2, y - 4, halfSize, 8);
-}
-
 // Draw bomb
 function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
   if (bomb.exploding) return;
 
   // Draw parachute
   const resources = {
-    bomb: getResource('bomb'),
+    bomb: getResource('bomb_normal'),
     parachute: getResource('parachute')
   };
   Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss);
 
+  // Determine which bomb resource to use based on type
+  let bombResKey = 'bomb_normal';
+  if (bomb.bombType === BOMB_TYPES.ARMORED) {
+    bombResKey = 'bomb_shielded';
+  } else if (bomb.bombType === BOMB_TYPES.DUMBBELL) {
+    bombResKey = 'bomb_twin';
+  }
+
   // Draw bomb body based on type
   let usePlaceholder = true;
-  const bombRes = getResource('bomb');
+  const bombRes = getResource(bombResKey);
 
-  // Special rendering for new bomb types (use placeholder shapes)
-  if (bomb.bombType === BOMB_TYPES.ARMORED) {
-    drawArmoredBomb(ctx, bomb, bomb.x, bomb.y, 48);
-    usePlaceholder = false;
-  } else if (bomb.bombType === BOMB_TYPES.DUMBBELL) {
-    drawDumbbellBomb(ctx, bomb, bomb.x, bomb.y, 56);
-    usePlaceholder = false;
-  } else if (isResourcesLoaded() && bombRes) {
+  if (isResourcesLoaded() && bombRes) {
     let img = null;
 
     if (isTimeSlowActive) {
@@ -115,19 +68,39 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
       img = animationLoader.getCurrentFrame(bombRes);
     }
 
-    if (img && img.width > 0 && img.height > 0) {
-      const size = animationLoader.getSize(bombRes);
-      const anchor = animationLoader.getAnchor(bombRes);
+    if (img) {
+      // Check if it's a sprite frame or regular image
+      const isSpriteFrame = img.isSpriteFrame;
+      const imgWidth = isSpriteFrame ? img.sw : img.width;
+      const imgHeight = isSpriteFrame ? img.sh : img.height;
+      
+      if (imgWidth > 0 && imgHeight > 0) {
+        const size = animationLoader.getSize(bombRes);
+        const anchor = animationLoader.getAnchor(bombRes);
 
-      const result = drawImageProportional(
-        ctx, img,
-        bomb.x, bomb.y,
-        size.width * 0.8,
-        anchor.x, anchor.y
-      );
+        let result;
+        if (isSpriteFrame) {
+          // Sprite sheet frame - pass image and frame data separately
+          result = drawImageProportional(
+            ctx, img.image,
+            bomb.x, bomb.y,
+            size.width * 0.8,
+            anchor.x, anchor.y,
+            { sx: img.sx, sy: img.sy, sw: img.sw, sh: img.sh }
+          );
+        } else {
+          // Regular image
+          result = drawImageProportional(
+            ctx, img,
+            bomb.x, bomb.y,
+            size.width * 0.8,
+            anchor.x, anchor.y
+          );
+        }
 
-      if (result) {
-        usePlaceholder = false;
+        if (result) {
+          usePlaceholder = false;
+        }
       }
     }
   }
