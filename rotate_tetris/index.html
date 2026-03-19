@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triangle Tetris</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1a1a2e;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            border: 1px solid #333;
+        }
+        
+        .hint {
+            position: absolute;
+            bottom: 30px;
+            color: #fff;
+            font-size: 14px;
+            opacity: 0.7;
+            text-align: center;
+        }
+        
+        .score {
+            position: absolute;
+            top: 30px;
+            color: #fff;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="hint">Arrow keys: Move | Up: Rotate | Space: Drop</div>
+    <div class="score" id="score">Score: 0</div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Triangle configuration
+        let targetRotation = 60;
+        let currentRotation = 60;
+        let isTriangleAnimating = false;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height - 100; // Moved up so triangle is visible
+        const triangleSize = 250;
+        const rotationDuration = 400;
+        const triangleRotationAngle = 120;
+        
+        // Edge configuration
+        const EDGE_CELLS = 12;
+        const CELL_SIZE = 20;
+        const CENTER_ZONE_CELLS = 4;
+        
+        // Tetris pieces - standard shapes with proper rotation matrices
+        const PIECES = {
+            I: {
+                shapes: [
+                    [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
+                    [[0,0,1,0], [0,0,1,0], [0,0,1,0], [0,0,1,0]],
+                    [[0,0,0,0], [0,0,0,0], [1,1,1,1], [0,0,0,0]],
+                    [[0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0]]
+                ],
+                color: '#00f0f0'
+            },
+            O: {
+                shapes: [
+                    [[1,1], [1,1]],
+                    [[1,1], [1,1]],
+                    [[1,1], [1,1]],
+                    [[1,1], [1,1]]
+                ],
+                color: '#f0f000'
+            },
+            T: {
+                shapes: [
+                    [[0,1,0], [1,1,1], [0,0,0]],
+                    [[0,1,0], [0,1,1], [0,1,0]],
+                    [[0,0,0], [1,1,1], [0,1,0]],
+                    [[0,1,0], [1,1,0], [0,1,0]]
+                ],
+                color: '#a000f0'
+            },
+            S: {
+                shapes: [
+                    [[0,1,1], [1,1,0], [0,0,0]],
+                    [[0,1,0], [0,1,1], [0,0,1]],
+                    [[0,0,0], [0,1,1], [1,1,0]],
+                    [[1,0,0], [1,1,0], [0,1,0]]
+                ],
+                color: '#00f000'
+            },
+            Z: {
+                shapes: [
+                    [[1,1,0], [0,1,1], [0,0,0]],
+                    [[0,0,1], [0,1,1], [0,1,0]],
+                    [[0,0,0], [1,1,0], [0,1,1]],
+                    [[0,1,0], [1,1,0], [1,0,0]]
+                ],
+                color: '#f00000'
+            },
+            J: {
+                shapes: [
+                    [[1,0,0], [1,1,1], [0,0,0]],
+                    [[0,1,1], [0,1,0], [0,1,0]],
+                    [[0,0,0], [1,1,1], [0,0,1]],
+                    [[0,1,0], [0,1,0], [1,1,0]]
+                ],
+                color: '#0000f0'
+            },
+            L: {
+                shapes: [
+                    [[0,0,1], [1,1,1], [0,0,0]],
+                    [[0,1,0], [0,1,0], [0,1,1]],
+                    [[0,0,0], [1,1,1], [1,0,0]],
+                    [[1,1,0], [0,1,0], [0,1,0]]
+                ],
+                color: '#f0a000'
+            }
+        };
+        
+        // Edges store stacked blocks for each of the 3 edges
+        // Index corresponds to physical edge (0=bottom, 1=right-up, 2=left-up at rotation 60)
+        let edges = [[], [], []];
+        
+        // Current piece
+        let currentPiece = null;
+        let currentPieceRotation = 0;
+        let pieceX = 0; // Position in world space (cells)
+        let pieceY = 0; // Position in world space (cells)
+        
+        let lastDropTime = 0;
+        let score = 0;
+        let isGameOver = false;
+        let pendingRotation = 0;
+        const DROP_INTERVAL = 600;
+        
+        // Initialize edges
+        function initEdges() {
+            edges = [[], [], []];
+        }
+        
+        // Get which physical edge is currently at the bottom (where pieces land)
+        function getBottomEdgeIndex() {
+            // At rotation 60: edge 0 is bottom
+            // At rotation 180 (60+120): edge 1 is bottom  
+            // At rotation 300 (60+240): edge 2 is bottom
+            const normalizedRotation = ((currentRotation - 60) % 360 + 360) % 360;
+            if (normalizedRotation < 60 || normalizedRotation >= 300) return 0;
+            if (normalizedRotation >= 60 && normalizedRotation < 180) return 1;
+            return 2;
+        }
+        
+        // Get world position of a cell on an edge
+        // layer: 0 = edge surface, 1,2,3... = stacked above
+        // cell: 0 to EDGE_CELLS-1 along the edge
+        function getCellWorldPosition(edgeIdx, layer, cell) {
+            // Edge 0: bottom horizontal (at rotation 60)
+            // Edge 1: right-up slanted
+            // Edge 2: left-up slanted
+            
+            const rotationRad = currentRotation * Math.PI / 180;
+            
+            // Base angles for each edge center (pointing from triangle center to edge midpoint)
+            const edgeAngles = [90, 210, 330]; // degrees from vertical
+            const baseAngle = edgeAngles[edgeIdx] * Math.PI / 180;
+            
+            // Edge center in world space
+            const edgeCenterDist = triangleSize / 2;
+            const edgeCenterX = centerX + edgeCenterDist * Math.sin(baseAngle + rotationRad);
+            const edgeCenterY = centerY + edgeCenterDist * Math.cos(baseAngle + rotationRad);
+            
+            // Edge direction (along the edge)
+            const edgeDirAngle = baseAngle + rotationRad + Math.PI / 2;
+            
+            // Cell offset along edge
+            const cellOffset = (cell - EDGE_CELLS / 2 + 0.5) * CELL_SIZE;
+            
+            // Layer offset (perpendicular to edge, outward from triangle center)
+            const layerOffset = (layer + 0.5) * CELL_SIZE;
+            const perpAngle = baseAngle + rotationRad;
+            
+            const worldX = edgeCenterX + cellOffset * Math.cos(edgeDirAngle) + layerOffset * Math.sin(perpAngle);
+            const worldY = edgeCenterY - cellOffset * Math.sin(edgeDirAngle) - layerOffset * Math.cos(perpAngle);
+            
+            return { x: worldX, y: worldY };
+        }
+        
+        // Get the bottom edge's world coordinate system
+        function getBottomEdgeTransform() {
+            const bottomEdgeIdx = getBottomEdgeIndex();
+            const rotationRad = currentRotation * Math.PI / 180;
+            const edgeAngles = [90, 210, 330];
+            const baseAngle = edgeAngles[bottomEdgeIdx] * Math.PI / 180;
+            
+            // Edge center
+            const edgeCenterDist = triangleSize / 2;
+            const edgeCenterX = centerX + edgeCenterDist * Math.sin(baseAngle + rotationRad);
+            const edgeCenterY = centerY + edgeCenterDist * Math.cos(baseAngle + rotationRad);
+            
+            // Edge direction
+            const edgeDirAngle = baseAngle + rotationRad + Math.PI / 2;
+            
+            return {
+                centerX: edgeCenterX,
+                centerY: edgeCenterY,
+                angle: edgeDirAngle,
+                cos: Math.cos(edgeDirAngle),
+                sin: Math.sin(edgeDirAngle),
+                perpAngle: baseAngle + rotationRad
+            };
+        }
+        
+        // Convert piece cell to world position
+        function pieceCellToWorld(piece, rotation, col, row) {
+            const shape = piece.shapes[rotation];
+            const transform = getBottomEdgeTransform();
+            
+            // Piece position in world cells
+            const worldCellX = pieceX + col;
+            const worldCellY = pieceY + row;
+            
+            // Offset from edge center
+            const offsetX = (worldCellX - EDGE_CELLS / 2 + 0.5) * CELL_SIZE;
+            const offsetY = (worldCellY + 0.5) * CELL_SIZE;
+            
+            const worldX = transform.centerX + offsetX * transform.cos + offsetY * Math.sin(transform.perpAngle);
+            const worldY = transform.centerY + offsetX * transform.sin - offsetY * Math.cos(transform.perpAngle);
+            
+            return { x: worldX, y: worldY };
+        }
+        
+        // Spawn new piece above the triangle
+        function spawnPiece() {
+            const pieceTypes = Object.keys(PIECES);
+            const randomType = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
+            const pieceData = PIECES[randomType];
+            
+            currentPiece = pieceData;
+            currentPieceRotation = 0;
+            
+            const shape = pieceData.shapes[0];
+            const width = shape[0].length;
+            
+            // Start above the triangle
+            pieceX = Math.floor((EDGE_CELLS - width) / 2);
+            pieceY = -5;
+            
+            if (checkCollision(pieceX, pieceY, shape)) {
+                isGameOver = true;
+            }
+        }
+        
+        // Check collision with edges and bounds
+        function checkCollision(x, y, shape) {
+            const bottomEdgeIdx = getBottomEdgeIndex();
+            
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        const checkX = x + col;
+                        const checkY = y + row;
+                        
+                        // Check horizontal bounds
+                        if (checkX < 0 || checkX >= EDGE_CELLS) {
+                            return true;
+                        }
+                        
+                        // Check collision with blocks on bottom edge
+                        if (checkY >= 0 && checkY < edges[bottomEdgeIdx].length) {
+                            if (edges[bottomEdgeIdx][checkY] && edges[bottomEdgeIdx][checkY][checkX]) {
+                                return true;
+                            }
+                        }
+                        
+                        // Check if hit the edge surface (layer 0)
+                        if (checkY === 0) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Check if piece is supported (can land)
+        function isSupported(x, y, shape) {
+            const bottomEdgeIdx = getBottomEdgeIndex();
+            
+            for (let row = shape.length - 1; row >= 0; row--) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        const checkX = x + col;
+                        const checkY = y + row - 1;
+                        
+                        // Hit the edge surface
+                        if (checkY < 0) {
+                            return true;
+                        }
+                        
+                        // Hit existing blocks
+                        if (checkY < edges[bottomEdgeIdx].length) {
+                            if (edges[bottomEdgeIdx][checkY] && edges[bottomEdgeIdx][checkY][checkX]) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        
+        // Lock piece to edge
+        function lockPiece() {
+            const bottomEdgeIdx = getBottomEdgeIndex();
+            const shape = currentPiece.shapes[currentPieceRotation];
+            
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        const layer = pieceY + row;
+                        const cell = pieceX + col;
+                        
+                        // Ensure layer exists
+                        while (edges[bottomEdgeIdx].length <= layer) {
+                            edges[bottomEdgeIdx].push(new Array(EDGE_CELLS).fill(null));
+                        }
+                        
+                        if (layer >= 0 && cell >= 0 && cell < EDGE_CELLS) {
+                            edges[bottomEdgeIdx][layer][cell] = currentPiece.color;
+                        }
+                    }
+                }
+            }
+            
+            checkLines();
+            spawnPiece();
+        }
+        
+        // Check and clear complete lines
+        function checkLines() {
+            const bottomEdgeIdx = getBottomEdgeIndex();
+            const edge = edges[bottomEdgeIdx];
+            let linesCleared = 0;
+            
+            for (let layer = 0; layer < edge.length; layer++) {
+                if (edge[layer] && edge[layer].every(cell => cell !== null)) {
+                    edge.splice(layer, 1);
+                    linesCleared++;
+                    layer--;
+                }
+            }
+            
+            if (linesCleared > 0) {
+                score += linesCleared * 100;
+                document.getElementById('score').textContent = `Score: ${score}`;
+            }
+        }
+        
+        // Check if landing is centered
+        function isCenteredLanding(x, width) {
+            const centerStart = (EDGE_CELLS - CENTER_ZONE_CELLS) / 2;
+            const centerEnd = centerStart + CENTER_ZONE_CELLS;
+            return x >= centerStart && (x + width) <= centerEnd;
+        }
+        
+        // Process landing
+        function processLanding() {
+            const shape = currentPiece.shapes[currentPieceRotation];
+            const width = shape[0].length;
+            
+            if (!isCenteredLanding(pieceX, width)) {
+                const centerStart = (EDGE_CELLS - CENTER_ZONE_CELLS) / 2;
+                pendingRotation = pieceX < centerStart ? 1 : -1;
+                
+                if (!isTriangleAnimating) {
+                    isTriangleAnimating = true;
+                    targetRotation += pendingRotation * triangleRotationAngle;
+                    animateTriangleRotation(performance.now());
+                }
+            } else {
+                lockPiece();
+            }
+        }
+        
+        // Rotate piece
+        function rotatePiece() {
+            const newRotation = (currentPieceRotation + 1) % 4;
+            const newShape = currentPiece.shapes[newRotation];
+            
+            // Try rotation with wall kicks
+            const kicks = [0, -1, 1, -2, 2];
+            for (let kick of kicks) {
+                if (!checkCollision(pieceX + kick, pieceY, newShape)) {
+                    pieceX += kick;
+                    currentPieceRotation = newRotation;
+                    return;
+                }
+            }
+        }
+        
+        // Move piece horizontally
+        function movePiece(delta) {
+            const shape = currentPiece.shapes[currentPieceRotation];
+            if (!checkCollision(pieceX + delta, pieceY, shape)) {
+                pieceX += delta;
+                return true;
+            }
+            return false;
+        }
+        
+        // Drop piece
+        function dropPiece() {
+            const shape = currentPiece.shapes[currentPieceRotation];
+            if (!checkCollision(pieceX, pieceY + 1, shape)) {
+                pieceY++;
+                return true;
+            }
+            return false;
+        }
+        
+        // Animate triangle rotation
+        function animateTriangleRotation(startTime) {
+            const startRotation = currentRotation;
+            const endRotation = targetRotation;
+            
+            function step(timestamp) {
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(elapsed / rotationDuration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                
+                currentRotation = startRotation + (endRotation - startRotation) * easeProgress;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    currentRotation = targetRotation;
+                    isTriangleAnimating = false;
+                    pendingRotation = 0;
+                    lockPiece();
+                }
+            }
+            
+            requestAnimationFrame(step);
+        }
+        
+        // Draw triangle
+        function drawTriangle() {
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate((currentRotation * Math.PI) / 180);
+            
+            // Draw triangle
+            ctx.beginPath();
+            ctx.moveTo(0, -triangleSize);
+            ctx.lineTo(-triangleSize * Math.cos(Math.PI / 6), triangleSize * Math.sin(Math.PI / 6));
+            ctx.lineTo(triangleSize * Math.cos(Math.PI / 6), triangleSize * Math.sin(Math.PI / 6));
+            ctx.closePath();
+            
+            ctx.fillStyle = '#333333';
+            ctx.fill();
+            ctx.strokeStyle = '#666666';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Draw center zone on bottom edge
+            ctx.save();
+            ctx.translate(0, triangleSize * Math.sin(Math.PI / 6) - CELL_SIZE / 2);
+            ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+            const centerWidth = CENTER_ZONE_CELLS * CELL_SIZE;
+            ctx.fillRect(-centerWidth / 2, 0, centerWidth, CELL_SIZE);
+            
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-centerWidth / 2, -5);
+            ctx.lineTo(-centerWidth / 2, CELL_SIZE + 5);
+            ctx.moveTo(centerWidth / 2, -5);
+            ctx.lineTo(centerWidth / 2, CELL_SIZE + 5);
+            ctx.stroke();
+            
+            ctx.restore();
+            ctx.restore();
+        }
+        
+        // Draw edge blocks
+        function drawEdgeBlocks() {
+            for (let edgeIdx = 0; edgeIdx < 3; edgeIdx++) {
+                const edge = edges[edgeIdx];
+                if (!edge || edge.length === 0) continue;
+                
+                for (let layer = 0; layer < edge.length; layer++) {
+                    if (!edge[layer]) continue;
+                    
+                    for (let cell = 0; cell < EDGE_CELLS; cell++) {
+                        if (edge[layer][cell]) {
+                            const pos = getCellWorldPosition(edgeIdx, layer, cell);
+                            drawBlock(pos.x, pos.y, edge[layer][cell]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Draw block
+        function drawBlock(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE - 2, CELL_SIZE - 2);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE - 2, 4);
+        }
+        
+        // Draw current piece
+        function drawCurrentPiece() {
+            if (!currentPiece) return;
+            
+            const shape = currentPiece.shapes[currentPieceRotation];
+            for (let row = 0; row < shape.length; row++) {
+                for (let col = 0; col < shape[row].length; col++) {
+                    if (shape[row][col]) {
+                        const pos = pieceCellToWorld(currentPiece, currentPieceRotation, col, row);
+                        drawBlock(pos.x, pos.y, currentPiece.color);
+                    }
+                }
+            }
+        }
+        
+        // Draw game
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTriangle();
+            drawEdgeBlocks();
+            drawCurrentPiece();
+        }
+        
+        // Game loop
+        function gameLoop(timestamp) {
+            if (!isGameOver && !isTriangleAnimating) {
+                if (timestamp - lastDropTime > DROP_INTERVAL) {
+                    if (!dropPiece()) {
+                        processLanding();
+                    }
+                    lastDropTime = timestamp;
+                }
+            }
+            
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Input
+        document.addEventListener('keydown', (event) => {
+            if (isGameOver || isTriangleAnimating) return;
+            
+            switch (event.key) {
+                case 'ArrowLeft':
+                    movePiece(-1);
+                    break;
+                case 'ArrowRight':
+                    movePiece(1);
+                    break;
+                case 'ArrowDown':
+                    if (!dropPiece()) processLanding();
+                    lastDropTime = performance.now();
+                    break;
+                case 'ArrowUp':
+                    rotatePiece();
+                    break;
+                case ' ':
+                    while (dropPiece()) {}
+                    processLanding();
+                    lastDropTime = performance.now();
+                    break;
+            }
+        });
+        
+        // Initialize
+        initEdges();
+        spawnPiece();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
