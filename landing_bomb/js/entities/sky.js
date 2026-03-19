@@ -35,8 +35,8 @@ function drawSky(ctx, canvas) {
 
 // Draw sun (inner + outer with rotation)
 function drawSun(ctx, deltaTime) {
-  const sunInnerRes = getResource('sunInner');
-  const sunOuterRes = getResource('sunOuter');
+  const sunInnerRes = getResource('sun_inner');
+  const sunOuterRes = getResource('sun_outer');
   
   if (isResourcesLoaded() && sunInnerRes?.image && sunOuterRes?.image) {
     // Get position from config

@@ -1,27 +1,10 @@
-// Resource Management Module
+// Resource Management Module - Autoload Version
+// Automatically discovers and loads all assets from the assets/ folder
 
 const { animationLoader } = require('./animationLoader.js');
-const { GROUND_Y } = require('./config.js');
 
-// Resource object
-const resources = {
-  bomb_normal: null,
-  bomb_shielded: null,
-  bomb_twin: null,
-  iced_bomb: null,
-  bottom_shield: null,
-  parachute: null,
-  flower: null,
-  flower_covered: null,
-  cloud: null,
-  rainbow: null,
-  slingshot: null,
-  background: null,
-  sun: null,
-  sunInner: null,
-  sunOuter: null,
-  powerup: null
-};
+// Resource object - will be populated dynamically
+const resources = {};
 
 let resourcesLoaded = false;
 let onLoadCallbacks = [];
@@ -30,66 +13,112 @@ function onResourcesLoaded(callback) {
   onLoadCallbacks.push(callback);
 }
 
-// Load all resources
+/**
+ * Scan a directory recursively for info.json files
+ * Returns array of { folder, key, hasParts } objects
+ */
+async function scanForAssets(fs, path, prefix = '') {
+  const assets = [];
+  
+  try {
+    const entries = fs.readdirSync(path);
+    
+    for (const entry of entries) {
+      const fullPath = path + entry;
+      
+      try {
+        const stat = fs.statSync(fullPath);
+        
+        if (stat.isDirectory()) {
+          const infoPath = fullPath + '/info.json';
+          const folderPath = prefix ? `${prefix}/${entry}` : entry;
+          
+          try {
+            // Check if this folder has info.json
+            fs.accessSync(infoPath);
+            
+            // Read the info.json to check for parts
+            const configData = fs.readFileSync(infoPath, 'utf8');
+            const config = JSON.parse(configData);
+            
+            // If it has parts, we need to load each part separately
+            if (config.parts && Array.isArray(config.parts)) {
+              for (const part of config.parts) {
+                const key = `${entry}_${part.id}`;
+                assets.push({ 
+                  folder: folderPath, 
+                  key,
+                  part: part.id,
+                  hasParts: true 
+                });
+              }
+            } else {
+              // Regular asset without parts
+              const key = entry;
+              assets.push({ 
+                folder: folderPath, 
+                key,
+                part: null,
+                hasParts: false 
+              });
+            }
+          } catch (e) {
+            // No info.json here, scan deeper
+            const subAssets = await scanForAssets(fs, fullPath + '/', folderPath);
+            assets.push(...subAssets);
+          }
+        }
+      } catch (statErr) {
+        // Skip entries we can't stat
+        console.warn(`Cannot stat ${fullPath}:`, statErr.message);
+      }
+    }
+  } catch (e) {
+    console.error('Scan error for path:', path, e.message);
+  }
+  
+  return assets;
+}
+
+/**
+ * Load all resources by scanning the assets folder
+ */
 async function loadResources() {
-  console.log('=== Starting resource loading ===');
-
-  // Load new bomb type sheets (64x64 frames)
-  resources.bomb_normal = await animationLoader.load('bomb/normal_bomb');
-  console.log('Normal bomb sheet:', resources.bomb_normal ? 'loaded' : 'failed');
-
-  resources.bomb_shielded = await animationLoader.load('bomb/shielded_bomb');
-  console.log('Shielded bomb sheet:', resources.bomb_shielded ? 'loaded' : 'failed');
-
-  resources.bomb_twin = await animationLoader.load('bomb/twin_bomb');
-  console.log('Twin bomb sheet:', resources.bomb_twin ? 'loaded' : 'failed');
-
-  // Load iced_bomb as a static image
-  resources.iced_bomb = await animationLoader.load('bomb/iced_bomb');
-  console.log('Iced bomb resource:', resources.iced_bomb ? 'loaded' : 'failed');
-
-  // Load bottom_shield as a static image
-  resources.bottom_shield = await animationLoader.load('bomb/bottom_shield');
-  console.log('Bottom shield resource:', resources.bottom_shield ? 'loaded' : 'failed');
-
-  resources.parachute = await animationLoader.load('bomb/parachute');
-  console.log('Parachute resource:', resources.parachute ? 'loaded' : 'failed');
+  console.log('=== Starting resource autoload ===');
   
-  resources.flower = await animationLoader.load('flower');
-  console.log('Flower resource:', resources.flower ? 'loaded' : 'failed');
-
-  // Load flower_covered as a static image
-  resources.flower_covered = await animationLoader.load('flower/flower_covered');
-  console.log('Flower covered resource:', resources.flower_covered ? 'loaded' : 'failed');
-
-  resources.cloud = await animationLoader.load('cloud');
-  console.log('Cloud resource:', resources.cloud ? 'loaded' : 'failed');
+  const fs = wx.getFileSystemManager();
+  const basePath = 'assets/';
   
-  resources.rainbow = await animationLoader.load('rainbow');
-  console.log('Rainbow resource:', resources.rainbow ? 'loaded' : 'failed');
+  // Discover all assets
+  const assetList = await scanForAssets(fs, basePath);
+  console.log(`Discovered ${assetList.length} resources:`, assetList.map(a => a.key).join(', '));
   
-  resources.slingshot = await animationLoader.load('slingshot');
-  console.log('Slingshot resource:', resources.slingshot ? 'loaded' : 'failed');
+  // Load all discovered resources
+  const loadResults = await Promise.all(
+    assetList.map(async ({ folder, key, part }) => {
+      try {
+        const resource = await animationLoader.load(folder, part);
+        resources[key] = resource;
+        
+        const status = resource ? 'loaded' : 'failed';
+        console.log(`${key}: ${status}`);
+        return { key, success: !!resource };
+      } catch (e) {
+        console.error(`Failed to load ${folder}${part ? `/${part}` : ''}:`, e.message);
+        resources[key] = null;
+        return { key, success: false };
+      }
+    })
+  );
   
-  resources.background = await animationLoader.load('background');
-  console.log('Background resource:', resources.background ? 'loaded' : 'failed');
-  
-  resources.sunInner = await animationLoader.load('sun', 'inner');
-  resources.sunOuter = await animationLoader.load('sun', 'outer');
-  console.log('Sun inner:', resources.sunInner ? 'loaded' : 'failed');
-  console.log('Sun outer:', resources.sunOuter ? 'loaded' : 'failed');
-
-  resources.powerup = await animationLoader.load('powerup');
-  console.log('Powerup resource:', resources.powerup ? 'loaded' : 'failed');
-
-  // Check if any resource loaded
-  const anyLoaded = resources.bomb_normal || resources.bomb_shielded || resources.bomb_twin ||
-                    resources.parachute || resources.flower || 
-                    resources.cloud || resources.rainbow || resources.slingshot || 
-                    resources.background || resources.sunInner || resources.sunOuter;
-  
+  // Check if any resource loaded successfully
+  const anyLoaded = loadResults.some(r => r.success);
   resourcesLoaded = anyLoaded;
-  console.log(anyLoaded ? '=== Resources loaded, using image mode ===' : '=== No resources loaded, using placeholder mode ===');
+  
+  console.log(anyLoaded 
+    ? `=== Resources loaded successfully (${loadResults.filter(r => r.success).length}/${loadResults.length}) ===` 
+    : '=== No resources loaded, using placeholder mode ==='
+  );
   
   // Notify callbacks
   onLoadCallbacks.forEach(cb => cb(resourcesLoaded));
