@@ -1,6 +1,6 @@
 // Slingshot Module
 
-const { W, GROUND_Y, SLING_CONFIG, sx, sy, ss } = require('../config.js');
+const { W, GROUND_Y, SLING_CONFIG, sx, sy, ss, isDevTools } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
 const { drawImageProportional, drawPlaceholder } = require('../renderer.js');
 const { animationLoader } = require('../animationLoader.js');
@@ -43,9 +43,9 @@ function updateChargeLevel() {
   // Calculate charge level (0-1)
   chargeLevel = Math.min(clampDist / SLING_CONFIG.maxDrag, 1);
   
-  // Trigger vibration feedback
+  // Trigger vibration feedback (skip in developer tools)
   const now = Date.now();
-  if (now - lastVibrationTime > VIBRATION_INTERVAL) {
+  if (!isDevTools && now - lastVibrationTime > VIBRATION_INTERVAL) {
     // Vibration intensity increases with charge level
     if (chargeLevel > 0.3) {
       const intensity = Math.floor(chargeLevel * 100);

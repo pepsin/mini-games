@@ -9,6 +9,7 @@ const resources = {
   bomb_shielded: null,
   bomb_twin: null,
   iced_bomb: null,
+  bottom_shield: null,
   parachute: null,
   flower: null,
   flower_covered: null,
@@ -46,6 +47,10 @@ async function loadResources() {
   // Load iced_bomb as a static image
   resources.iced_bomb = await animationLoader.load('bomb/iced_bomb');
   console.log('Iced bomb resource:', resources.iced_bomb ? 'loaded' : 'failed');
+
+  // Load bottom_shield as a static image
+  resources.bottom_shield = await animationLoader.load('bomb/bottom_shield');
+  console.log('Bottom shield resource:', resources.bottom_shield ? 'loaded' : 'failed');
 
   resources.parachute = await animationLoader.load('bomb/parachute');
   console.log('Parachute resource:', resources.parachute ? 'loaded' : 'failed');

@@ -14,6 +14,9 @@ const systemInfo = wx.getSystemInfoSync();
 const screenWidth = systemInfo.windowWidth;
 const screenHeight = systemInfo.windowHeight;
 
+// Device detection - check if running in developer tools
+const isDevTools = systemInfo.platform === 'devtools';
+
 // Game dimensions - maintain 450:900 aspect ratio
 const W = 450;
 const H = 900;
@@ -119,5 +122,6 @@ module.exports = {
   FLOWER_COLOR_MAP,
   SLING_CONFIG,
   FLOWER_CONFIG,
-  TOPBAR_CONFIG
+  TOPBAR_CONFIG,
+  isDevTools
 };

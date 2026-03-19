@@ -9,7 +9,7 @@ let lastDeltaTime = 16;
 
 // Core modules
 const config = require('./js/config.js');
-const { W, H, updateScale } = config;
+const { W, H, updateScale, isDevTools } = config;
 const { loadResources, getResource } = require('./js/resources.js');
 const { animationLoader } = require('./js/animationLoader.js');
 
@@ -52,6 +52,11 @@ const {
 
 // Slingshot skin system
 const { tryDropSkin, unlockSkin } = require('./js/slingshotSkinSystem.js');
+
+// Falling shield effect
+const {
+  createFallingShield, updateFallingShields, drawFallingShields, clearFallingShields
+} = require('./js/entities/fallingShield.js');
 
 // Entities
 const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
@@ -115,6 +120,7 @@ function init() {
       resetChallenges();
       resetInventory();
       clearBombFrameStorage();
+      clearFallingShields();
       startWave(1);
       triggerWaveAnnounce(1);
     },
@@ -287,6 +293,9 @@ function update() {
   // Update inventory fly-in animations
   updateFlyingPowerups();
 
+  // Update falling shields
+  updateFallingShields();
+
   // Update projectiles
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
@@ -336,6 +345,8 @@ function update() {
             // Armor broken, transform to normal bomb
             b.bombType = BOMB_TYPES.NORMAL;
             b.health = 1;
+            // Create falling shield effect
+            createFallingShield(b.x, b.y);
             // Create armor break effect (smaller explosion)
             explosions.push(createExplosion(b.x, b.y, 'normal'));
             // Don't remove the bomb, it continues falling
@@ -372,9 +383,11 @@ function update() {
 
         bombs.splice(j, 1);
 
-        // Screen shake feedback on hit
+        // Screen shake feedback on hit (skip vibration in developer tools)
         const shakeIntensity = Math.min(p.hits * 2, 10);
-        wx.vibrateShort({ type: shakeIntensity > 5 ? 'heavy' : 'medium' });
+        if (!isDevTools) {
+          wx.vibrateShort({ type: shakeIntensity > 5 ? 'heavy' : 'medium' });
+        }
 
         // Notify challenge
         const challengeComplete = onBombKilled(frameCount);
@@ -487,6 +500,9 @@ function draw() {
 
   // Draw powerup burst effects
   powerupBursts.forEach(b => drawPowerupBurst(ctx, b));
+
+  // Draw falling shields (behind bombs)
+  drawFallingShields(ctx, config.sx, config.sy, config.ss);
 
   // Bombs at top of z-index (drawn last among game entities)
   const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');

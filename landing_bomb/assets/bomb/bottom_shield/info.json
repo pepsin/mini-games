@@ -1,0 +1,14 @@
+{
+  "name": "bottom_shield",
+  "type": "static",
+  "description": "底部护盾掉落图",
+  "file": "bottom_shield.png",
+  "size": {
+    "width": 128,
+    "height": 128
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.5
+  }
+}
