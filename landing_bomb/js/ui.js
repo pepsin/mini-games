@@ -96,7 +96,7 @@ function drawUI(ctx) {
   ctx.textAlign = 'center';
   ctx.font = `bold ${20}px Arial`;
   ctx.fillStyle = '#444';
-  ctx.fillText(`${displayWave}/${targetWave}波`, spx + (scorePanelWidth * sps / pauseButtonSize) / 2, spy + sps / 2);
+  ctx.fillText(`${displayWave}/${targetWave} 关`, spx + (scorePanelWidth * sps / pauseButtonSize) / 2, spy + sps / 2);
 
   // Draw high score text (right aligned)
   ctx.textAlign = 'right';
