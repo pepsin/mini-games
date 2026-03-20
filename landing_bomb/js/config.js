@@ -3,8 +3,8 @@
 // Topbar layout constants
 const TOPBAR_CONFIG = {
   marginX: 10,
-  marginY: 10,
-  buttonSize: 36,
+  marginY: 16,
+  buttonSize: 48,
   gap: 8,
   get baseHeight() { return this.marginY + this.buttonSize; }
 };
@@ -110,6 +110,22 @@ const FLOWER_CONFIG = {
   ]
 };
 
+// Powerup Inventory config - located below topbar left side
+const INVENTORY_CONFIG = {
+  maxSlots: 2,
+  buttonSize: 42,  // 56 * 0.7 ≈ 40
+  iconSize: 28,    // 40 * 0.7 ≈ 28
+  margin: 16,
+  gap: 12,          // 8 * 0.75 ≈ 6
+  // Position: below topbar left side
+  get baseX() {
+    return TOPBAR_CONFIG.marginX;
+  },
+  get baseY() {
+    return TOPBAR_CONFIG.baseHeight + 12;
+  }
+};
+
 module.exports = {
   W, H, GROUND_Y,
   screenWidth, screenHeight,
@@ -123,5 +139,6 @@ module.exports = {
   SLING_CONFIG,
   FLOWER_CONFIG,
   TOPBAR_CONFIG,
+  INVENTORY_CONFIG,
   isDevTools
 };

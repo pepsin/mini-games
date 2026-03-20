@@ -108,7 +108,7 @@ function drawUI(ctx) {
   // Draw daily high score
   const dailyHigh = getDailyHighScore();
   ctx.font = `11px Arial`;
-  ctx.fillStyle = '#4ECDC4';
+  ctx.fillStyle = '#333';
   ctx.fillText(`今日: ${dailyHigh}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2 + 8);
 
   // Row 2: Powerup HUD (only if active) - positioned below inventory
@@ -253,7 +253,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
         .textStyle('#333', 20, 'Arial', 'bold'),
       flexItem()
         .text(`今日最高: ${dailyHigh}`, 16)
-        .textStyle('#4ECDC4', 16, 'Arial', 'bold'),
+        .textStyle('#333', 16, 'Arial', 'bold'),
       flexItem()
         .text(`历史最高: ${highScore}`, 14)
         .textStyle('#666', 14, 'Arial', 'normal')

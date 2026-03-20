@@ -1,7 +1,7 @@
 // Powerup Inventory System - 道具槽系统
 // 管理玩家存储的道具，支持最多3个道具槽
 
-const { W, H, sx, sy, ss } = require('./config.js');
+const { W, H, sx, sy, ss, INVENTORY_CONFIG } = require('./config.js');
 const { getResource } = require('./resources.js');
 
 // 避免循环依赖：延迟加载 powerupSystem 的导出
@@ -28,24 +28,6 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
-
-// 道具槽配置 - 位于 topbar 左下方
-const INVENTORY_CONFIG = {
-  maxSlots: 3,
-  buttonSize: 40,  // 56 * 0.7 ≈ 40
-  iconSize: 28,    // 40 * 0.7 ≈ 28
-  margin: 10,
-  gap: 6,          // 8 * 0.75 ≈ 6
-  // Topbar 左下方位置
-  get baseX() { 
-    const { TOPBAR_CONFIG } = require('./config.js');
-    return TOPBAR_CONFIG.marginX; 
-  },
-  get baseY() { 
-    const { TOPBAR_CONFIG } = require('./config.js');
-    return TOPBAR_CONFIG.baseHeight + 6; 
-  }
-};
 
 // 道具槽状态
 const powerupInventory = []; // 存储的道具类型数组
