@@ -30,7 +30,7 @@ const {
 
 // Powerup system
 const {
-  trySpawnPowerup, updatePowerups, checkPowerupCollision, pickupPowerup,
+  trySpawnPowerup, updatePowerups, pickupPowerup,
   activatePowerup, updateActivePowerups, isPowerupActive,
   getSpeedMultiplier,
   drawPowerup, createPowerupBurst, drawPowerupBurst,
@@ -71,7 +71,9 @@ const {
   drawBomb, createBomb, createNormalBombAt, updateBomb, clearBombFrameStorage,
   BOMB_TYPES, isSpecialWave, getSpecialBombCountForWave
 } = require('./js/entities/bomb.js');
-const { drawProjectile, updateProjectile, isOutOfBounds, checkCollision } = require('./js/entities/projectile.js');
+const { drawProjectile, updateProjectile, isOutOfBounds } = require('./js/entities/projectile.js');
+// Collision System
+const { collisionDetector } = require('./js/systems/collisionSystem.js');
 const {
   createExplosion, createGroundExplosion, createScorePopup,
   drawExplosion, drawScorePopup
@@ -249,9 +251,14 @@ function update() {
   // Get speed multiplier for time_slow
   const speedMult = getSpeedMultiplier(activePowerups);
 
-  // Update bombs
+  // Update bombs and register with collision system
   const flowerPositions = getFlowerPositions();
   const hasShield = isPowerupActive(activePowerups, 'shield');
+  
+  // Clear and rebuild collision system grids
+  collisionDetector.clear();
+  
+  // Update bombs and register for collision detection
   for (let i = bombs.length - 1; i >= 0; i--) {
     const bomb = bombs[i];
     updateBomb(bomb, frameCount, speedMult);
@@ -284,11 +291,18 @@ function update() {
           onFlowerDamaged();
         }
       }
+      continue; // Skip registering destroyed bombs
     }
+    
+    // Register bomb with collision system
+    collisionDetector.registerBomb(bomb, `bomb_${i}`);
   }
 
-  // Update flying powerups
+  // Update flying powerups and register with collision system
   updatePowerups(powerups, frameCount);
+  for (let i = 0; i < powerups.length; i++) {
+    collisionDetector.registerPowerup(powerups[i], `powerup_${i}`);
+  }
 
   // Update inventory fly-in animations
   updateFlyingPowerups();
@@ -296,7 +310,7 @@ function update() {
   // Update falling shields
   updateFallingShields();
 
-  // Update projectiles
+  // Update projectiles and register with collision system
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
     updateProjectile(p);
@@ -306,111 +320,125 @@ function update() {
       projectiles.splice(i, 1);
       continue;
     }
-
-    // Check collisions with powerups
-    for (let k = powerups.length - 1; k >= 0; k--) {
-      const pu = powerups[k];
-      if (checkPowerupCollision(p, pu)) {
-        // Pickup powerup (adds to inventory with fly-in animation, or triggers immediately if full)
-        const gameState = { healFlower, explodeAllBombs };
-        pickupPowerup(pu, powerups, k, activePowerups, gameState);
-      }
-    }
-
-    // Check collisions with bombs
-    for (let j = bombs.length - 1; j >= 0; j--) {
-      const b = bombs[j];
-      if (checkCollision(p, b)) {
-        // Check if this projectile has already hit this bomb
-        if (b.hitByProjectiles && b.hitByProjectiles.includes(p.id)) {
-          continue; // Skip if already hit by this projectile
-        }
-        
-        // Record that this projectile has hit this bomb
-        if (!b.hitByProjectiles) {
-          b.hitByProjectiles = [];
-        }
-        b.hitByProjectiles.push(p.id);
-        
-        p.hits = (p.hits || 0) + 1;
-        const popup = createScorePopup(b.x, b.y, p.hits);
-        scorePopups.push(popup);
-        addScore(popup.totalScore);
-
-        // Handle special bomb types
-        if (b.bombType === BOMB_TYPES.ARMORED) {
-          // Armored bomb: reduce health, if still has health, transform to normal
-          b.health--;
-          if (b.health > 0) {
-            // Armor broken, transform to normal bomb
-            b.bombType = BOMB_TYPES.NORMAL;
-            b.health = 1;
-            // Create falling shield effect
-            createFallingShield(b.x, b.y);
-            // Create armor break effect (smaller explosion)
-            explosions.push(createExplosion(b.x, b.y, 'normal'));
-            // Don't remove the bomb, it continues falling
-            continue;
-          }
-        } else if (b.bombType === BOMB_TYPES.DUMBBELL) {
-          // Dumbbell bomb: split into two normal bombs
-          const waveConfig = getCurrentWaveConfig();
-          const currentWave = getCurrentWave();
-
-          // Calculate split positions with boundary check
-          const splitDistance = 50;
-          const margin = 40; // Minimum distance from screen edge
-          const leftX = Math.max(margin, b.x - splitDistance);
-          const rightX = Math.min(W - margin, b.x + splitDistance);
-
-          // Create left split bomb
-          const leftBomb = createNormalBombAt(leftX, b.y, waveConfig, currentWave);
-          leftBomb.speed = b.speed * 1.1;
-          leftBomb.sway = b.sway * 0.8;
-          leftBomb.swayOffset = Math.PI; // Start with leftward sway
-          bombs.push(leftBomb);
-
-          // Create right split bomb
-          const rightBomb = createNormalBombAt(rightX, b.y, waveConfig, currentWave);
-          rightBomb.speed = b.speed * 1.1;
-          rightBomb.sway = b.sway * 0.8;
-          rightBomb.swayOffset = 0; // Start with rightward sway
-          bombs.push(rightBomb);
-        }
-
-        // Create explosion effect for destroyed bomb
-        explosions.push(createExplosion(b.x, b.y, b.bombType));
-
-        bombs.splice(j, 1);
-
-        // Screen shake feedback on hit (skip vibration in developer tools)
-        const shakeIntensity = Math.min(p.hits * 2, 10);
-        if (!isDevTools) {
-          wx.vibrateShort({ type: shakeIntensity > 5 ? 'heavy' : 'medium' });
-        }
-
-        // Notify challenge
-        const challengeComplete = onBombKilled(frameCount);
-        if (challengeComplete && challengeComplete.completed) {
-          // Kill streak fulfilled - give reward immediately
-          handleChallengeReward(challengeComplete.reward);
-        }
-
-        // Try to spawn powerup on kill (pass bomb count for priority adjustment)
-        trySpawnPowerup(powerups, frameCount, bombs.length);
-
-        // Try to drop skin (5% chance on bomb kill)
-        if (Math.random() < 0.05) {
-          const droppedSkin = tryDropSkin();
-          if (droppedSkin) {
-            unlockSkin(droppedSkin);
-            // TODO: Show skin unlock notification
-            console.log(`Unlocked skin: ${droppedSkin}`);
-          }
-        }
-      }
-    }
+    
+    // Register projectile with collision system
+    collisionDetector.registerProjectile(p, `proj_${p.id || i}`);
   }
+  
+  // Perform collision detection using spatial partitioning
+  const processedCollisions = new Set(); // Track processed projectile-bomb pairs
+  
+  // Check projectile-powerup collisions
+  collisionDetector.checkProjectilePowerupCollisions((projectile, projId, powerup, powerupId) => {
+    const powerupIndex = powerups.indexOf(powerup);
+    if (powerupIndex >= 0) {
+      const gameState = { healFlower, explodeAllBombs };
+      pickupPowerup(powerup, powerups, powerupIndex, activePowerups, gameState);
+    }
+  });
+  
+  // Check projectile-bomb collisions
+  collisionDetector.checkProjectileBombCollisions((projectile, projId, bomb, bombId) => {
+    // Check if this projectile has already hit this bomb
+    const collisionKey = `${projectile.id}_${bombId}`;
+    if (processedCollisions.has(collisionKey)) {
+      return;
+    }
+    
+    if (bomb.hitByProjectiles && bomb.hitByProjectiles.includes(projectile.id)) {
+      return; // Skip if already hit by this projectile
+    }
+    
+    // Mark collision as processed
+    processedCollisions.add(collisionKey);
+    
+    // Record that this projectile has hit this bomb
+    if (!bomb.hitByProjectiles) {
+      bomb.hitByProjectiles = [];
+    }
+    bomb.hitByProjectiles.push(projectile.id);
+    
+    projectile.hits = (projectile.hits || 0) + 1;
+    const popup = createScorePopup(bomb.x, bomb.y, projectile.hits);
+    scorePopups.push(popup);
+    addScore(popup.totalScore);
+
+    // Handle special bomb types
+    if (bomb.bombType === BOMB_TYPES.ARMORED) {
+      // Armored bomb: reduce health, if still has health, transform to normal
+      bomb.health--;
+      if (bomb.health > 0) {
+        // Armor broken, transform to normal bomb
+        bomb.bombType = BOMB_TYPES.NORMAL;
+        bomb.health = 1;
+        // Create falling shield effect
+        createFallingShield(bomb.x, bomb.y);
+        // Create armor break effect (smaller explosion)
+        explosions.push(createExplosion(bomb.x, bomb.y, 'normal'));
+        // Don't remove the bomb, it continues falling
+        return;
+      }
+    } else if (bomb.bombType === BOMB_TYPES.DUMBBELL) {
+      // Dumbbell bomb: split into two normal bombs
+      const waveConfig = getCurrentWaveConfig();
+      const currentWave = getCurrentWave();
+
+      // Calculate split positions with boundary check
+      const splitDistance = 50;
+      const margin = 40; // Minimum distance from screen edge
+      const leftX = Math.max(margin, bomb.x - splitDistance);
+      const rightX = Math.min(W - margin, bomb.x + splitDistance);
+
+      // Create left split bomb
+      const leftBomb = createNormalBombAt(leftX, bomb.y, waveConfig, currentWave);
+      leftBomb.speed = bomb.speed * 1.1;
+      leftBomb.sway = bomb.sway * 0.8;
+      leftBomb.swayOffset = Math.PI; // Start with leftward sway
+      bombs.push(leftBomb);
+
+      // Create right split bomb
+      const rightBomb = createNormalBombAt(rightX, bomb.y, waveConfig, currentWave);
+      rightBomb.speed = bomb.speed * 1.1;
+      rightBomb.sway = bomb.sway * 0.8;
+      rightBomb.swayOffset = 0; // Start with rightward sway
+      bombs.push(rightBomb);
+    }
+
+    // Create explosion effect for destroyed bomb
+    explosions.push(createExplosion(bomb.x, bomb.y, bomb.bombType));
+
+    // Remove bomb from array
+    const bombIndex = bombs.indexOf(bomb);
+    if (bombIndex >= 0) {
+      bombs.splice(bombIndex, 1);
+    }
+
+    // Screen shake feedback on hit (skip vibration in developer tools)
+    const shakeIntensity = Math.min(projectile.hits * 2, 10);
+    if (!isDevTools) {
+      wx.vibrateShort({ type: shakeIntensity > 5 ? 'heavy' : 'medium' });
+    }
+
+    // Notify challenge
+    const challengeComplete = onBombKilled(frameCount);
+    if (challengeComplete && challengeComplete.completed) {
+      // Kill streak fulfilled - give reward immediately
+      handleChallengeReward(challengeComplete.reward);
+    }
+
+    // Try to spawn powerup on kill (pass bomb count for priority adjustment)
+    trySpawnPowerup(powerups, frameCount, bombs.length);
+
+    // Try to drop skin (5% chance on bomb kill)
+    if (Math.random() < 0.05) {
+      const droppedSkin = tryDropSkin();
+      if (droppedSkin) {
+        unlockSkin(droppedSkin);
+        // TODO: Show skin unlock notification
+        console.log(`Unlocked skin: ${droppedSkin}`);
+      }
+    }
+  });
 
   // Update score popups
   for (let i = scorePopups.length - 1; i >= 0; i--) {
