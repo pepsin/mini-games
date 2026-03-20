@@ -12,6 +12,9 @@ function getCurrentWave() {
   return getCurrentWaveFn ? getCurrentWaveFn() : 0;
 }
 
+// Track if player has revived in current game session
+let hasRevivedInCurrentGame = false;
+
 // Storage keys
 const STORAGE_KEYS = {
   dailyHighScore: 'bobomb_daily_highscore',
@@ -84,18 +87,34 @@ function resetDailyStatsIfNeeded() {
 // ==================== Share to Revive ====================
 
 function canRevive() {
-  // Always allow revive - no cooldown, no daily limit
+  // Only allow revive once per game
+  if (hasRevivedInCurrentGame) {
+    return {
+      canRevive: false,
+      reason: '每局游戏只能复活一次',
+      remainingRevives: 0,
+      maxRevives: 1
+    };
+  }
+  
   return { 
     canRevive: true, 
-    remainingRevives: 999,
-    maxRevives: 999
+    remainingRevives: 1,
+    maxRevives: 1
   };
 }
 
 function recordRevive() {
-  // No longer tracking revive count - unlimited revives allowed
-  console.log('Revive recorded (unlimited)');
+  // Mark that player has revived in current game
+  hasRevivedInCurrentGame = true;
+  console.log('Revive recorded (once per game)');
   return true;
+}
+
+// Reset revive status for new game
+function resetReviveStatus() {
+  hasRevivedInCurrentGame = false;
+  console.log('Revive status reset for new game');
 }
 
 function triggerShareToRevive(onSuccess, onCancel) {
@@ -264,6 +283,7 @@ module.exports = {
   canRevive,
   recordRevive,
   triggerShareToRevive,
+  resetReviveStatus,
   
   // Leaderboard
   updateLeaderboardScore,

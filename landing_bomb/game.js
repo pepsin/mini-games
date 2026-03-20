@@ -95,7 +95,8 @@ const {
   initSocialSystem,
   setGetCurrentWaveFn,
   updateLeaderboardScore,
-  shareGame
+  shareGame,
+  resetReviveStatus
 } = require('./js/socialSystem.js');
 
 // Setup canvas size
@@ -128,6 +129,7 @@ function init() {
       resetWaves();
       resetChallenges();
       resetInventory();
+      resetReviveStatus();
       startWave(1);
       triggerWaveAnnounce(1);
     },
@@ -138,6 +140,7 @@ function init() {
       resetInventory();
       clearBombFrameStorage();
       clearFallingShields();
+      resetReviveStatus();
       startWave(1);
       triggerWaveAnnounce(1);
     },
