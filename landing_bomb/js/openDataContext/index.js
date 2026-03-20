@@ -1,0 +1,164 @@
+// Open Data Context for WeChat Friend Leaderboard
+// This runs in a separate context and handles rendering the leaderboard
+
+let sharedCanvas = wx.getSharedCanvas();
+let ctx = sharedCanvas.getContext('2d');
+
+let isLeaderboardVisible = false;
+let userData = [];
+
+// Initialize
+wx.onMessage((data) => {
+  console.log('Open data context received message:', data);
+  
+  switch (data.action) {
+    case 'setUserCloudStorage':
+      // Store score to cloud
+      wx.setUserCloudStorage({
+        KVDataList: [
+          { key: 'score', value: String(data.value) }
+        ],
+        success: () => {
+          console.log('Score saved to cloud:', data.value);
+        },
+        fail: (err) => {
+          console.log('Failed to save score:', err);
+        }
+      });
+      break;
+      
+    case 'showFriendRank':
+      showLeaderboard();
+      break;
+      
+    case 'hideFriendRank':
+      hideLeaderboard();
+      break;
+      
+    default:
+      console.log('Unknown action:', data.action);
+  }
+});
+
+function showLeaderboard() {
+  isLeaderboardVisible = true;
+  
+  // Get friend data
+  wx.getFriendCloudStorage({
+    keyList: ['score'],
+    success: (res) => {
+      console.log('Friend data:', res);
+      userData = res.data || [];
+      // Sort by score (descending)
+      userData.sort((a, b) => {
+        const scoreA = parseInt(a.KVDataList?.find(kv => kv.key === 'score')?.value || 0);
+        const scoreB = parseInt(b.KVDataList?.find(kv => kv.key === 'score')?.value || 0);
+        return scoreB - scoreA;
+      });
+      drawLeaderboard();
+    },
+    fail: (err) => {
+      console.log('Failed to get friend data:', err);
+      drawError('无法加载排行榜');
+    }
+  });
+}
+
+function hideLeaderboard() {
+  isLeaderboardVisible = false;
+  ctx.clearRect(0, 0, sharedCanvas.width, sharedCanvas.height);
+}
+
+function drawLeaderboard() {
+  if (!isLeaderboardVisible) return;
+  
+  const W = sharedCanvas.width;
+  const H = sharedCanvas.height;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, W, H);
+  
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Title
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 24px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('🏆 好友排行榜 🏆', W / 2, 40);
+  
+  // Draw user list
+  const startY = 80;
+  const itemHeight = 50;
+  const maxItems = Math.min(userData.length, 10);
+  
+  for (let i = 0; i < maxItems; i++) {
+    const user = userData[i];
+    const y = startY + i * itemHeight;
+    
+    // Background
+    if (i % 2 === 0) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fillRect(20, y, W - 40, itemHeight - 2);
+    }
+    
+    // Rank
+    let rankColor = '#FFFFFF';
+    if (i === 0) rankColor = '#FFD700'; // Gold
+    if (i === 1) rankColor = '#C0C0C0'; // Silver
+    if (i === 2) rankColor = '#CD7F32'; // Bronze
+    
+    ctx.fillStyle = rankColor;
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${i + 1}`, 40, y + 15);
+    
+    // Avatar placeholder (circle)
+    ctx.beginPath();
+    ctx.arc(90, y + 25, 15, 0, Math.PI * 2);
+    ctx.fillStyle = '#4ECDC4';
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Nickname
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+    const nickname = user.nickname || '未知玩家';
+    ctx.fillText(nickname, 120, y + 18);
+    
+    // Score
+    const score = user.KVDataList?.find(kv => kv.key === 'score')?.value || '0';
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(score, W - 40, y + 18);
+  }
+  
+  // Close hint
+  ctx.fillStyle = '#AAAAAA';
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('点击任意处关闭', W / 2, H - 30);
+}
+
+function drawError(message) {
+  const W = sharedCanvas.width;
+  const H = sharedCanvas.height;
+  
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.fillRect(0, 0, W, H);
+  
+  ctx.fillStyle = '#FF6B6B';
+  ctx.font = '18px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(message, W / 2, H / 2);
+}
+
+console.log('Open data context loaded');

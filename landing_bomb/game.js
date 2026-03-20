@@ -87,6 +87,14 @@ const { drawUI, drawGameOver, drawStartScreen, drawPauseScreen } = require('./js
 const { drawGallery, isGalleryVisible } = require('./js/skinGallery.js');
 const { setupInput, registerCallbacks } = require('./js/inputHandler.js');
 
+// Social System
+const {
+  initSocialSystem,
+  setGetCurrentWaveFn,
+  updateLeaderboardScore,
+  shareGame
+} = require('./js/socialSystem.js');
+
 // Setup canvas size
 const systemInfo = wx.getSystemInfoSync();
 canvas.width = systemInfo.windowWidth;
@@ -98,6 +106,10 @@ function init() {
   // Initialize clouds
   const initialClouds = initClouds();
   clouds.push(...initialClouds);
+
+  // Initialize social system
+  initSocialSystem();
+  setGetCurrentWaveFn(getCurrentWave);
 
   // Load resources and start
   loadResources().then(() => {
@@ -132,6 +144,16 @@ function init() {
     onInventoryClick: (slotIndex) => {
       const gameState = { healFlower, explodeAllBombs };
       usePowerupFromInventory(slotIndex, activePowerups, gameState);
+    },
+    onRevive: () => {
+      // Revive player: heal all flowers and continue
+      for (let i = 0; i < 4; i++) {
+        if (!flowerAlive[i]) {
+          flowerAlive[i] = true;
+        }
+      }
+      setGameOver(false);
+      console.log('Player revived!');
     }
   });
 

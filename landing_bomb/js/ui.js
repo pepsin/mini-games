@@ -8,6 +8,7 @@ const { POWERUP_TYPES, getPowerupImage } = require('./powerupSystem.js');
 const { drawChallengeHUD, drawChallengeResult, drawChallengeAnnounce } = require('./challengeSystem.js');
 const { flexContainer, flexItem } = require('./flexLayout.js');
 const { setButtonBounds } = require('./uiState.js');
+const { getGameOverSocialData, getDailyHighScore } = require('./socialSystem.js');
 
 // Draw score panel using flex layout
 function drawUI(ctx) {
@@ -100,9 +101,15 @@ function drawUI(ctx) {
 
   // Draw high score text (right aligned)
   ctx.textAlign = 'right';
-  ctx.font = `16px Arial`;
+  ctx.font = `13px Arial`;
   ctx.fillStyle = '#666';
-  ctx.fillText(`最高: ${highScore}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2);
+  ctx.fillText(`最高: ${highScore}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2 - 6);
+  
+  // Draw daily high score
+  const dailyHigh = getDailyHighScore();
+  ctx.font = `11px Arial`;
+  ctx.fillStyle = '#4ECDC4';
+  ctx.fillText(`今日: ${dailyHigh}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2 + 8);
 
   // Row 2: Powerup HUD (only if active) - positioned below inventory
   let topbarHeight = TOPBAR_CONFIG.baseHeight;
@@ -181,7 +188,7 @@ function drawPowerupHUD(ctx, activePowerups, startX, startY) {
 }
 
 // Draw game over screen using flex layout
-function drawGameOver(ctx, canvas) {
+function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   const score = getScore();
   const highScore = getHighScore();
   const currentWave = getCurrentWave();
@@ -203,14 +210,22 @@ function drawGameOver(ctx, canvas) {
     ratingColor = '#4ECDC4';
   }
 
+  // Get social data
+  let socialData = null;
+  if (showSocialFeatures) {
+    socialData = getGameOverSocialData();
+  }
+  const dailyHigh = socialData ? socialData.dailyHigh : getDailyHighScore();
+  const isNewDailyHigh = socialData ? socialData.isNewDailyHigh : false;
+
   // Game over panel with flex layout
   const gameOverPanel = flexContainer()
-    .position((W - 300) / 2, (H - 320) / 2)
-    .size(300, null) // Fixed width, auto height
+    .position((W - 320) / 2, (H - 420) / 2)
+    .size(320, null) // Fixed width, auto height
     .direction('column')
     .justify('center')
     .align('center')
-    .setGap(12)
+    .setGap(10)
     .setPadding(20)
     .background('#FFFFFF')
     .border(6, '#FF6B35')
@@ -228,23 +243,32 @@ function drawGameOver(ctx, canvas) {
     .direction('column')
     .justify('center')
     .align('center')
-    .setGap(8)
+    .setGap(6)
     .addChildren(
       flexItem()
-        .size(10, 30),
+        .size(10, 20),
       flexItem()
         .text(`分数: ${score}`, 20)
         .textStyle('#333', 20, 'Arial', 'bold'),
       flexItem()
-        .text(`最高分: ${highScore}`, 16)
-        .textStyle('#ff6f00', 16, 'Arial', 'bold')
+        .text(`今日最高: ${dailyHigh}`, 16)
+        .textStyle('#4ECDC4', 16, 'Arial', 'bold'),
+      flexItem()
+        .text(`历史最高: ${highScore}`, 14)
+        .textStyle('#666', 14, 'Arial', 'normal')
     );
 
   if (score >= highScore && score > 0) {
     statsContainer.addChild(
       flexItem()
-        .text('✨ 新纪录! ✨', 14)
+        .text('🏆 新纪录! 🏆', 14)
         .textStyle('#FFD700', 14, 'Arial', 'bold')
+    );
+  } else if (isNewDailyHigh && score > 0) {
+    statsContainer.addChild(
+      flexItem()
+        .text('📅 今日新高! 📅', 14)
+        .textStyle('#4ECDC4', 14, 'Arial', 'bold')
     );
   }
 
@@ -258,6 +282,41 @@ function drawGameOver(ctx, canvas) {
 
   gameOverPanel.addChild(statsContainer);
 
+  // Social buttons container
+  if (showSocialFeatures && socialData) {
+    const buttonContainer = flexContainer()
+      .direction('row')
+      .justify('center')
+      .align('center')
+      .setGap(10);
+
+    // Share button
+    buttonContainer.addChild(
+      flexItem()
+        .tag('shareButton')
+        .text('分享战绩', 16)
+        .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+        .background('#4ECDC4')
+        .padding({ left: 20, right: 20, top: 10, bottom: 10 })
+        .cornerRadius(8)
+    );
+
+    // Revive button (if available)
+    if (socialData.canRevive) {
+      buttonContainer.addChild(
+        flexItem()
+          .tag('reviveButton')
+          .text(socialData.reviveMessage, 16)
+          .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+          .background('#FF6B6B')
+          .padding({ left: 20, right: 20, top: 10, bottom: 10 })
+          .cornerRadius(8)
+      );
+    }
+
+    gameOverPanel.addChild(buttonContainer);
+  }
+
   // Play again button
   gameOverPanel.addChild(
     flexItem()
@@ -265,13 +324,23 @@ function drawGameOver(ctx, canvas) {
       .text('再来一次', 22)
       .textStyle('#FFFFFF', 22, 'Arial', 'bold')
       .background('#FF6B35')
-      .padding({ left: 40, right: 40, top: 12, bottom: 12 })
+      .padding({ left: 50, right: 50, top: 12, bottom: 12 })
       .cornerRadius(12)
   );
 
   gameOverPanel.draw(ctx);
+  
+  // Store button bounds
   const restartBounds = gameOverPanel.getTaggedBounds('restartButton');
   if (restartBounds) setButtonBounds('restartButton', restartBounds.x, restartBounds.y, restartBounds.width, restartBounds.height);
+  
+  if (showSocialFeatures) {
+    const shareBounds = gameOverPanel.getTaggedBounds('shareButton');
+    if (shareBounds) setButtonBounds('shareButton', shareBounds.x, shareBounds.y, shareBounds.width, shareBounds.height);
+    
+    const reviveBounds = gameOverPanel.getTaggedBounds('reviveButton');
+    if (reviveBounds) setButtonBounds('reviveButton', reviveBounds.x, reviveBounds.y, reviveBounds.width, reviveBounds.height);
+  }
 }
 
 // Draw start screen using flex layout
@@ -343,6 +412,31 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
         .padding({ left: 50, right: 50, top: 12, bottom: 12 })
         .cornerRadius(15),
       
+      // Social buttons row
+      !isPaused ? flexContainer()
+        .direction('row')
+        .justify('center')
+        .align('center')
+        .setGap(10)
+        .addChildren(
+          // Leaderboard button
+          flexItem()
+            .tag('leaderboardButton')
+            .text('排行榜', 14)
+            .textStyle('#FFFFFF', 14, 'Arial', 'bold')
+            .background('#FFD700')
+            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+            .cornerRadius(8),
+          // Share button
+          flexItem()
+            .tag('menuShareButton')
+            .text('邀请好友', 14)
+            .textStyle('#FFFFFF', 14, 'Arial', 'bold')
+            .background('#4ECDC4')
+            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+            .cornerRadius(8)
+        ) : flexItem().size(0, 0),
+      
       // Skin gallery button (hidden for now)
       flexItem().size(0, 0)
     );
@@ -350,6 +444,14 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
   panel.draw(ctx);
   const startBounds = panel.getTaggedBounds('startButton');
   if (startBounds) setButtonBounds('startButton', startBounds.x, startBounds.y, startBounds.width, startBounds.height);
+  
+  if (!isPaused) {
+    const shareBounds = panel.getTaggedBounds('menuShareButton');
+    if (shareBounds) setButtonBounds('menuShareButton', shareBounds.x, shareBounds.y, shareBounds.width, shareBounds.height);
+    
+    const leaderboardBounds = panel.getTaggedBounds('leaderboardButton');
+    if (leaderboardBounds) setButtonBounds('leaderboardButton', leaderboardBounds.x, leaderboardBounds.y, leaderboardBounds.width, leaderboardBounds.height);
+  }
 }
 
 function drawPauseScreen(ctx, canvas) {

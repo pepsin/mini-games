@@ -9,6 +9,7 @@ const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { hitTestInventory } = require('./powerupInventory.js');
+const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -31,10 +32,22 @@ function handleTouchStart(e) {
     // Start button - use bounds from flex layout
     if (hitTest('startButton', gp.x, gp.y)) {
       gameCallbacks.onGameStart && gameCallbacks.onGameStart();
+      return;
+    }
+    // Menu share button
+    if (hitTest('menuShareButton', gp.x, gp.y)) {
+      shareGame('menu');
+      return;
+    }
+    // Leaderboard button
+    if (hitTest('leaderboardButton', gp.x, gp.y)) {
+      showFriendRank();
+      return;
     }
     // Skin gallery button
     if (hitTest('skinGalleryButton', gp.x, gp.y)) {
       openGallery();
+      return;
     }
     return;
   }
@@ -43,6 +56,26 @@ function handleTouchStart(e) {
     // Play again button - use bounds from flex layout
     if (hitTest('restartButton', gp.x, gp.y)) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();
+      return;
+    }
+    // Share button
+    if (hitTest('shareButton', gp.x, gp.y)) {
+      shareGame('gameover');
+      return;
+    }
+    // Revive button
+    if (hitTest('reviveButton', gp.x, gp.y)) {
+      triggerShareToRevive(
+        () => {
+          // On success - revive the player
+          gameCallbacks.onRevive && gameCallbacks.onRevive();
+        },
+        (reason) => {
+          // On failure - show reason
+          console.log('Cannot revive:', reason);
+        }
+      );
+      return;
     }
     return;
   }
