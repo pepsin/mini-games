@@ -195,13 +195,7 @@ function drawSlingshotBands(ctx, leftTip, rightTip, pivotX, pivotY) {
     // Get color based on charge level
     const bandColor = getBandColor(chargeLevel);
     
-    // Draw bands with glow effect when charged
-    if (chargeLevel > 0.5) {
-      ctx.save();
-      ctx.shadowBlur = ss(10 * chargeLevel);
-      ctx.shadowColor = bandColor;
-    }
-    
+    // Draw bands (no glow)
     ctx.strokeStyle = bandColor;
     ctx.lineWidth = ss(4 + chargeLevel * 2); // Thicker when charged
     ctx.beginPath();
@@ -212,10 +206,6 @@ function drawSlingshotBands(ctx, leftTip, rightTip, pivotX, pivotY) {
     ctx.moveTo(sx(rightTip.x), sy(rightTip.y));
     ctx.lineTo(sx(pullX), sy(pullY));
     ctx.stroke();
-    
-    if (chargeLevel > 0.5) {
-      ctx.restore();
-    }
 
     // Draw projectile placeholder with charge glow
     ctx.beginPath();
