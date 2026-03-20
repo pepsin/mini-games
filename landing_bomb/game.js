@@ -435,15 +435,15 @@ function update() {
       const leftX = Math.max(margin, bomb.x - splitDistance);
       const rightX = Math.min(W - margin, bomb.x + splitDistance);
 
-      // Create left split bomb
-      const leftBomb = createNormalBombAt(leftX, bomb.y, waveConfig, currentWave);
+      // Create left split bomb (keeps twin parachute)
+      const leftBomb = createNormalBombAt(leftX, bomb.y, waveConfig, currentWave, 'twin');
       leftBomb.speed = bomb.speed * 1.1;
       leftBomb.sway = bomb.sway * 0.8;
       leftBomb.swayOffset = Math.PI; // Start with leftward sway
       bombs.push(leftBomb);
 
-      // Create right split bomb
-      const rightBomb = createNormalBombAt(rightX, bomb.y, waveConfig, currentWave);
+      // Create right split bomb (keeps twin parachute)
+      const rightBomb = createNormalBombAt(rightX, bomb.y, waveConfig, currentWave, 'twin');
       rightBomb.speed = bomb.speed * 1.1;
       rightBomb.sway = bomb.sway * 0.8;
       rightBomb.swayOffset = 0; // Start with rightward sway

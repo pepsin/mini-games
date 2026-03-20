@@ -20,16 +20,35 @@ const BOMB_TYPES = {
 // Store original animation frame for each bomb when time_slow starts
 const bombOriginalFrames = new Map();
 
+// Helper function to get parachute type based on bomb type
+function getParachuteType(bombType) {
+  switch (bombType) {
+    case BOMB_TYPES.ARMORED:
+      return 'shield';
+    case BOMB_TYPES.DUMBBELL:
+      return 'twin';
+    case BOMB_TYPES.NORMAL:
+    default:
+      return 'normal';
+  }
+}
+
 // Draw bomb
 function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
   if (bomb.exploding) return;
 
-  // Draw parachute
+  // Draw parachute with all available parachute resources
+  // Note: resources are named after their folder names: normal, shield, twin
   const resources = {
-    bomb: getResource('bomb_normal'),
-    parachute: getResource('parachute')
+    bomb_normal: getResource('bomb_normal'),
+    normal: getResource('normal'),
+    shield: getResource('shield'),
+    twin: getResource('twin')
   };
-  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss);
+  
+  // Determine which parachute type to use (bomb.parachuteType overrides)
+  const parachuteType = bomb.parachuteType || getParachuteType(bomb.bombType);
+  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss, parachuteType);
 
   // Determine which bomb resource to use based on type
   let bombResKey = 'bomb_normal';
@@ -175,12 +194,13 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
     health: health,
     maxHealth: health,
     parachute: Parachute.createBombParachute(),
+    parachuteType: getParachuteType(bombType),
     hitByProjectiles: [] // Track which projectiles have hit this bomb
   };
 }
 
 // Create a normal bomb at specific position (for dumbbell split)
-function createNormalBombAt(x, y, waveConfig, currentWave) {
+function createNormalBombAt(x, y, waveConfig, currentWave, parachuteTypeOverride = null) {
   const cfg = waveConfig;
   const radius = cfg.minRadius + Math.random() * (cfg.maxRadius - cfg.minRadius);
   const speed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed) * 0.9;
@@ -198,6 +218,7 @@ function createNormalBombAt(x, y, waveConfig, currentWave) {
     health: 1,
     maxHealth: 1,
     parachute: Parachute.createBombParachute(),
+    parachuteType: parachuteTypeOverride || 'normal',
     hitByProjectiles: [] // Track which projectiles have hit this bomb
   };
 }

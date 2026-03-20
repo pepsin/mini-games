@@ -233,7 +233,6 @@ class ParachuteClass {
 
   /**
    * Draw parachute for a bomb
-   * @param {CanvasRenderingContext2D} ctx - Canvas context
    * @param {Object} bomb - The bomb object (must have x, y, radius, parachute properties)
    * @param {Object} resources - Game resources object (must contain parachute)
    * @param {Object} animationLoader - Animation loader instance
@@ -241,11 +240,15 @@ class ParachuteClass {
    * @param {Function} sy - Y coordinate transform function
    * @param {number} frameCount - Current frame count for sway calculation
    * @param {Function} ss - Size scaling function (optional, for consistent scaling)
+   * @param {string} parachuteType - Parachute type: 'normal', 'shield', 'twin' (optional, defaults to bomb's parachuteType or 'normal')
    */
-  draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss = null) {
+  draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss = null, parachuteType = null) {
     if (!bomb || bomb.exploding) return;
     
-    const parachuteResource = resources?.parachute;
+    // Determine which parachute resource to use
+    // Resource keys are: normal, shield, twin (based on folder names)
+    const type = parachuteType || bomb.parachuteType || 'normal';
+    const parachuteResource = resources?.[type];
     if (!parachuteResource) return;
     
     const config = this.getConfig(parachuteResource);

@@ -1,0 +1,31 @@
+{
+  "name": "parachute_normal",
+  "type": "static",
+  "description": "普通炸弹降落伞",
+  "file": "parachute.png",
+  "size": {
+    "width": 132,
+    "height": 74
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.8
+  },
+  "parachuteOffset": 50,
+  "connectingLines": {
+    "count": 4,
+    "color": "#888",
+    "lineWidth": 1
+  },
+  "variation": {
+    "scale": {
+      "min": 0.95,
+      "max": 1.05
+    },
+    "rotation": {
+      "min": -0.15,
+      "max": 0.15,
+      "swayFactor": 0.5
+    }
+  }
+}
