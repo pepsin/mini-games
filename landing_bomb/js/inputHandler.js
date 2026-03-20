@@ -84,6 +84,10 @@ function handleTouchStart(e) {
   if (isGamePaused()) {
     if (hitTest('startButton', gp.x, gp.y)) {
       setGamePaused(false);
+      // Call resume callback if registered
+      if (gameCallbacks.onResume) {
+        gameCallbacks.onResume();
+      }
     }
     return;
   }

@@ -214,6 +214,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   let socialData = null;
   if (showSocialFeatures) {
     socialData = getGameOverSocialData();
+    console.log('GameOver socialData:', socialData);
   }
   const dailyHigh = socialData ? socialData.dailyHigh : getDailyHighScore();
   const isNewDailyHigh = socialData ? socialData.isNewDailyHigh : false;
@@ -282,7 +283,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
 
   gameOverPanel.addChild(statsContainer);
 
-  // Social buttons container
+  // Social buttons container - always show share, show revive when available
   if (showSocialFeatures && socialData) {
     const buttonContainer = flexContainer()
       .direction('row')
@@ -290,7 +291,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
       .align('center')
       .setGap(10);
 
-    // Share button
+    // Share button - always show
     buttonContainer.addChild(
       flexItem()
         .tag('shareButton')
@@ -334,7 +335,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   const restartBounds = gameOverPanel.getTaggedBounds('restartButton');
   if (restartBounds) setButtonBounds('restartButton', restartBounds.x, restartBounds.y, restartBounds.width, restartBounds.height);
   
-  if (showSocialFeatures) {
+  if (showSocialFeatures && socialData) {
     const shareBounds = gameOverPanel.getTaggedBounds('shareButton');
     if (shareBounds) setButtonBounds('shareButton', shareBounds.x, shareBounds.y, shareBounds.width, shareBounds.height);
     

@@ -152,6 +152,7 @@ function setGameStarted(val) { gameStarted = val; }
 function setGamePaused(val) { gamePaused = val; }
 function setLastTime(val) { lastTime = val; }
 function incrementFrameCount() { frameCount++; }
+function setLives(val) { lives = val; }
 
 module.exports = {
   // Arrays (direct export for mutation)
@@ -168,7 +169,7 @@ module.exports = {
 
   // Setters
   setScore, addScore, setGameOver, setGameStarted, setGamePaused,
-  setLastTime, incrementFrameCount,
+  setLastTime, incrementFrameCount, setLives,
 
   // Actions
   resetGame, saveHighScore, damageFlower, healFlower, hasDeadFlower

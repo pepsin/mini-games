@@ -15,7 +15,7 @@ const { animationLoader } = require('./js/animationLoader.js');
 
 // Game state - direct array exports
 const {
-  resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount,
+  resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives,
   getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused,
   getFlowerPositions, damageFlower, healFlower, hasDeadFlower,
   bombs, projectiles, explosions, scorePopups, clouds,
@@ -25,8 +25,11 @@ const {
 
 // Wave system
 const {
-  startWave, resetWaves, updateWaves, getCurrentWave, getCurrentWaveConfig
+  startWave, endWave, resetWaves, updateWaves, getCurrentWave, getCurrentWaveConfig, isInInterWave
 } = require('./js/waveSystem.js');
+
+// Track if player just revived and needs to advance to next wave
+let pendingWaveAdvance = false;
 
 // Powerup system
 const {
@@ -146,14 +149,35 @@ function init() {
       usePowerupFromInventory(slotIndex, activePowerups, gameState);
     },
     onRevive: () => {
-      // Revive player: heal all flowers and continue
+      // Revive player: revive only one flower, clear bombs, and prepare for next wave
+      let revived = false;
       for (let i = 0; i < 4; i++) {
-        if (!flowerAlive[i]) {
+        if (!flowerAlive[i] && !revived) {
           flowerAlive[i] = true;
+          revived = true;
+        } else if (flowerAlive[i]) {
+          // Kill all other flowers, keep only one alive
+          flowerAlive[i] = false;
         }
       }
+      // Clear all bombs for a clean start
+      bombs.length = 0;
+      // Mark that we need to advance to next wave when player continues
+      pendingWaveAdvance = true;
+      setLives(1);
       setGameOver(false);
-      console.log('Player revived!');
+      setGamePaused(true);
+      console.log('Player revived with one flower! Bombs cleared. Next wave ready when player continues.');
+    },
+    onResume: () => {
+      // Check if we need to advance to next wave after revive
+      if (pendingWaveAdvance) {
+        pendingWaveAdvance = false;
+        // Advance to next wave
+        const nextWave = getCurrentWave() + 1;
+        startWave(nextWave);
+        console.log(`Advanced to wave ${nextWave} after revive!`);
+      }
     }
   });
 

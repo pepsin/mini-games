@@ -84,47 +84,18 @@ function resetDailyStatsIfNeeded() {
 // ==================== Share to Revive ====================
 
 function canRevive() {
-  resetDailyStatsIfNeeded();
-  
-  try {
-    const reviveCount = parseInt(wx.getStorageSync(STORAGE_KEYS.reviveCountToday)) || 0;
-    if (reviveCount >= MAX_REVIVES_PER_DAY) {
-      return { canRevive: false, reason: '今日复活次数已用完' };
-    }
-    
-    const lastReviveTime = wx.getStorageSync(STORAGE_KEYS.lastReviveTime);
-    if (lastReviveTime) {
-      const cooldownMs = REVIVE_COOLDOWN_MINUTES * 60 * 1000;
-      const timeSinceLastRevive = Date.now() - parseInt(lastReviveTime);
-      if (timeSinceLastRevive < cooldownMs) {
-        const remainingMinutes = Math.ceil((cooldownMs - timeSinceLastRevive) / 60000);
-        return { canRevive: false, reason: `${remainingMinutes}分钟后可再次复活` };
-      }
-    }
-    
-    const remainingRevives = MAX_REVIVES_PER_DAY - reviveCount;
-    return { 
-      canRevive: true, 
-      remainingRevives,
-      maxRevives: MAX_REVIVES_PER_DAY 
-    };
-  } catch (e) {
-    console.log('Failed to check revive status:', e);
-    return { canRevive: false, reason: '检查失败' };
-  }
+  // Always allow revive - no cooldown, no daily limit
+  return { 
+    canRevive: true, 
+    remainingRevives: 999,
+    maxRevives: 999
+  };
 }
 
 function recordRevive() {
-  try {
-    const reviveCount = parseInt(wx.getStorageSync(STORAGE_KEYS.reviveCountToday)) || 0;
-    wx.setStorageSync(STORAGE_KEYS.reviveCountToday, (reviveCount + 1).toString());
-    wx.setStorageSync(STORAGE_KEYS.lastReviveTime, Date.now().toString());
-    console.log(`Revive recorded. Count today: ${reviveCount + 1}`);
-    return true;
-  } catch (e) {
-    console.log('Failed to record revive:', e);
-    return false;
-  }
+  // No longer tracking revive count - unlimited revives allowed
+  console.log('Revive recorded (unlimited)');
+  return true;
 }
 
 function triggerShareToRevive(onSuccess, onCancel) {
@@ -267,9 +238,7 @@ function getGameOverSocialData() {
     dailyHigh,
     isNewDailyHigh,
     canRevive: reviveStatus.canRevive,
-    reviveMessage: reviveStatus.canRevive
-      ? `分享复活 (${reviveStatus.remainingRevives}/${reviveStatus.maxRevives})`
-      : reviveStatus.reason,
+    reviveMessage: '分享复活',
     canShare: true
   };
 }
