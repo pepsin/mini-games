@@ -13,7 +13,6 @@ const BOMB_TYPES = {
   CLUSTER: 'cluster',
   FAST: 'fast',
   ZIGZAG: 'zigzag',
-  TANK: 'tank',
   ARMORED: 'armored',    // 带护甲炸弹：需打2次，第一次打掉护甲变普通
   DUMBBELL: 'dumbbell'   // 哑铃炸弹：打中后分裂成2个普通炸弹
 };
@@ -146,21 +145,17 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
     bombType = 'cluster';
     speed *= 0.85;
   } else if (isSpecial) {
-    const specialTypes = ['fast', 'zigzag', 'tank'];
+    const specialTypes = ['fast', 'zigzag'];
     bombType = specialTypes[Math.floor(Math.random() * specialTypes.length)];
 
     switch (bombType) {
       case 'fast':
-        speed *= 1.5;
+        speed *= 1.4;
         sway *= 0.5;
         break;
       case 'zigzag':
         speed *= 0.9;
         sway *= 2.5;
-        break;
-      case 'tank':
-        speed *= 0.6;
-        health = Math.max(2, health + 1);
         break;
     }
   }
