@@ -83,7 +83,7 @@ function drawUI(ctx) {
   ctx.fillStyle = '#444';
   ctx.fillText(`分数: ${score}`, spx + 12 * sps / pauseButtonSize, spy + sps / 2);
 
-  // Draw wave text in the middle of the topbar (maps wave 1->1, wave 30->2, etc. to hide the jump)
+  // Draw wave text on the right side (maps wave 1->1, wave 30->2, etc. to hide the jump)
   const displayWave = currentWave <= 1 ? 1 : (currentWave - WAVE_DISPLAY_OFFSET);
   // Dynamic target: show 30 before reaching 30, 50 before reaching 50, 100 after
   let targetWave = 30;
@@ -92,22 +92,10 @@ function drawUI(ctx) {
   } else {
     targetWave = 100;
   }
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'right';
   ctx.font = `bold ${20}px Arial`;
   ctx.fillStyle = '#444';
-  ctx.fillText(`${displayWave}/${targetWave} 关`, spx + (scorePanelWidth * sps / pauseButtonSize) / 2, spy + sps / 2);
-
-  // Draw high score text (right aligned)
-  ctx.textAlign = 'right';
-  ctx.font = `13px Arial`;
-  ctx.fillStyle = '#666';
-  ctx.fillText(`最高: ${highScore}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2 - 6);
-  
-  // Draw daily high score
-  const dailyHigh = getDailyHighScore();
-  ctx.font = `11px Arial`;
-  ctx.fillStyle = '#333';
-  ctx.fillText(`今日: ${dailyHigh}`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2 + 8);
+  ctx.fillText(`${displayWave}/${targetWave} 关`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2);
 
   // Row 2: Powerup HUD (only if active) - positioned below inventory
   let topbarHeight = TOPBAR_CONFIG.baseHeight;
