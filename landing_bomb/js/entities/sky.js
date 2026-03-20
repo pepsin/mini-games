@@ -40,7 +40,7 @@ function drawSun(ctx, deltaTime) {
   
   if (isResourcesLoaded() && sunInnerRes?.image && sunOuterRes?.image) {
     // Get position from config
-    const pos = sunInnerRes.config?.position || { x: 380, y: 70 };
+    const pos = sunInnerRes.config?.position || { x: 380, y: 130 };
     
     // Get size and anchor for inner sun
     const innerSize = animationLoader.getSize(sunInnerRes);
@@ -84,7 +84,7 @@ function drawSun(ctx, deltaTime) {
   }
   
   // Fallback placeholder
-  drawPlaceholder(ctx, 380, 70, 80, 80, 'SUN', RESOURCE_COLORS.sun, 0.5, 0.5);
+  drawPlaceholder(ctx, 380, 130, 80, 80, 'SUN', RESOURCE_COLORS.sun, 0.5, 0.5);
 }
 
 // Draw rainbow
@@ -94,7 +94,7 @@ function drawRainbow(ctx) {
   if (isResourcesLoaded() && rainbowRes?.image && rainbowRes.image.width > 0) {
     const size = animationLoader.getSize(rainbowRes);
     const anchor = animationLoader.getAnchor(rainbowRes);
-    const pos = rainbowRes.config?.position || { x: 80, y: 140 };
+    const pos = rainbowRes.config?.position || { x: 80, y: 200 };
     
     ctx.globalAlpha = 0.4;
     const result = drawImageProportional(
@@ -109,7 +109,7 @@ function drawRainbow(ctx) {
   }
   
   // Fallback placeholder
-  drawPlaceholder(ctx, 80, 140, 256, 128, 'RAIN', RESOURCE_COLORS.rainbow, 0.5, 1.0);
+  drawPlaceholder(ctx, 80, 200, 256, 128, 'RAIN', RESOURCE_COLORS.rainbow, 0.5, 1.0);
 }
 
 module.exports = {
