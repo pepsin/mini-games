@@ -1,6 +1,7 @@
 // Wave System Module
 
 const { isChallengeWave, generateChallenge, completeChallenge } = require('./challengeSystem.js');
+const { WAVE_DISPLAY_OFFSET } = require('./config.js');
 
 // Wave state
 let currentWave = 1;
@@ -84,16 +85,25 @@ function calculateSpawnTimes(config) {
   return spawnTimes.sort((a, b) => a - b);
 }
 
-// Check if wave is a special wave (multiple of 5)
-function isSpecialWave(wave) {
-  return wave > 0 && wave % 5 === 0;
+// Convert internal wave to display wave (what player sees)
+function getDisplayWave(internalWave) {
+  return internalWave <= 1 ? 1 : (internalWave - WAVE_DISPLAY_OFFSET);
 }
 
-// Get special bomb spawn count for wave 5, 10, 15, etc.
+// Check if wave is a special wave (multiple of 5 based on display wave)
+function isSpecialWave(wave) {
+  const displayWave = getDisplayWave(wave);
+  return displayWave > 0 && displayWave % 5 === 0;
+}
+
+// Get special bomb spawn count for wave 5, 10, 15, etc. (based on display wave)
 function getSpecialBombCountForWave(wave) {
   if (!isSpecialWave(wave)) return 0;
+  const displayWave = getDisplayWave(wave);
   // Base 2 bombs, increases by 1 every 5 waves, capped at 8
-  return Math.min(2 + Math.floor((wave - 5) / 5), 8);
+  // Reduced to 1/3 of original volume
+  const originalCount = Math.min(2 + Math.floor((displayWave - 5) / 5), 8);
+  return Math.max(1, Math.floor(originalCount / 3));
 }
 
 // Start new wave
@@ -235,5 +245,6 @@ module.exports = {
   isChallengeAnnouncing,
   getPendingChallenge,
   isSpecialWave,
-  getSpecialBombCountForWave
+  getSpecialBombCountForWave,
+  getDisplayWave
 };

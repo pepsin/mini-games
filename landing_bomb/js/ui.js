@@ -1,6 +1,6 @@
 // UI Rendering Module
 
-const { W, H, GROUND_Y, sx, sy, ss, TOPBAR_CONFIG } = require('./config.js');
+const { W, H, GROUND_Y, sx, sy, ss, TOPBAR_CONFIG, WAVE_DISPLAY_OFFSET } = require('./config.js');
 const { getScore, getHighScore, isGameOver, isGamePaused, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
 const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
@@ -84,7 +84,7 @@ function drawUI(ctx) {
   ctx.fillText(`分数: ${score}`, spx + 12 * sps / pauseButtonSize, spy + sps / 2);
 
   // Draw wave text in the middle of the topbar (maps wave 1->1, wave 30->2, etc. to hide the jump)
-  const displayWave = currentWave <= 1 ? 1 : (currentWave - 28);
+  const displayWave = currentWave <= 1 ? 1 : (currentWave - WAVE_DISPLAY_OFFSET);
   // Dynamic target: show 30 before reaching 30, 50 before reaching 50, 100 after
   let targetWave;
   if (currentWave < 30) {

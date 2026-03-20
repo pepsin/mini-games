@@ -110,6 +110,11 @@ const FLOWER_CONFIG = {
   ]
 };
 
+// Wave display mapping config
+// The game internally jumps from wave 1 to wave 30, but displays as 1 to 2
+// This offset is used to convert internal wave to display wave
+const WAVE_DISPLAY_OFFSET = 28;
+
 // Powerup Inventory config - located below topbar left side
 const INVENTORY_CONFIG = {
   maxSlots: 2,
@@ -140,5 +145,6 @@ module.exports = {
   FLOWER_CONFIG,
   TOPBAR_CONFIG,
   INVENTORY_CONFIG,
-  isDevTools
+  isDevTools,
+  WAVE_DISPLAY_OFFSET
 };
