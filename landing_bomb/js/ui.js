@@ -84,10 +84,19 @@ function drawUI(ctx) {
 
   // Draw wave text in the middle of the topbar (maps wave 1->1, wave 30->2, etc. to hide the jump)
   const displayWave = currentWave <= 1 ? 1 : (currentWave - 28);
+  // Dynamic target: show 30 before reaching 30, 50 before reaching 50, 100 after
+  let targetWave;
+  if (currentWave < 30) {
+    targetWave = 30;
+  } else if (currentWave < 50) {
+    targetWave = 50;
+  } else {
+    targetWave = 100;
+  }
   ctx.textAlign = 'center';
   ctx.font = `bold ${20}px Arial`;
   ctx.fillStyle = '#444';
-  ctx.fillText(`${displayWave}/100波`, spx + (scorePanelWidth * sps / pauseButtonSize) / 2, spy + sps / 2);
+  ctx.fillText(`${displayWave}/${targetWave}波`, spx + (scorePanelWidth * sps / pauseButtonSize) / 2, spy + sps / 2);
 
   // Draw high score text (right aligned)
   ctx.textAlign = 'right';
