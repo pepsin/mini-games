@@ -92,7 +92,7 @@ function drawFlower(ctx, x, y, alive, frameIndex, hasShield = false, flowerIndex
       }
       
       // Shield just expired - start reverse animation
-      if (!hasShield && animState && animState.completed && !animState.isReversing && !wasShieldActive) {
+      if (!hasShield && animState && animState.completed && !animState.isReversing) {
         startReverseAnimation(flowerIndex);
       }
       

@@ -3,595 +3,612 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Triangle Tetris</title>
+    <title>Rotation Tetris</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #1a1a2e;
-            font-family: Arial, sans-serif;
+            background: #f5f5f8;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
         }
-        
+        #wrap {
+            position: relative;
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
         canvas {
-            border: 1px solid #333;
+            display: block;
+            /* subtle shadow */
+            filter: drop-shadow(0 2px 12px rgba(0,0,0,0.08));
         }
-        
-        .hint {
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-width: 120px;
+        }
+        .panel .box {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 14px;
+        }
+        .box label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .box .val {
+            font-size: 26px;
+            font-weight: 700;
+            color: #222;
+        }
+        #nextC { display: block; margin: 4px auto 0; }
+        .info {
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.9;
+        }
+        .info kbd {
+            display: inline-block;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 10px;
+            font-family: inherit;
+        }
+        #overlay {
             position: absolute;
-            bottom: 30px;
-            color: #fff;
-            font-size: 14px;
-            opacity: 0.7;
-            text-align: center;
+            inset: 0;
+            background: rgba(255,255,255,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            backdrop-filter: blur(6px);
+            border-radius: 4px;
         }
-        
-        .score {
-            position: absolute;
-            top: 30px;
+        #overlay.hidden { display: none; }
+        #overlay h1 { font-size: 32px; color: #222; margin-bottom: 6px; }
+        #overlay p { color: #888; margin-bottom: 18px; font-size: 14px; }
+        #overlay button {
+            background: #6c5ce7;
             color: #fff;
-            font-size: 24px;
+            border: none;
+            padding: 12px 36px;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
         }
+        #overlay button:hover { background: #5a4bd1; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div class="hint">Arrow keys: Move | Up: Rotate | Space: Drop</div>
-    <div class="score" id="score">Score: 0</div>
-    
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Triangle configuration
-        let targetRotation = 60;
-        let currentRotation = 60;
-        let isTriangleAnimating = false;
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height - 100; // Moved up so triangle is visible
-        const triangleSize = 250;
-        const rotationDuration = 400;
-        const triangleRotationAngle = 120;
-        
-        // Edge configuration
-        const EDGE_CELLS = 12;
-        const CELL_SIZE = 20;
-        const CENTER_ZONE_CELLS = 4;
-        
-        // Tetris pieces - standard shapes with proper rotation matrices
-        const PIECES = {
-            I: {
-                shapes: [
-                    [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
-                    [[0,0,1,0], [0,0,1,0], [0,0,1,0], [0,0,1,0]],
-                    [[0,0,0,0], [0,0,0,0], [1,1,1,1], [0,0,0,0]],
-                    [[0,1,0,0], [0,1,0,0], [0,1,0,0], [0,1,0,0]]
-                ],
-                color: '#00f0f0'
-            },
-            O: {
-                shapes: [
-                    [[1,1], [1,1]],
-                    [[1,1], [1,1]],
-                    [[1,1], [1,1]],
-                    [[1,1], [1,1]]
-                ],
-                color: '#f0f000'
-            },
-            T: {
-                shapes: [
-                    [[0,1,0], [1,1,1], [0,0,0]],
-                    [[0,1,0], [0,1,1], [0,1,0]],
-                    [[0,0,0], [1,1,1], [0,1,0]],
-                    [[0,1,0], [1,1,0], [0,1,0]]
-                ],
-                color: '#a000f0'
-            },
-            S: {
-                shapes: [
-                    [[0,1,1], [1,1,0], [0,0,0]],
-                    [[0,1,0], [0,1,1], [0,0,1]],
-                    [[0,0,0], [0,1,1], [1,1,0]],
-                    [[1,0,0], [1,1,0], [0,1,0]]
-                ],
-                color: '#00f000'
-            },
-            Z: {
-                shapes: [
-                    [[1,1,0], [0,1,1], [0,0,0]],
-                    [[0,0,1], [0,1,1], [0,1,0]],
-                    [[0,0,0], [1,1,0], [0,1,1]],
-                    [[0,1,0], [1,1,0], [1,0,0]]
-                ],
-                color: '#f00000'
-            },
-            J: {
-                shapes: [
-                    [[1,0,0], [1,1,1], [0,0,0]],
-                    [[0,1,1], [0,1,0], [0,1,0]],
-                    [[0,0,0], [1,1,1], [0,0,1]],
-                    [[0,1,0], [0,1,0], [1,1,0]]
-                ],
-                color: '#0000f0'
-            },
-            L: {
-                shapes: [
-                    [[0,0,1], [1,1,1], [0,0,0]],
-                    [[0,1,0], [0,1,0], [0,1,1]],
-                    [[0,0,0], [1,1,1], [1,0,0]],
-                    [[1,1,0], [0,1,0], [0,1,0]]
-                ],
-                color: '#f0a000'
-            }
-        };
-        
-        // Edges store stacked blocks for each of the 3 edges
-        // Index corresponds to physical edge (0=bottom, 1=right-up, 2=left-up at rotation 60)
-        let edges = [[], [], []];
-        
-        // Current piece
-        let currentPiece = null;
-        let currentPieceRotation = 0;
-        let pieceX = 0; // Position in world space (cells)
-        let pieceY = 0; // Position in world space (cells)
-        
-        let lastDropTime = 0;
-        let score = 0;
-        let isGameOver = false;
-        let pendingRotation = 0;
-        const DROP_INTERVAL = 600;
-        
-        // Initialize edges
-        function initEdges() {
-            edges = [[], [], []];
-        }
-        
-        // Get which physical edge is currently at the bottom (where pieces land)
-        function getBottomEdgeIndex() {
-            // At rotation 60: edge 0 is bottom
-            // At rotation 180 (60+120): edge 1 is bottom  
-            // At rotation 300 (60+240): edge 2 is bottom
-            const normalizedRotation = ((currentRotation - 60) % 360 + 360) % 360;
-            if (normalizedRotation < 60 || normalizedRotation >= 300) return 0;
-            if (normalizedRotation >= 60 && normalizedRotation < 180) return 1;
-            return 2;
-        }
-        
-        // Get world position of a cell on an edge
-        // layer: 0 = edge surface, 1,2,3... = stacked above
-        // cell: 0 to EDGE_CELLS-1 along the edge
-        function getCellWorldPosition(edgeIdx, layer, cell) {
-            // Edge 0: bottom horizontal (at rotation 60)
-            // Edge 1: right-up slanted
-            // Edge 2: left-up slanted
-            
-            const rotationRad = currentRotation * Math.PI / 180;
-            
-            // Base angles for each edge center (pointing from triangle center to edge midpoint)
-            const edgeAngles = [90, 210, 330]; // degrees from vertical
-            const baseAngle = edgeAngles[edgeIdx] * Math.PI / 180;
-            
-            // Edge center in world space
-            const edgeCenterDist = triangleSize / 2;
-            const edgeCenterX = centerX + edgeCenterDist * Math.sin(baseAngle + rotationRad);
-            const edgeCenterY = centerY + edgeCenterDist * Math.cos(baseAngle + rotationRad);
-            
-            // Edge direction (along the edge)
-            const edgeDirAngle = baseAngle + rotationRad + Math.PI / 2;
-            
-            // Cell offset along edge
-            const cellOffset = (cell - EDGE_CELLS / 2 + 0.5) * CELL_SIZE;
-            
-            // Layer offset (perpendicular to edge, outward from triangle center)
-            const layerOffset = (layer + 0.5) * CELL_SIZE;
-            const perpAngle = baseAngle + rotationRad;
-            
-            const worldX = edgeCenterX + cellOffset * Math.cos(edgeDirAngle) + layerOffset * Math.sin(perpAngle);
-            const worldY = edgeCenterY - cellOffset * Math.sin(edgeDirAngle) - layerOffset * Math.cos(perpAngle);
-            
-            return { x: worldX, y: worldY };
-        }
-        
-        // Get the bottom edge's world coordinate system
-        function getBottomEdgeTransform() {
-            const bottomEdgeIdx = getBottomEdgeIndex();
-            const rotationRad = currentRotation * Math.PI / 180;
-            const edgeAngles = [90, 210, 330];
-            const baseAngle = edgeAngles[bottomEdgeIdx] * Math.PI / 180;
-            
-            // Edge center
-            const edgeCenterDist = triangleSize / 2;
-            const edgeCenterX = centerX + edgeCenterDist * Math.sin(baseAngle + rotationRad);
-            const edgeCenterY = centerY + edgeCenterDist * Math.cos(baseAngle + rotationRad);
-            
-            // Edge direction
-            const edgeDirAngle = baseAngle + rotationRad + Math.PI / 2;
-            
-            return {
-                centerX: edgeCenterX,
-                centerY: edgeCenterY,
-                angle: edgeDirAngle,
-                cos: Math.cos(edgeDirAngle),
-                sin: Math.sin(edgeDirAngle),
-                perpAngle: baseAngle + rotationRad
-            };
-        }
-        
-        // Convert piece cell to world position
-        function pieceCellToWorld(piece, rotation, col, row) {
-            const shape = piece.shapes[rotation];
-            const transform = getBottomEdgeTransform();
-            
-            // Piece position in world cells
-            const worldCellX = pieceX + col;
-            const worldCellY = pieceY + row;
-            
-            // Offset from edge center
-            const offsetX = (worldCellX - EDGE_CELLS / 2 + 0.5) * CELL_SIZE;
-            const offsetY = (worldCellY + 0.5) * CELL_SIZE;
-            
-            const worldX = transform.centerX + offsetX * transform.cos + offsetY * Math.sin(transform.perpAngle);
-            const worldY = transform.centerY + offsetX * transform.sin - offsetY * Math.cos(transform.perpAngle);
-            
-            return { x: worldX, y: worldY };
-        }
-        
-        // Spawn new piece above the triangle
-        function spawnPiece() {
-            const pieceTypes = Object.keys(PIECES);
-            const randomType = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
-            const pieceData = PIECES[randomType];
-            
-            currentPiece = pieceData;
-            currentPieceRotation = 0;
-            
-            const shape = pieceData.shapes[0];
-            const width = shape[0].length;
-            
-            // Start above the triangle
-            pieceX = Math.floor((EDGE_CELLS - width) / 2);
-            pieceY = -5;
-            
-            if (checkCollision(pieceX, pieceY, shape)) {
-                isGameOver = true;
+    <div id="wrap">
+        <div class="panel">
+            <div class="box"><label>Score</label><div class="val" id="sV">0</div></div>
+            <div class="box"><label>Lines</label><div class="val" id="lV">0</div></div>
+            <div class="box"><label>Level</label><div class="val" id="lvV">1</div></div>
+        </div>
+        <div style="position:relative">
+            <canvas id="gc"></canvas>
+            <div id="overlay">
+                <h1>Rotation Tetris</h1>
+                <p>Stack blocks &mdash; tip the balance &mdash; rotate the board!</p>
+                <button id="goBtn">Start Game</button>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="box">
+                <label>Next</label>
+                <canvas id="nextC" width="90" height="90"></canvas>
+            </div>
+            <div class="box info">
+                <kbd>&larr;</kbd><kbd>&rarr;</kbd> Move<br>
+                <kbd>&uarr;</kbd> Rotate piece<br>
+                <kbd>&darr;</kbd> Soft drop<br>
+                <kbd>Space</kbd> Hard drop<br><br>
+                <span style="color:#777">
+                    Board rotates 90&deg; when weight is off-center!<br>
+                    Clear lines only in the dashed zone.
+                </span>
+            </div>
+        </div>
+    </div>
+
+<script>
+(() => {
+    /* ══════════════════════════════════════════
+       CONFIG
+       ══════════════════════════════════════════ */
+    // The "board" is a square of BOARD cells.
+    // Pieces spawn from the top of an extended field above the board.
+    const BOARD  = 10;          // inner square size (cells)
+    const MARGIN = 6;           // extra rows above and below the board for stacking
+    const COLS   = BOARD;
+    const ROWS   = BOARD + MARGIN * 2;  // total rows (margin + board + margin)
+    const CELL   = 32;
+
+    // The board square occupies rows [MARGIN .. MARGIN+BOARD-1]
+    const BOARD_TOP = MARGIN;
+    const BOARD_BOT = MARGIN + BOARD - 1;
+
+    // Clearing zone = the board square rows
+    const CLEAR_TOP = BOARD_TOP;
+    const CLEAR_BOT = BOARD_BOT;
+
+    const BALANCE_THRESHOLD = 5;
+    const BASE_DROP = 700;
+    const ROT_DURATION = 450;
+
+    /* canvas */
+    const cv = document.getElementById('gc');
+    const cx = cv.getContext('2d');
+    cv.width  = COLS * CELL;
+    cv.height = ROWS * CELL;
+
+    const nv = document.getElementById('nextC');
+    const nx = nv.getContext('2d');
+
+    /* ══════════════════════════════════════════
+       PIECES (SRS)
+       ══════════════════════════════════════════ */
+    const P = [
+        { n:'I', col:'#f4a742', bdr:'#d48a2a',  // orange
+          s:[[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],[[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],[[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],[[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]]},
+        { n:'O', col:'#f4a742', bdr:'#d48a2a',
+          s:[[[1,1],[1,1]],[[1,1],[1,1]],[[1,1],[1,1]],[[1,1],[1,1]]]},
+        { n:'T', col:'#b77dcc', bdr:'#9760ad',  // purple
+          s:[[[0,1,0],[1,1,1],[0,0,0]],[[0,1,0],[0,1,1],[0,1,0]],[[0,0,0],[1,1,1],[0,1,0]],[[0,1,0],[1,1,0],[0,1,0]]]},
+        { n:'S', col:'#a8dba8', bdr:'#7dbf7d',  // green
+          s:[[[0,1,1],[1,1,0],[0,0,0]],[[0,1,0],[0,1,1],[0,0,1]],[[0,0,0],[0,1,1],[1,1,0]],[[1,0,0],[1,1,0],[0,1,0]]]},
+        { n:'Z', col:'#e8a0a0', bdr:'#c47878',  // red / pink
+          s:[[[1,1,0],[0,1,1],[0,0,0]],[[0,0,1],[0,1,1],[0,1,0]],[[0,0,0],[1,1,0],[0,1,1]],[[0,1,0],[1,1,0],[1,0,0]]]},
+        { n:'J', col:'#b77dcc', bdr:'#9760ad',
+          s:[[[1,0,0],[1,1,1],[0,0,0]],[[0,1,1],[0,1,0],[0,1,0]],[[0,0,0],[1,1,1],[0,0,1]],[[0,1,0],[0,1,0],[1,1,0]]]},
+        { n:'L', col:'#f4a742', bdr:'#d48a2a',
+          s:[[[0,0,1],[1,1,1],[0,0,0]],[[0,1,0],[0,1,0],[0,1,1]],[[0,0,0],[1,1,1],[1,0,0]],[[1,1,0],[0,1,0],[0,1,0]]]}
+    ];
+
+    /* ══════════════════════════════════════════
+       STATE
+       ══════════════════════════════════════════ */
+    let grid, cur, nxt, sc, ln, lv;
+    let px, py, pr;           // piece x, y, rotation
+    let lastDrop, dropInt;
+    let go = false, ov = false; // gameOver, started
+    let anim = false;           // rotation animating
+    let particles = [];
+    let shX = 0, shY = 0;
+
+    // rotation anim
+    let rVis = 0, rTgt = 0, rDir = 0, rT0 = 0, rCb = null;
+
+    // bag
+    let bag = [];
+    function nextBag() {
+        if (!bag.length) {
+            bag = [...P];
+            for (let i = bag.length-1; i > 0; i--) {
+                const j = Math.floor(Math.random()*(i+1));
+                [bag[i],bag[j]] = [bag[j],bag[i]];
             }
         }
-        
-        // Check collision with edges and bounds
-        function checkCollision(x, y, shape) {
-            const bottomEdgeIdx = getBottomEdgeIndex();
-            
-            for (let row = 0; row < shape.length; row++) {
-                for (let col = 0; col < shape[row].length; col++) {
-                    if (shape[row][col]) {
-                        const checkX = x + col;
-                        const checkY = y + row;
-                        
-                        // Check horizontal bounds
-                        if (checkX < 0 || checkX >= EDGE_CELLS) {
-                            return true;
-                        }
-                        
-                        // Check collision with blocks on bottom edge
-                        if (checkY >= 0 && checkY < edges[bottomEdgeIdx].length) {
-                            if (edges[bottomEdgeIdx][checkY] && edges[bottomEdgeIdx][checkY][checkX]) {
-                                return true;
-                            }
-                        }
-                        
-                        // Check if hit the edge surface (layer 0)
-                        if (checkY === 0) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
+        return bag.pop();
+    }
+
+    /* ══════════════════════════════════════════
+       GRID
+       ══════════════════════════════════════════ */
+    function mkGrid() { return Array.from({length:ROWS}, ()=>Array(COLS).fill(null)); }
+
+    function shape(p, r) { return p.s[r % 4]; }
+
+    function hit(px2, py2, sh) {
+        for (let r=0;r<sh.length;r++) for (let c=0;c<sh[r].length;c++) {
+            if (!sh[r][c]) continue;
+            const gr=py2+r, gc=px2+c;
+            if (gc<0||gc>=COLS||gr>=ROWS) return true;
+            if (gr>=0 && grid[gr][gc]) return true;
         }
-        
-        // Check if piece is supported (can land)
-        function isSupported(x, y, shape) {
-            const bottomEdgeIdx = getBottomEdgeIndex();
-            
-            for (let row = shape.length - 1; row >= 0; row--) {
-                for (let col = 0; col < shape[row].length; col++) {
-                    if (shape[row][col]) {
-                        const checkX = x + col;
-                        const checkY = y + row - 1;
-                        
-                        // Hit the edge surface
-                        if (checkY < 0) {
-                            return true;
-                        }
-                        
-                        // Hit existing blocks
-                        if (checkY < edges[bottomEdgeIdx].length) {
-                            if (edges[bottomEdgeIdx][checkY] && edges[bottomEdgeIdx][checkY][checkX]) {
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
+        return false;
+    }
+
+    /* ══════════════════════════════════════════
+       PIECE OPS
+       ══════════════════════════════════════════ */
+    function spawn() {
+        cur = nxt || nextBag();
+        nxt = nextBag();
+        pr = 0;
+        const sh = shape(cur,0), w = sh[0].length;
+        px = Math.floor((COLS-w)/2);
+        py = BOARD_TOP - sh.length;   // start just above the board square
+        if (hit(px,py,shape(cur,pr))) {
+            ov = true;
+            showOv('Game Over','Score: '+sc,'Play Again');
         }
-        
-        // Lock piece to edge
-        function lockPiece() {
-            const bottomEdgeIdx = getBottomEdgeIndex();
-            const shape = currentPiece.shapes[currentPieceRotation];
-            
-            for (let row = 0; row < shape.length; row++) {
-                for (let col = 0; col < shape[row].length; col++) {
-                    if (shape[row][col]) {
-                        const layer = pieceY + row;
-                        const cell = pieceX + col;
-                        
-                        // Ensure layer exists
-                        while (edges[bottomEdgeIdx].length <= layer) {
-                            edges[bottomEdgeIdx].push(new Array(EDGE_CELLS).fill(null));
-                        }
-                        
-                        if (layer >= 0 && cell >= 0 && cell < EDGE_CELLS) {
-                            edges[bottomEdgeIdx][layer][cell] = currentPiece.color;
-                        }
-                    }
-                }
-            }
-            
-            checkLines();
-            spawnPiece();
+        drawNxt();
+    }
+
+    function lock() {
+        const sh = shape(cur,pr);
+        for (let r=0;r<sh.length;r++) for (let c=0;c<sh[r].length;c++) {
+            if (!sh[r][c]) continue;
+            const gr=py+r, gc=px+c;
+            if (gr>=0&&gr<ROWS&&gc>=0&&gc<COLS) grid[gr][gc] = {col:cur.col, bdr:cur.bdr};
         }
-        
-        // Check and clear complete lines
-        function checkLines() {
-            const bottomEdgeIdx = getBottomEdgeIndex();
-            const edge = edges[bottomEdgeIdx];
-            let linesCleared = 0;
-            
-            for (let layer = 0; layer < edge.length; layer++) {
-                if (edge[layer] && edge[layer].every(cell => cell !== null)) {
-                    edge.splice(layer, 1);
-                    linesCleared++;
-                    layer--;
-                }
-            }
-            
-            if (linesCleared > 0) {
-                score += linesCleared * 100;
-                document.getElementById('score').textContent = `Score: ${score}`;
-            }
+    }
+
+    function move(dx) {
+        if (!hit(px+dx,py,shape(cur,pr))) { px+=dx; return true; }
+        return false;
+    }
+
+    function rotate() {
+        const nr = (pr+1)%4, sh = shape(cur,nr);
+        for (const k of [0,-1,1,-2,2]) {
+            if (!hit(px+k,py,sh)) { px+=k; pr=nr; return; }
         }
-        
-        // Check if landing is centered
-        function isCenteredLanding(x, width) {
-            const centerStart = (EDGE_CELLS - CENTER_ZONE_CELLS) / 2;
-            const centerEnd = centerStart + CENTER_ZONE_CELLS;
-            return x >= centerStart && (x + width) <= centerEnd;
+    }
+
+    function drop1() {
+        if (!hit(px,py+1,shape(cur,pr))) { py++; return true; }
+        return false;
+    }
+
+    function ghostY() {
+        let gy=py;
+        while (!hit(px,gy+1,shape(cur,pr))) gy++;
+        return gy;
+    }
+
+    function hardDrop() {
+        while(drop1());
+        onLand();
+    }
+
+    /* ══════════════════════════════════════════
+       LAND & BALANCE
+       ══════════════════════════════════════════ */
+    function onLand() {
+        lock();
+        let cl = clearLines();
+        const torque = calcTorque();
+
+        if (Math.abs(torque) > BALANCE_THRESHOLD) {
+            const dir = torque > 0 ? 1 : -1;
+            startRot(dir, () => {
+                cl += clearLines();
+                updScore(cl);
+                spawn();
+            });
+        } else {
+            updScore(cl);
+            spawn();
         }
-        
-        // Process landing
-        function processLanding() {
-            const shape = currentPiece.shapes[currentPieceRotation];
-            const width = shape[0].length;
-            
-            if (!isCenteredLanding(pieceX, width)) {
-                const centerStart = (EDGE_CELLS - CENTER_ZONE_CELLS) / 2;
-                pendingRotation = pieceX < centerStart ? 1 : -1;
-                
-                if (!isTriangleAnimating) {
-                    isTriangleAnimating = true;
-                    targetRotation += pendingRotation * triangleRotationAngle;
-                    animateTriangleRotation(performance.now());
-                }
-            } else {
-                lockPiece();
-            }
+    }
+
+    function calcTorque() {
+        let t = 0;
+        const mid = (COLS-1)/2;
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            if (grid[r][c]) t += (c - mid);
         }
-        
-        // Rotate piece
-        function rotatePiece() {
-            const newRotation = (currentPieceRotation + 1) % 4;
-            const newShape = currentPiece.shapes[newRotation];
-            
-            // Try rotation with wall kicks
-            const kicks = [0, -1, 1, -2, 2];
-            for (let kick of kicks) {
-                if (!checkCollision(pieceX + kick, pieceY, newShape)) {
-                    pieceX += kick;
-                    currentPieceRotation = newRotation;
-                    return;
+        return t;
+    }
+
+    /* ══════════════════════════════════════════
+       BOARD ROTATION
+       ══════════════════════════════════════════ */
+    // Rotate the BOARD region (BOARD_TOP to BOARD_BOT) as a square,
+    // then apply gravity to settle everything.
+    function rotCW() {
+        const S = BOARD;
+        const ng = mkGrid();
+        // Copy everything outside the board square
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            if (r<BOARD_TOP||r>BOARD_BOT) ng[r][c]=grid[r][c];
+        }
+        // Rotate the square
+        for (let r=0;r<S;r++) for (let c=0;c<S;c++) {
+            ng[BOARD_TOP+c][S-1-r] = grid[BOARD_TOP+r][c];
+        }
+        grid = ng;
+    }
+
+    function rotCCW() {
+        const S = BOARD;
+        const ng = mkGrid();
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            if (r<BOARD_TOP||r>BOARD_BOT) ng[r][c]=grid[r][c];
+        }
+        for (let r=0;r<S;r++) for (let c=0;c<S;c++) {
+            ng[BOARD_TOP+S-1-c][r] = grid[BOARD_TOP+r][c];
+        }
+        grid = ng;
+    }
+
+    function gravity() {
+        for (let c=0;c<COLS;c++) {
+            let w=ROWS-1;
+            for (let r=ROWS-1;r>=0;r--) {
+                if (grid[r][c]) {
+                    if (w!==r) { grid[w][c]=grid[r][c]; grid[r][c]=null; }
+                    w--;
                 }
             }
         }
-        
-        // Move piece horizontally
-        function movePiece(delta) {
-            const shape = currentPiece.shapes[currentPieceRotation];
-            if (!checkCollision(pieceX + delta, pieceY, shape)) {
-                pieceX += delta;
-                return true;
-            }
-            return false;
+    }
+
+    function startRot(dir, cb) {
+        anim=true; rDir=dir; rTgt=dir*90; rVis=0;
+        rT0=performance.now(); rCb=cb;
+        shX=(Math.random()-.5)*6; shY=(Math.random()-.5)*6;
+    }
+
+    function tickRot(now) {
+        if (!anim) return;
+        const t = Math.min((now-rT0)/ROT_DURATION,1);
+        const e = 1-Math.pow(1-t,3);
+        rVis = rTgt*e;
+        shX*=.9; shY*=.9;
+        if (t>=1) {
+            rVis=0; shX=0; shY=0;
+            if (rDir===1) rotCW(); else rotCCW();
+            gravity();
+            anim=false;
+            if (rCb) rCb();
         }
-        
-        // Drop piece
-        function dropPiece() {
-            const shape = currentPiece.shapes[currentPieceRotation];
-            if (!checkCollision(pieceX, pieceY + 1, shape)) {
-                pieceY++;
-                return true;
-            }
-            return false;
-        }
-        
-        // Animate triangle rotation
-        function animateTriangleRotation(startTime) {
-            const startRotation = currentRotation;
-            const endRotation = targetRotation;
-            
-            function step(timestamp) {
-                const elapsed = timestamp - startTime;
-                const progress = Math.min(elapsed / rotationDuration, 1);
-                const easeProgress = 1 - Math.pow(1 - progress, 3);
-                
-                currentRotation = startRotation + (endRotation - startRotation) * easeProgress;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(step);
-                } else {
-                    currentRotation = targetRotation;
-                    isTriangleAnimating = false;
-                    pendingRotation = 0;
-                    lockPiece();
-                }
-            }
-            
-            requestAnimationFrame(step);
-        }
-        
-        // Draw triangle
-        function drawTriangle() {
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.rotate((currentRotation * Math.PI) / 180);
-            
-            // Draw triangle
-            ctx.beginPath();
-            ctx.moveTo(0, -triangleSize);
-            ctx.lineTo(-triangleSize * Math.cos(Math.PI / 6), triangleSize * Math.sin(Math.PI / 6));
-            ctx.lineTo(triangleSize * Math.cos(Math.PI / 6), triangleSize * Math.sin(Math.PI / 6));
-            ctx.closePath();
-            
-            ctx.fillStyle = '#333333';
-            ctx.fill();
-            ctx.strokeStyle = '#666666';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            
-            // Draw center zone on bottom edge
-            ctx.save();
-            ctx.translate(0, triangleSize * Math.sin(Math.PI / 6) - CELL_SIZE / 2);
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
-            const centerWidth = CENTER_ZONE_CELLS * CELL_SIZE;
-            ctx.fillRect(-centerWidth / 2, 0, centerWidth, CELL_SIZE);
-            
-            ctx.strokeStyle = '#ffff00';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(-centerWidth / 2, -5);
-            ctx.lineTo(-centerWidth / 2, CELL_SIZE + 5);
-            ctx.moveTo(centerWidth / 2, -5);
-            ctx.lineTo(centerWidth / 2, CELL_SIZE + 5);
-            ctx.stroke();
-            
-            ctx.restore();
-            ctx.restore();
-        }
-        
-        // Draw edge blocks
-        function drawEdgeBlocks() {
-            for (let edgeIdx = 0; edgeIdx < 3; edgeIdx++) {
-                const edge = edges[edgeIdx];
-                if (!edge || edge.length === 0) continue;
-                
-                for (let layer = 0; layer < edge.length; layer++) {
-                    if (!edge[layer]) continue;
-                    
-                    for (let cell = 0; cell < EDGE_CELLS; cell++) {
-                        if (edge[layer][cell]) {
-                            const pos = getCellWorldPosition(edgeIdx, layer, cell);
-                            drawBlock(pos.x, pos.y, edge[layer][cell]);
-                        }
-                    }
-                }
+    }
+
+    /* ══════════════════════════════════════════
+       LINE CLEAR (only in board square)
+       ══════════════════════════════════════════ */
+    function clearLines() {
+        let cl=0;
+        for (let r=CLEAR_BOT;r>=CLEAR_TOP;r--) {
+            if (grid[r].every(c=>c!==null)) {
+                for (let c=0;c<COLS;c++) mkPart(c*CELL+CELL/2, r*CELL+CELL/2, grid[r][c].col);
+                grid.splice(r,1);
+                grid.unshift(Array(COLS).fill(null));
+                cl++; r++; // re-check
             }
         }
-        
-        // Draw block
-        function drawBlock(x, y, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE - 2, CELL_SIZE - 2);
-            
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.fillRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE - 2, 4);
-        }
-        
-        // Draw current piece
-        function drawCurrentPiece() {
-            if (!currentPiece) return;
-            
-            const shape = currentPiece.shapes[currentPieceRotation];
-            for (let row = 0; row < shape.length; row++) {
-                for (let col = 0; col < shape[row].length; col++) {
-                    if (shape[row][col]) {
-                        const pos = pieceCellToWorld(currentPiece, currentPieceRotation, col, row);
-                        drawBlock(pos.x, pos.y, currentPiece.color);
-                    }
-                }
-            }
-        }
-        
-        // Draw game
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawTriangle();
-            drawEdgeBlocks();
-            drawCurrentPiece();
-        }
-        
-        // Game loop
-        function gameLoop(timestamp) {
-            if (!isGameOver && !isTriangleAnimating) {
-                if (timestamp - lastDropTime > DROP_INTERVAL) {
-                    if (!dropPiece()) {
-                        processLanding();
-                    }
-                    lastDropTime = timestamp;
-                }
-            }
-            
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-        
-        // Input
-        document.addEventListener('keydown', (event) => {
-            if (isGameOver || isTriangleAnimating) return;
-            
-            switch (event.key) {
-                case 'ArrowLeft':
-                    movePiece(-1);
-                    break;
-                case 'ArrowRight':
-                    movePiece(1);
-                    break;
-                case 'ArrowDown':
-                    if (!dropPiece()) processLanding();
-                    lastDropTime = performance.now();
-                    break;
-                case 'ArrowUp':
-                    rotatePiece();
-                    break;
-                case ' ':
-                    while (dropPiece()) {}
-                    processLanding();
-                    lastDropTime = performance.now();
-                    break;
-            }
+        return cl;
+    }
+
+    function updScore(cl) {
+        if (!cl) return;
+        const pts=[0,100,300,500,800];
+        sc += (pts[Math.min(cl,4)]||cl*200)*lv;
+        ln += cl;
+        lv = Math.floor(ln/10)+1;
+        dropInt = Math.max(80, BASE_DROP-(lv-1)*50);
+        document.getElementById('sV').textContent=sc;
+        document.getElementById('lV').textContent=ln;
+        document.getElementById('lvV').textContent=lv;
+    }
+
+    /* ══════════════════════════════════════════
+       PARTICLES
+       ══════════════════════════════════════════ */
+    function mkPart(x,y,color) {
+        for (let i=0;i<4;i++) particles.push({
+            x,y, vx:(Math.random()-.5)*7, vy:(Math.random()-.5)*5-2,
+            life:1, color, sz:Math.random()*4+2
         });
-        
-        // Initialize
-        initEdges();
-        spawnPiece();
-        requestAnimationFrame(gameLoop);
-    </script>
+    }
+    function tickPart(dt) {
+        for (let i=particles.length-1;i>=0;i--) {
+            const p=particles[i];
+            p.x+=p.vx; p.y+=p.vy; p.vy+=.2; p.life-=dt*2.5;
+            if (p.life<=0) particles.splice(i,1);
+        }
+    }
+
+    /* ══════════════════════════════════════════
+       DRAWING
+       ══════════════════════════════════════════ */
+    function drawBlock(x,y,col,bdr,alpha) {
+        const s=CELL-2;
+        const prev=cx.globalAlpha;
+        if (alpha!=null) cx.globalAlpha=alpha;
+        // fill
+        cx.fillStyle=col;
+        cx.fillRect(x+1,y+1,s,s);
+        // border
+        cx.strokeStyle=bdr;
+        cx.lineWidth=1.5;
+        cx.strokeRect(x+1.5,y+1.5,s-1,s-1);
+        // subtle highlight
+        cx.fillStyle='rgba(255,255,255,0.25)';
+        cx.fillRect(x+2,y+2,s-2,3);
+        if (alpha!=null) cx.globalAlpha=prev;
+    }
+
+    function drawGrid() {
+        for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+            if (grid[r][c]) drawBlock(c*CELL,r*CELL,grid[r][c].col,grid[r][c].bdr);
+        }
+    }
+
+    function drawFrame() {
+        const W=cv.width, H=cv.height;
+        cx.clearRect(0,0,W,H);
+        cx.save();
+        cx.translate(shX,shY);
+
+        // Background
+        cx.fillStyle='#f9f9fb';
+        cx.fillRect(0,0,W,H);
+
+        // Board square background (slightly different shade)
+        const bt = BOARD_TOP*CELL, bb=(BOARD_BOT+1)*CELL;
+        cx.fillStyle='#fff';
+        cx.fillRect(0,bt,W,bb-bt);
+
+        // Board square thick border
+        cx.strokeStyle='#222';
+        cx.lineWidth=2.5;
+        cx.strokeRect(0, bt, W, bb-bt);
+
+        // Dashed clearing zone lines
+        cx.save();
+        cx.setLineDash([8,5]);
+        cx.strokeStyle='rgba(0,0,0,0.15)';
+        cx.lineWidth=1.5;
+        // Left side dashes — extending into margins
+        cx.beginPath();
+        cx.moveTo(0,bt); cx.lineTo(W,bt);
+        cx.moveTo(0,bb); cx.lineTo(W,bb);
+        cx.stroke();
+        cx.restore();
+
+        // Subtle grid lines inside board
+        cx.strokeStyle='rgba(0,0,0,0.04)';
+        cx.lineWidth=1;
+        for (let r=BOARD_TOP;r<=BOARD_BOT+1;r++) {
+            cx.beginPath(); cx.moveTo(0,r*CELL); cx.lineTo(W,r*CELL); cx.stroke();
+        }
+        for (let c=0;c<=COLS;c++) {
+            cx.beginPath(); cx.moveTo(c*CELL,bt); cx.lineTo(c*CELL,bb); cx.stroke();
+        }
+
+        // Center pivot dot
+        const mx=W/2, my=(bt+bb)/2;
+        cx.beginPath();
+        cx.arc(mx,my,7,0,Math.PI*2);
+        cx.fillStyle='rgba(0,0,0,0.08)';
+        cx.fill();
+        cx.strokeStyle='rgba(0,0,0,0.18)';
+        cx.lineWidth=1.5;
+        cx.stroke();
+
+        // Grid blocks with rotation animation
+        if (anim) {
+            cx.save();
+            cx.translate(mx,my);
+            cx.rotate(rVis*Math.PI/180);
+            cx.translate(-mx,-my);
+            drawGrid();
+            cx.restore();
+        } else {
+            drawGrid();
+        }
+
+        // Ghost
+        if (cur && !anim && !ov) {
+            const gy=ghostY(), sh=shape(cur,pr);
+            for (let r=0;r<sh.length;r++) for (let c=0;c<sh[r].length;c++) {
+                if (!sh[r][c]||gy+r<0) continue;
+                drawBlock((px+c)*CELL,(gy+r)*CELL,cur.col,cur.bdr,0.18);
+            }
+        }
+
+        // Current piece
+        if (cur && !anim && !ov) {
+            const sh=shape(cur,pr);
+            for (let r=0;r<sh.length;r++) for (let c=0;c<sh[r].length;c++) {
+                if (!sh[r][c]||py+r<0) continue;
+                drawBlock((px+c)*CELL,(py+r)*CELL,cur.col,cur.bdr);
+            }
+        }
+
+        // Particles
+        for (const p of particles) {
+            cx.globalAlpha=Math.max(0,p.life);
+            cx.fillStyle=p.color;
+            cx.fillRect(p.x-p.sz/2,p.y-p.sz/2,p.sz,p.sz);
+        }
+        cx.globalAlpha=1;
+
+        cx.restore();
+    }
+
+    function drawNxt() {
+        nx.clearRect(0,0,nv.width,nv.height);
+        if (!nxt) return;
+        const sh=shape(nxt,0), rr=sh.length, cc=sh[0].length, cs=16;
+        const ox=(nv.width-cc*cs)/2, oy=(nv.height-rr*cs)/2;
+        for (let r=0;r<rr;r++) for (let c=0;c<cc;c++) {
+            if (!sh[r][c]) continue;
+            nx.fillStyle=nxt.col;
+            nx.fillRect(ox+c*cs+1,oy+r*cs+1,cs-2,cs-2);
+            nx.strokeStyle=nxt.bdr;
+            nx.lineWidth=1;
+            nx.strokeRect(ox+c*cs+1.5,oy+r*cs+1.5,cs-3,cs-3);
+        }
+    }
+
+    /* ══════════════════════════════════════════
+       LOOP
+       ══════════════════════════════════════════ */
+    function loop(now) {
+        tickRot(now);
+        tickPart(1/60);
+        if (go && !ov && !anim && cur) {
+            if (now-lastDrop>dropInt) {
+                if (!drop1()) onLand();
+                lastDrop=now;
+            }
+        }
+        drawFrame();
+        requestAnimationFrame(loop);
+    }
+
+    /* ══════════════════════════════════════════
+       INPUT
+       ══════════════════════════════════════════ */
+    document.addEventListener('keydown', e => {
+        if (!go||ov||anim||!cur) return;
+        switch(e.key) {
+            case 'ArrowLeft':  e.preventDefault(); move(-1); break;
+            case 'ArrowRight': e.preventDefault(); move(1); break;
+            case 'ArrowDown':  e.preventDefault(); if(!drop1())onLand(); lastDrop=performance.now(); break;
+            case 'ArrowUp':    e.preventDefault(); rotate(); break;
+            case ' ':          e.preventDefault(); hardDrop(); break;
+        }
+    });
+
+    /* ══════════════════════════════════════════
+       OVERLAY
+       ══════════════════════════════════════════ */
+    function showOv(t,s,b) {
+        const o=document.getElementById('overlay');
+        o.classList.remove('hidden');
+        o.querySelector('h1').textContent=t;
+        o.querySelector('p').textContent=s;
+        o.querySelector('button').textContent=b;
+    }
+    function hideOv() { document.getElementById('overlay').classList.add('hidden'); }
+
+    document.getElementById('goBtn').addEventListener('click',()=>{hideOv();init();});
+
+    function init() {
+        grid=mkGrid(); sc=0; ln=0; lv=1;
+        dropInt=BASE_DROP; ov=false; go=true; anim=false;
+        rVis=0; particles=[]; bag=[]; shX=0; shY=0;
+        cur=null; nxt=null;
+        document.getElementById('sV').textContent='0';
+        document.getElementById('lV').textContent='0';
+        document.getElementById('lvV').textContent='1';
+        lastDrop=performance.now();
+        spawn();
+    }
+
+    requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
