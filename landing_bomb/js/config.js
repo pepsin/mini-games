@@ -96,7 +96,7 @@ const SLING_CONFIG = {
   y: GROUND_Y,
   prongW: 0,
   prongH: 100,
-  maxDrag: 180
+  get maxDrag() { return W / 2; }
 };
 
 // Flower config
