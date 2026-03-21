@@ -3,13 +3,11 @@
 // Currently supports: WeChat Mini Games
 // Easy to extend for: Facebook Instant Games, TikTok, native apps, web, etc.
 
-const config = require('./config.js');
-
 // ============== CONFIGURATION ==============
 const ANALYTICS_CONFIG = {
   enabled: true,
   debug: false,
-  platform: detectPlatform(), // 'wechat', 'web', 'unknown'
+  platform: null, // Set at init time, not module load
   batchEvents: true,
   batchInterval: 5000, // ms
   maxBatchSize: 20,
@@ -107,17 +105,13 @@ class WeChatAnalyticsAdapter extends BaseAnalyticsAdapter {
   }
   
   isAvailable() {
-    return typeof wx !== 'undefined' && wx.reportEvent !== undefined;
+    return typeof wx !== 'undefined' && wx !== null && typeof wx.reportEvent === 'function';
   }
   
   init() {
     if (!this.isAvailable()) return;
     
-    // Report session start
-    this.trackEvent(EVENTS.SESSION_START, {
-      timestamp: Date.now(),
-      platform: 'wechat_mini_game',
-    });
+    // WeChat adapter init - session start handled by AnalyticsManager
   }
   
   trackEvent(eventName, data) {
@@ -163,7 +157,7 @@ class WebAnalyticsAdapter extends BaseAnalyticsAdapter {
   }
   
   isAvailable() {
-    return typeof window !== 'undefined' && window.document;
+    return typeof window !== 'undefined' && window !== null && typeof window.document === 'object' && window.document !== null;
   }
   
   init() {
@@ -174,10 +168,7 @@ class WebAnalyticsAdapter extends BaseAnalyticsAdapter {
       this.ga = gtag;
     }
     
-    this.trackEvent(EVENTS.SESSION_START, {
-      timestamp: Date.now(),
-      platform: 'web',
-    });
+    // Web adapter init - session start handled by AnalyticsManager
   }
   
   trackEvent(eventName, data) {
@@ -250,6 +241,7 @@ class AnalyticsManager {
     this.scoreAtGameStart = 0;
     this.eventQueue = [];
     this.batchTimer = null;
+    this.destroyed = false;
     
     this.init();
   }
@@ -259,6 +251,9 @@ class AnalyticsManager {
       console.log('[Analytics] Disabled');
       return;
     }
+    
+    // Detect platform at init time for accurate detection
+    ANALYTICS_CONFIG.platform = detectPlatform();
     
     // Initialize appropriate adapter(s)
     const platform = ANALYTICS_CONFIG.platform;
@@ -282,13 +277,23 @@ class AnalyticsManager {
       console.log('[Analytics] No platform detected, using noop adapter');
     }
     
-    // Start batch timer if enabled
-    if (ANALYTICS_CONFIG.batchEvents) {
+    // Start batch timer if enabled and we have adapters
+    if (ANALYTICS_CONFIG.batchEvents && this.adapters.length > 0) {
       this.startBatchTimer();
     }
+    
+    // Track session start once at initialization
+    this.track(EVENTS.SESSION_START, {
+      timestamp: this.sessionStartTime,
+      platform: ANALYTICS_CONFIG.platform,
+    });
   }
   
   startBatchTimer() {
+    // Prevent multiple batch timers from being created
+    if (this.batchTimer) {
+      clearInterval(this.batchTimer);
+    }
     this.batchTimer = setInterval(() => {
       this.flushEventQueue();
     }, ANALYTICS_CONFIG.batchInterval);
@@ -314,11 +319,16 @@ class AnalyticsManager {
     // Use provided timestamp or current time
     const timestamp = eventTimestamp || Date.now();
     
+    // Calculate session duration, ensuring it's never negative
+    // (protects against clock adjustments or queued events with old timestamps)
+    const rawDuration = Math.floor((timestamp - this.sessionStartTime) / 1000);
+    const sessionDuration = Math.max(0, rawDuration);
+    
     // Add common data
     const enrichedData = {
       ...data,
       timestamp: timestamp,
-      session_duration: Math.floor((timestamp - this.sessionStartTime) / 1000),
+      session_duration: sessionDuration,
     };
     
     this.adapters.forEach(adapter => {
@@ -333,7 +343,7 @@ class AnalyticsManager {
   }
   
   track(eventName, data = {}) {
-    if (!ANALYTICS_CONFIG.enabled) return;
+    if (!ANALYTICS_CONFIG.enabled || this.destroyed) return;
     
     if (ANALYTICS_CONFIG.batchEvents) {
       // Add to queue for batching with timestamp at creation time
@@ -354,7 +364,7 @@ class AnalyticsManager {
   }
   
   trackPerformance(id, value, dimensions = {}) {
-    if (!ANALYTICS_CONFIG.enabled) return;
+    if (!ANALYTICS_CONFIG.enabled || this.destroyed) return;
     
     this.adapters.forEach(adapter => {
       try {
@@ -382,10 +392,23 @@ class AnalyticsManager {
   }
   
   trackGameEnd({ score, wave, livesRemaining, reason = 'game_over' }) {
-    const duration = this.gameStartTime 
-      ? Math.floor((Date.now() - this.gameStartTime) / 1000) 
-      : 0;
-    const scoreGained = score - this.scoreAtGameStart;
+    // Guard against calling trackGameEnd without trackGameStart
+    if (!this.gameStartTime) {
+      console.warn('[Analytics] trackGameEnd called without trackGameStart');
+      return;
+    }
+    
+    // Validate required parameters
+    if (typeof score !== 'number' || typeof wave !== 'number') {
+      console.warn('[Analytics] trackGameEnd called with invalid parameters');
+      return;
+    }
+    
+    const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
+    // Ensure both values are numbers to prevent NaN
+    const safeScore = typeof score === 'number' ? score : 0;
+    const safeStartScore = typeof this.scoreAtGameStart === 'number' ? this.scoreAtGameStart : 0;
+    const scoreGained = safeScore - safeStartScore;
     
     this.track(EVENTS.GAME_END, {
       score,
@@ -396,6 +419,10 @@ class AnalyticsManager {
       bombs_defeated: this.bombsDefeated,
       reason,
     });
+    
+    // Flush event queue immediately to ensure game end event is sent
+    // (prevents event loss if app closes shortly after game ends)
+    this.flushEventQueue();
     
     // Reset game tracking
     this.gameStartTime = null;
@@ -534,8 +561,12 @@ class AnalyticsManager {
   }
   
   destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    
     if (this.batchTimer) {
       clearInterval(this.batchTimer);
+      this.batchTimer = null;
       this.flushEventQueue();
     }
   }

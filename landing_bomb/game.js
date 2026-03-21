@@ -147,10 +147,11 @@ function init() {
     onGameReset: () => {
       // Track end of current game session before starting new one
       const currentWave = getCurrentWave();
+      const { getLives } = require('./js/gameState.js');
       analytics.trackGameEnd({
         score: getScore(),
         wave: currentWave,
-        livesRemaining: 0,
+        livesRemaining: getLives(),
         reason: 'reset'
       });
       
@@ -204,8 +205,7 @@ function init() {
         // Advance to next wave
         const nextWave = getCurrentWave() + 1;
         startWave(nextWave);
-        // Track wave start after revive (startWave already tracks this, but we need to make sure)
-        analytics.trackWaveStart(nextWave);
+        // Note: startWave() already calls analytics.trackWaveStart() with correct display wave
         console.log(`Advanced to wave ${nextWave} after revive!`);
       }
     }
