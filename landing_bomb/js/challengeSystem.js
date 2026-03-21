@@ -12,12 +12,14 @@ const CHALLENGE_TYPES = {
   kill_n_in_time: {
     generate: (wave) => {
       const target = 3 + Math.floor(wave / 5);
+      const timeLimit = 600; // 10 seconds at 60fps
+      const timeSeconds = Math.round(timeLimit / 60);
       return {
         type: 'kill_n_in_time',
-        description: `${10}秒内消灭${target}只!`,
+        description: `${timeSeconds}秒内消灭${target}只!`,
         target: target,
         progress: 0,
-        timeLimit: 600, // 10 seconds at 60fps
+        timeLimit: timeLimit,
         timeElapsed: 0,
         failed: false,
         reward: { type: 'heal', value: 1 }
@@ -57,7 +59,10 @@ const CHALLENGE_TYPES = {
 let currentChallenge = null;
 let challengeResult = null; // { success: bool, reward, frame, maxFrames }
 let lastKillFrame = -999;
+let killProcessedThisFrame = false; // Prevent race condition between updateChallenge and onBombKilled
+let streakTimeoutVisualFrame = -999; // Frame when streak timed out (for visual feedback)
 const KILL_STREAK_WINDOW = 90; // 1.5 seconds to maintain streak
+const STREAK_TIMEOUT_VISUAL_DURATION = 30; // Show timeout indicator for 0.5 seconds
 
 // Check if wave should have a challenge
 function isChallengeWave(wave) {
@@ -86,6 +91,9 @@ function getChallengeResult() {
 function updateChallenge(frameCount) {
   if (!currentChallenge || currentChallenge.failed) return;
 
+  // Reset the kill processed flag at the start of each frame
+  killProcessedThisFrame = false;
+
   // Time-limited challenges
   if (currentChallenge.type === 'kill_n_in_time' && currentChallenge.timeLimit > 0) {
     currentChallenge.timeElapsed++;
@@ -95,10 +103,12 @@ function updateChallenge(frameCount) {
     }
   }
 
-  // Kill streak timeout
-  if (currentChallenge.type === 'kill_streak' && currentChallenge.progress > 0) {
+  // Kill streak timeout - only check if no kill was processed this frame
+  // This prevents race conditions where the streak resets and then increments in the same frame
+  if (currentChallenge.type === 'kill_streak' && currentChallenge.progress > 0 && !killProcessedThisFrame) {
     if (frameCount - lastKillFrame > KILL_STREAK_WINDOW) {
       currentChallenge.progress = 0; // Reset streak
+      streakTimeoutVisualFrame = frameCount; // Track when timeout happened for visual feedback
     }
   }
 }
@@ -116,6 +126,7 @@ function onBombKilled(frameCount) {
   }
 
   if (currentChallenge.type === 'kill_streak') {
+    killProcessedThisFrame = true; // Mark that we processed a kill this frame
     if (frameCount - lastKillFrame <= KILL_STREAK_WINDOW || currentChallenge.progress === 0) {
       currentChallenge.progress++;
       lastKillFrame = frameCount;
@@ -188,6 +199,8 @@ function resetChallenges() {
   currentChallenge = null;
   challengeResult = null;
   lastKillFrame = -999;
+  killProcessedThisFrame = false;
+  streakTimeoutVisualFrame = -999;
 }
 
 // Draw challenge HUD (during wave)
@@ -222,8 +235,8 @@ function drawChallengeHUD(ctx, frameCount, topbarHeight = 66) {
   ctx.fillStyle = '#FFFFFF';
   ctx.fillText(ch.description, sx(W / 2), sy(by + 18));
 
-  // Progress bar for kill-based challenges
-  if (ch.type === 'kill_n_in_time' || ch.type === 'kill_streak') {
+  // Progress bar for kill-based challenges (hide when failed to avoid confusion)
+  if (!ch.failed && (ch.type === 'kill_n_in_time' || ch.type === 'kill_streak')) {
     const barW = 160;
     const barH = 4;
     const barX = sx((W - barW) / 2);
@@ -247,15 +260,26 @@ function drawChallengeHUD(ctx, frameCount, topbarHeight = 66) {
   }
 
   // Countdown timer for kill streak (shows time window between kills)
-  if (ch.type === 'kill_streak' && ch.progress > 0 && frameCount !== undefined) {
-    const elapsed = frameCount - lastKillFrame;
-    const streakRemaining = Math.max(0, KILL_STREAK_WINDOW - elapsed);
-    const timerProgress = streakRemaining / KILL_STREAK_WINDOW;
-    if (timerProgress > 0) {
+  if (ch.type === 'kill_streak' && frameCount !== undefined) {
+    if (ch.progress > 0) {
+      // Active streak - show countdown timer
+      const elapsed = frameCount - lastKillFrame;
+      const streakRemaining = Math.max(0, KILL_STREAK_WINDOW - elapsed);
+      const timerProgress = streakRemaining / KILL_STREAK_WINDOW;
+      if (timerProgress > 0) {
+        hudTimer.x = bx + bannerW - 18;
+        hudTimer.y = by + bannerH / 2;
+        hudTimer.showText = false;
+        hudTimer.draw(ctx, timerProgress, null, frameCount);
+        hudTimer.showText = true;
+      }
+    } else if (frameCount - streakTimeoutVisualFrame < STREAK_TIMEOUT_VISUAL_DURATION) {
+      // Streak just timed out - show empty/red ring for visual feedback
       hudTimer.x = bx + bannerW - 18;
       hudTimer.y = by + bannerH / 2;
       hudTimer.showText = false;
-      hudTimer.draw(ctx, timerProgress, null, frameCount);
+      // Draw empty ring (0% progress) to show timeout
+      hudTimer.draw(ctx, 0, null, frameCount);
       hudTimer.showText = true;
     }
   }
@@ -344,14 +368,12 @@ function drawChallengeAnnounce(ctx, challenge, options) {
   ctx.fillStyle = '#FFFFFF';
   ctx.fillText(challenge.description, sx(W / 2), sy(by + 46));
 
-  // Reward hint
+  // Reward hint - show both possible outcomes to avoid confusion
   let rewardHint = '';
   if (challenge.reward.type === 'heal') {
-    if (options && !options.hasDeadFlower) {
-      rewardHint = `奖励: +${10000 * (options.wave || 1)}分`;
-    } else {
-      rewardHint = '奖励: 修复一朵花';
-    }
+    // Heal reward gives score if no dead flowers, heal otherwise
+    const scoreReward = 10000 * (options.wave || 1);
+    rewardHint = `奖励: 修复一朵花 (+${scoreReward}分备用)`;
   } else if (challenge.reward.type === 'score') {
     rewardHint = `奖励: +${challenge.reward.value}分`;
   } else if (challenge.reward.type === 'powerup') {

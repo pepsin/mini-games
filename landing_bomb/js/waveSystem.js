@@ -136,10 +136,11 @@ function endWave() {
   interWaveTimer = 0;
   interWaveDuration = Math.max(60, 120 - currentWave * 0.5);
 
-  // Check if next wave is a challenge wave
+  // Check if next wave is a challenge wave (use display wave for player consistency)
   const nextWave = currentWave + 1;
-  if (isChallengeWave(nextWave)) {
-    pendingChallenge = generateChallenge(nextWave);
+  const displayWave = getDisplayWave(nextWave);
+  if (isChallengeWave(displayWave)) {
+    pendingChallenge = generateChallenge(displayWave);
     challengeAnnounce = true;
     challengeAnnounceTimer = 0;
     // Extend inter-wave to include announce time
