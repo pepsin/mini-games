@@ -87,7 +87,7 @@ function drawUI(ctx) {
   const displayWave = currentWave <= 1 ? 1 : (currentWave - WAVE_DISPLAY_OFFSET);
   // Dynamic target: show 30 before reaching 30, 50 before reaching 50, 100 after
   let targetWave = 30;
-  if (currentWave < 50) {
+  if (displayWave < 50) {
     targetWave = 50;
   } else {
     targetWave = 100;
