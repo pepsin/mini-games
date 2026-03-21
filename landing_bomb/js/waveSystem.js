@@ -129,9 +129,10 @@ function startWave(waveNum) {
   specialBombsSpawned = 0;
   totalSpecialBombs = getSpecialBombCountForWave(waveNum);
 
-  // Track wave start
+  // Track wave start (use display wave for analytics consistency with player experience)
   const waveType = isSpecialWave(waveNum) ? 'special' : 'normal';
-  analytics.trackWaveStart(waveNum, waveType);
+  const displayWave = getDisplayWave(waveNum);
+  analytics.trackWaveStart(displayWave, waveType);
 
   console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${config.waveDurationFrames / 60}s duration${totalSpecialBombs > 0 ? `, ${totalSpecialBombs} special bombs` : ''}`);
 
@@ -158,10 +159,11 @@ function endWave() {
     interWaveDuration = Math.max(interWaveDuration, CHALLENGE_ANNOUNCE_DURATION + 60);
   }
 
-  // Track wave complete
+  // Track wave complete (use display wave for analytics consistency)
   const challengeSuccess = challengeResult && challengeResult.success;
   const challengeType = challengeResult ? challengeResult.type : null;
-  analytics.trackWaveComplete(currentWave, challengeSuccess, challengeType);
+  const displayWave = getDisplayWave(currentWave);
+  analytics.trackWaveComplete(displayWave, challengeSuccess, challengeType);
 
   console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
   return challengeResult;

@@ -145,6 +145,15 @@ function init() {
       analytics.trackGameStart(1);
     },
     onGameReset: () => {
+      // Track end of current game session before starting new one
+      const currentWave = getCurrentWave();
+      analytics.trackGameEnd({
+        score: getScore(),
+        wave: currentWave,
+        livesRemaining: 0,
+        reason: 'reset'
+      });
+      
       resetGame();
       resetWaves();
       resetChallenges();
@@ -195,6 +204,8 @@ function init() {
         // Advance to next wave
         const nextWave = getCurrentWave() + 1;
         startWave(nextWave);
+        // Track wave start after revive (startWave already tracks this, but we need to make sure)
+        analytics.trackWaveStart(nextWave);
         console.log(`Advanced to wave ${nextWave} after revive!`);
       }
     }
@@ -491,10 +502,8 @@ function update() {
     const challengeComplete = onBombKilled(frameCount);
     if (challengeComplete && challengeComplete.completed) {
       // Kill streak fulfilled - give reward immediately
+      // Challenge completion is tracked in completeChallenge() for consistency
       handleChallengeReward(challengeComplete.reward);
-      
-      // Track challenge completed
-      analytics.trackChallengeCompleted(challengeComplete.type, challengeComplete.reward ? challengeComplete.reward.type : 'none');
     }
 
     // Try to spawn powerup on kill (pass bomb count for priority adjustment)

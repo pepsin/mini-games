@@ -3,6 +3,7 @@
 const { W, H, sx, sy, ss } = require('./config.js');
 const { roundedRect } = require('./roundedRect.js');
 const { CountdownTimer } = require('./countdownTimer.js');
+const analytics = require('./analytics.js');
 
 // Reusable countdown timer instance for HUD
 const hudTimer = new CountdownTimer({ radius: 10, lineWidth: 3, showText: true });
@@ -178,6 +179,19 @@ function completeChallenge() {
     frame: 0,
     maxFrames: 120
   };
+
+  // Track challenge completion/failure for analytics (consistent tracking for all challenge types)
+  if (success) {
+    analytics.trackChallengeCompleted(currentChallenge.type, currentChallenge.reward ? currentChallenge.reward.type : 'none');
+  } else {
+    let failReason = 'timeout';
+    if (currentChallenge.type === 'no_flower_loss') {
+      failReason = 'flower_damaged';
+    } else if (currentChallenge.type === 'kill_streak') {
+      failReason = 'streak_broken';
+    }
+    analytics.trackChallengeFailed(currentChallenge.type, failReason);
+  }
 
   const result = { ...challengeResult };
   currentChallenge = null;
