@@ -2,7 +2,7 @@
 
 const { W, H, GROUND_Y, sx, sy, ss, TOPBAR_CONFIG, WAVE_DISPLAY_OFFSET } = require('./config.js');
 const { getScore, getHighScore, isGameOver, isGamePaused, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
-const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge } = require('./waveSystem.js');
+const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge, getWaveChangeAnimationProgress } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
 const { POWERUP_TYPES, getPowerupImage } = require('./powerupSystem.js');
 const { drawChallengeHUD, drawChallengeResult, drawChallengeAnnounce } = require('./challengeSystem.js');
@@ -94,10 +94,41 @@ function drawUI(ctx) {
   } else {
     targetWave = 100;
   }
+  
+  // Calculate wave change animation scale with quadratic ease-in curve
+  const animProgress = getWaveChangeAnimationProgress();
+  const easeInProgress = animProgress * animProgress; // Quadratic ease-in
+  const waveTextScale = 1.6 - (0.6 * easeInProgress); // Starts at 1.6, animates to 1.0
+  
+  ctx.save();
   ctx.textAlign = 'right';
   ctx.font = `bold ${20}px Arial`;
   ctx.fillStyle = '#444';
-  ctx.fillText(`${displayWave}/${targetWave} 关`, spx + (scorePanelWidth - 12) * sps / pauseButtonSize, spy + sps / 2);
+  
+  const textX = spx + (scorePanelWidth - 12) * sps / pauseButtonSize;
+  const textY = spy + sps / 2;
+  
+  // Measure parts of the wave text
+  const suffixAfterSlash = ` ${targetWave} 关`;
+  const suffixAfterSlashWidth = ctx.measureText(suffixAfterSlash).width;
+  
+  // The "/" is positioned at: textX - suffixAfterSlashWidth
+  const slashX = textX - suffixAfterSlashWidth;
+  
+  // Draw static suffix text (the part after "/")
+  ctx.fillText(suffixAfterSlash, textX, textY);
+  
+  // Draw the static "/" separator
+  ctx.fillText('/', slashX, textY);
+  
+  // Draw animated display wave text separately
+  // Scale from right edge (where "/" is) to stay aligned
+  const displayWaveText = `${displayWave}`;
+  const displayWaveWidth = ctx.measureText(displayWaveText).width;
+  ctx.translate(slashX, textY);
+  ctx.scale(waveTextScale, waveTextScale);
+  ctx.fillText(displayWaveText, -displayWaveWidth, 0);
+  ctx.restore();
 
   // Row 2: Powerup HUD (only if active) - positioned below inventory
   let topbarHeight = TOPBAR_CONFIG.baseHeight;

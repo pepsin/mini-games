@@ -2,6 +2,7 @@
 
 const { isChallengeWave, generateChallenge, completeChallenge } = require('./challengeSystem.js');
 const { WAVE_DISPLAY_OFFSET } = require('./config.js');
+const { getFrameCount } = require('./gameState.js');
 
 // Wave state
 let currentWave = 1;
@@ -24,6 +25,10 @@ let challengeAnnounce = false;
 let challengeAnnounceTimer = 0;
 const CHALLENGE_ANNOUNCE_DURATION = 120; // 2 seconds
 let pendingChallenge = null;
+
+// Wave change animation state
+let waveChangeAnimationStartFrame = 0;
+const WAVE_CHANGE_ANIMATION_DURATION = 30; // 30 frames ≈ 500ms at 60fps
 
 // Get wave configuration
 function getWaveConfig(wave) {
@@ -110,6 +115,7 @@ function getSpecialBombCountForWave(wave) {
 function startWave(waveNum) {
   currentWave = waveNum;
   isInterWave = false;
+  waveChangeAnimationStartFrame = getFrameCount(); // Trigger wave change animation
   const config = getWaveConfig(waveNum);
 
   waveTimer = 0;
@@ -229,6 +235,14 @@ function getWaveProgress() {
 function isChallengeAnnouncing() { return challengeAnnounce; }
 function getPendingChallenge() { return pendingChallenge; }
 
+// Get wave change animation progress (0 to 1, where 1 means animation is complete)
+function getWaveChangeAnimationProgress() {
+  const elapsed = getFrameCount() - waveChangeAnimationStartFrame;
+  if (elapsed < 0) return 1; // Animation hasn't started yet
+  if (elapsed >= WAVE_CHANGE_ANIMATION_DURATION) return 1; // Animation complete
+  return elapsed / WAVE_CHANGE_ANIMATION_DURATION;
+}
+
 module.exports = {
   getWaveConfig,
   calculateSpawnTimes,
@@ -247,5 +261,6 @@ module.exports = {
   getPendingChallenge,
   isSpecialWave,
   getSpecialBombCountForWave,
-  getDisplayWave
+  getDisplayWave,
+  getWaveChangeAnimationProgress
 };
