@@ -17,8 +17,8 @@ const BOMB_TYPES = {
   DUMBBELL: 'dumbbell'   // 哑铃炸弹：打中后分裂成2个普通炸弹
 };
 
-// Store original animation frame for each bomb when time_slow starts
-const bombOriginalFrames = new Map();
+// Store frozen bomb images for each bomb when time_slow starts
+const bombFrozenImages = new Map();
 
 // Helper function to get parachute type based on bomb type
 function getParachuteType(bombType) {
@@ -66,22 +66,16 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
     let img = null;
 
     if (isTimeSlowActive) {
-      // Use iced_bomb.png during time_slow
-      // Store original frame index when freezing starts
-      if (!bombOriginalFrames.has(bomb)) {
-        bombOriginalFrames.set(bomb, bombRes.currentFrame);
+      // During time_slow, freeze the current frame and overlay iced_box
+      if (!bombFrozenImages.has(bomb)) {
+        // Capture the current frame when freezing starts
+        bombFrozenImages.set(bomb, animationLoader.getCurrentFrame(bombRes));
       }
-
-      // Load iced bomb image
-      const icedBombRes = getResource('iced_bomb');
-      if (icedBombRes && icedBombRes.image && icedBombRes.image.width > 0) {
-        img = icedBombRes.image;
-      }
+      // Use the frozen frame
+      img = bombFrozenImages.get(bomb);
     } else {
-      // Time_slow ended - restore animation will happen gradually
-      // Remove stored frame
-      bombOriginalFrames.delete(bomb);
-
+      // Time_slow ended - clear frozen frame and resume normal animation
+      bombFrozenImages.delete(bomb);
       // Use normal animation
       img = animationLoader.getCurrentFrame(bombRes);
     }
@@ -121,6 +115,23 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
         }
       }
     }
+
+    // Draw iced_box overlay on top when time_slow is active
+    if (isTimeSlowActive && !usePlaceholder) {
+      const icedBoxRes = getResource('iced_box');
+      if (icedBoxRes && icedBoxRes.image && icedBoxRes.image.width > 0) {
+        const icedSize = animationLoader.getSize(icedBoxRes);
+        const icedAnchor = animationLoader.getAnchor(icedBoxRes);
+        // Scale up iced_box for twin bombs by 1.4x
+        const icedBoxScale = (bomb.bombType === BOMB_TYPES.DUMBBELL) ? 1.4 : 1.0;
+        drawImageProportional(
+          ctx, icedBoxRes.image,
+          bomb.x, bomb.y,
+          icedSize.width * icedBoxScale,
+          icedAnchor.x, icedAnchor.y
+        );
+      }
+    }
   }
 
   if (usePlaceholder) {
@@ -128,9 +139,9 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
   }
 }
 
-// Clear stored frames (call on game reset)
-function clearBombFrameStorage() {
-  bombOriginalFrames.clear();
+// Clear stored frozen images (call on game reset)
+function clearBombFrozenImages() {
+  bombFrozenImages.clear();
 }
 
 // Create bomb properties based on wave config
@@ -256,7 +267,7 @@ module.exports = {
   createBomb,
   createNormalBombAt,
   updateBomb,
-  clearBombFrameStorage,
+  clearBombFrozenImages,
   BOMB_TYPES,
   isSpecialWave,
   getSpecialBombCountForWave

@@ -13,7 +13,7 @@ assets/
 │   ├── bomb_normal/      # Normal bomb animation
 │   ├── bomb_shielded/    # Shielded bomb animation
 │   ├── bomb_twin/        # Twin/dumbbell bomb animation
-│   ├── iced_bomb/        # Frozen bomb image (for time_slow effect)
+│   ├── iced_box/         # Frozen overlay image (for time_slow effect)
 │   ├── bottom_shield/    # Shield powerup image
 │   └── parachute/        # Parachute image
 ├── cloud/                # Cloud animation

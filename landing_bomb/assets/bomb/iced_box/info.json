@@ -1,0 +1,14 @@
+{
+  "name": "iced_box",
+  "type": "static",
+  "description": "冰冻覆盖层静态图，用于时间减速时覆盖在炸弹上",
+  "file": "iced_box.png",
+  "size": {
+    "width": 80,
+    "height": 80
+  },
+  "anchor": {
+    "x": 0.5,
+    "y": 0.4
+  }
+}

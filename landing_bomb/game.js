@@ -71,7 +71,7 @@ const {
   clearDrag, getDragCurrent, isDragging, getSlingshot, drawTrajectoryPrediction, SLING_CONFIG
 } = require('./js/entities/slingshot.js');
 const {
-  drawBomb, createBomb, createNormalBombAt, updateBomb, clearBombFrameStorage,
+  drawBomb, createBomb, createNormalBombAt, updateBomb, clearBombFrozenImages,
   BOMB_TYPES, isSpecialWave, getSpecialBombCountForWave
 } = require('./js/entities/bomb.js');
 const { drawProjectile, updateProjectile, isOutOfBounds } = require('./js/entities/projectile.js');
@@ -138,7 +138,7 @@ function init() {
       resetWaves();
       resetChallenges();
       resetInventory();
-      clearBombFrameStorage();
+      clearBombFrozenImages();
       clearFallingShields();
       resetReviveStatus();
       startWave(1);
