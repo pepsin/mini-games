@@ -86,8 +86,10 @@ function drawUI(ctx) {
   // Draw wave text on the right side (maps wave 1->1, wave 30->2, etc. to hide the jump)
   const displayWave = currentWave <= 1 ? 1 : (currentWave - WAVE_DISPLAY_OFFSET);
   // Dynamic target: show 30 before reaching 30, 50 before reaching 50, 100 after
-  let targetWave = 30;
-  if (displayWave < 50) {
+  let targetWave = 0;
+  if (displayWave < 30) {
+    targetWave = 30;
+  } else if (displayWave < 50) {
     targetWave = 50;
   } else {
     targetWave = 100;
