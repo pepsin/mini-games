@@ -3,6 +3,7 @@
 
 const { W, H, sx, sy, ss, INVENTORY_CONFIG } = require('./config.js');
 const { getResource } = require('./resources.js');
+const analytics = require('./analytics.js');
 
 // 避免循环依赖：延迟加载 powerupSystem 的导出
 let powerupSystem = null;
@@ -88,7 +89,7 @@ function updateFlyingPowerups() {
   }
 }
 
-// 使用道具（点击槽位）
+  // 使用道具（点击槽位）
 function usePowerupFromInventory(slotIndex, activePowerups, gameState) {
   if (slotIndex < 0 || slotIndex >= powerupInventory.length) {
     return false;
@@ -98,6 +99,9 @@ function usePowerupFromInventory(slotIndex, activePowerups, gameState) {
 
   // 激活道具效果
   getPowerupSystem().activatePowerup(type, activePowerups, gameState);
+  
+  // Track powerup used from inventory
+  analytics.trackPowerupUsed(type, 'inventory');
   
   // 从槽位移除
   powerupInventory.splice(slotIndex, 1);

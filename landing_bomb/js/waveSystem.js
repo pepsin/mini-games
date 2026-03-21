@@ -3,6 +3,7 @@
 const { isChallengeWave, generateChallenge, completeChallenge } = require('./challengeSystem.js');
 const { WAVE_DISPLAY_OFFSET } = require('./config.js');
 const { getFrameCount } = require('./gameState.js');
+const analytics = require('./analytics.js');
 
 // Wave state
 let currentWave = 1;
@@ -128,6 +129,10 @@ function startWave(waveNum) {
   specialBombsSpawned = 0;
   totalSpecialBombs = getSpecialBombCountForWave(waveNum);
 
+  // Track wave start
+  const waveType = isSpecialWave(waveNum) ? 'special' : 'normal';
+  analytics.trackWaveStart(waveNum, waveType);
+
   console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${config.waveDurationFrames / 60}s duration${totalSpecialBombs > 0 ? `, ${totalSpecialBombs} special bombs` : ''}`);
 
   return config;
@@ -152,6 +157,11 @@ function endWave() {
     // Extend inter-wave to include announce time
     interWaveDuration = Math.max(interWaveDuration, CHALLENGE_ANNOUNCE_DURATION + 60);
   }
+
+  // Track wave complete
+  const challengeSuccess = challengeResult && challengeResult.success;
+  const challengeType = challengeResult ? challengeResult.type : null;
+  analytics.trackWaveComplete(currentWave, challengeSuccess, challengeType);
 
   console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
   return challengeResult;

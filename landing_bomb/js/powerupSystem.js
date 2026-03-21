@@ -4,6 +4,7 @@ const { W, H, sx, sy, ss } = require('./config.js');
 const { getResource } = require('./resources.js');
 const { ElectricBadge } = require('./components/ElectricBadge.js');
 const { addPowerupToInventory, isInventoryFull } = require('./powerupInventory.js');
+const analytics = require('./analytics.js');
 
 // Track time_slow state changes and flash animations
 let wasTimeSlowActive = false;
@@ -182,6 +183,10 @@ function trySpawnPowerup(powerups, frameCount, bombCount = 0) {
   };
   powerups.push(powerup);
   lastSpawnTime = frameCount;
+  
+  // Track powerup spawn
+  analytics.trackPowerupSpawned(type);
+  
   return powerup;
 }
 
@@ -233,6 +238,8 @@ function pickupPowerup(powerup, powerups, index, activePowerups, gameState) {
   // If inventory is full, trigger immediately
   if (isInventoryFull()) {
     activatePowerup(powerup.type, activePowerups, gameState);
+    // Track powerup collected (auto-used when inventory full)
+    analytics.trackPowerupCollected(powerup.type, 'auto');
     // Remove from flying powerups
     removePowerupBadge(powerup);
     powerups.splice(index, 1);
@@ -243,6 +250,8 @@ function pickupPowerup(powerup, powerups, index, activePowerups, gameState) {
   const success = addPowerupToInventory(powerup.type, powerup.x, powerup.y);
   
   if (success) {
+    // Track powerup collected (to inventory)
+    analytics.trackPowerupCollected(powerup.type, 'inventory');
     // Remove from flying powerups
     removePowerupBadge(powerup);
     powerups.splice(index, 1);

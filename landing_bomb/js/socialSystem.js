@@ -2,6 +2,7 @@
 // Features: Friend Leaderboard, Share to Revive, Daily High Score
 
 const { getScore, getHighScore, setScore } = require('./gameState.js');
+const analytics = require('./analytics.js');
 
 // Wave getter - will be set dynamically
 let getCurrentWaveFn = null;
@@ -181,6 +182,9 @@ function showFriendRank() {
     });
     console.log('Friend rank display triggered');
     
+    // Track leaderboard view
+    analytics.trackLeaderboardView('friends');
+    
     // Add touch listener to close leaderboard
     if (!leaderboardTouchListener) {
       leaderboardTouchListener = () => {
@@ -227,6 +231,9 @@ function shareGame(from = 'menu') {
   } else if (highScore > 0) {
     title = `我的最高分是${highScore}，来比比看！`;
   }
+  
+  // Track share event
+  analytics.trackShare(from, score);
   
   wx.shareAppMessage({
     title: title,

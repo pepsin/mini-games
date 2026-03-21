@@ -1,6 +1,7 @@
 // Slingshot Skin Gallery UI
 const { W, H, sx, sy, ss } = require('./config.js');
 const { getAllSkins, getCurrentSkinId, setCurrentSkin, isSkinUnlocked } = require('./slingshotSkinSystem.js');
+const analytics = require('./analytics.js');
 
 // Gallery state
 let isGalleryOpen = false;
@@ -61,6 +62,8 @@ function handleGalleryTouch(x, y) {
       if (isSkinUnlocked(skins[i].id)) {
         selectedSkin = skins[i].id;
         setCurrentSkin(skins[i].id);
+        // Track skin change
+        analytics.trackSkinChanged(skins[i].id);
       }
       return true;
     }

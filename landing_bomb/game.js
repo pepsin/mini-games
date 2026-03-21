@@ -13,6 +13,9 @@ const { W, H, updateScale, isDevTools } = config;
 const { loadResources, getResource } = require('./js/resources.js');
 const { animationLoader } = require('./js/animationLoader.js');
 
+// Analytics
+const analytics = require('./js/analytics.js');
+
 // Game state - direct array exports
 const {
   resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives,
@@ -107,6 +110,9 @@ updateScale();
 
 // Initialize game
 function init() {
+  // Track game load start time
+  const loadStartTime = Date.now();
+
   // Initialize clouds
   const initialClouds = initClouds();
   clouds.push(...initialClouds);
@@ -119,6 +125,10 @@ function init() {
   loadResources().then(() => {
     console.log('Resources loaded, starting game');
     updateSlingshotPosition();
+
+    // Track game load performance
+    const loadTime = Date.now() - loadStartTime;
+    analytics.trackGameLoaded(loadTime);
   });
 
   // Setup input callbacks
@@ -132,6 +142,7 @@ function init() {
       resetReviveStatus();
       startWave(1);
       triggerWaveAnnounce(1);
+      analytics.trackGameStart(1);
     },
     onGameReset: () => {
       resetGame();
@@ -143,6 +154,7 @@ function init() {
       resetReviveStatus();
       startWave(1);
       triggerWaveAnnounce(1);
+      analytics.trackGameStart(1);
     },
     onFire: (proj) => {
       if (proj) projectiles.push(proj);
@@ -154,10 +166,12 @@ function init() {
     onRevive: () => {
       // Revive player: revive only one flower, clear bombs, and prepare for next wave
       let revived = false;
+      let revivedIndex = -1;
       for (let i = 0; i < 4; i++) {
         if (!flowerAlive[i] && !revived) {
           flowerAlive[i] = true;
           revived = true;
+          revivedIndex = i;
         } else if (flowerAlive[i]) {
           // Kill all other flowers, keep only one alive
           flowerAlive[i] = false;
@@ -170,6 +184,8 @@ function init() {
       setLives(1);
       setGameOver(false);
       setGamePaused(true);
+      // Track flower revival
+      analytics.trackFlowerRevived(1);
       console.log('Player revived with one flower! Bombs cleared. Next wave ready when player continues.');
     },
     onResume: () => {
@@ -453,6 +469,9 @@ function update() {
       bombs.push(rightBomb);
     }
 
+    // Track bomb defeat
+    analytics.trackBombDefeated(bomb.bombType || 'normal', projectile.hits, popup.totalScore);
+
     // Create explosion effect for destroyed bomb
     explosions.push(createExplosion(bomb.x, bomb.y, bomb.bombType));
 
@@ -473,6 +492,9 @@ function update() {
     if (challengeComplete && challengeComplete.completed) {
       // Kill streak fulfilled - give reward immediately
       handleChallengeReward(challengeComplete.reward);
+      
+      // Track challenge completed
+      analytics.trackChallengeCompleted(challengeComplete.type, challengeComplete.reward ? challengeComplete.reward.type : 'none');
     }
 
     // Try to spawn powerup on kill (pass bomb count for priority adjustment)
@@ -483,7 +505,8 @@ function update() {
       const droppedSkin = tryDropSkin();
       if (droppedSkin) {
         unlockSkin(droppedSkin);
-        // TODO: Show skin unlock notification
+        // Track skin unlock
+        analytics.trackSkinUnlocked(droppedSkin, 'drop');
         console.log(`Unlocked skin: ${droppedSkin}`);
       }
     }

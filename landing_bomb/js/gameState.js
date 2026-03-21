@@ -3,6 +3,7 @@
 const { GROUND_Y, FLOWER_CONFIG } = require('./config.js');
 const { getResource } = require('./resources.js');
 const { resetSpawnTimer } = require('./powerupSystem.js');
+const analytics = require('./analytics.js');
 
 // Game state variables
 let score = 0;
@@ -100,10 +101,23 @@ function damageFlower(index) {
   if (index >= 0 && index < 4 && flowerAlive[index]) {
     flowerAlive[index] = false;
     lives--;
+    
+    // Track flower damage
+    analytics.trackFlowerDamaged(lives, index);
+    
     if (lives <= 0) {
       lives = 0;
       gameOver = true;
       saveHighScore();
+      
+      // Track game over
+      const currentWave = require('./waveSystem.js').getCurrentWave();
+      analytics.trackGameEnd({
+        score: score,
+        wave: currentWave,
+        livesRemaining: 0,
+        reason: 'game_over'
+      });
     }
     return true;
   }
