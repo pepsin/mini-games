@@ -177,13 +177,13 @@ function drawSlotButton(ctx, x, y, type, slotIndex, frameCount) {
 
   // 按钮背景（使用圆角矩形）
   ctx.fillStyle = '#ffffff';
-  drawRoundedRect(ctx, px, py, size, size, ss(8));
+  drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.fill();
 
   // 边框
   ctx.strokeStyle = def.color;
   ctx.lineWidth = ss(3);
-  drawRoundedRect(ctx, px, py, size, size, ss(8));
+  drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.stroke();
 
   // 绘制道具图标
@@ -211,14 +211,14 @@ function drawEmptySlot(ctx, x, y) {
   
   // 半透明背景
   ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-  drawRoundedRect(ctx, px, py, size, size, ss(8));
+  drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.fill();
   
   // 虚线边框
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
   ctx.lineWidth = ss(2);
   ctx.setLineDash([ss(4), ss(4)]);
-  drawRoundedRect(ctx, px, py, size, size, ss(8));
+  drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.stroke();
   ctx.setLineDash([]);
   

@@ -28,7 +28,7 @@ function drawUI(ctx) {
   roundedRect()
     .position(pauseButtonX, pauseButtonY)
     .size(pauseButtonSize, pauseButtonSize)
-    .cornerRadius(8)
+    .cornerRadius(12)
     .background('#ffffff55')
     .border(2, '#444')
     .draw(ctx);
@@ -68,7 +68,7 @@ function drawUI(ctx) {
   roundedRect()
     .position(scorePanelX, pauseButtonY)
     .size(scorePanelWidth, pauseButtonSize)
-    .cornerRadius(8)
+    .cornerRadius(12)
     .background('#ffffff55')
     .border(2, '#444')
     .draw(ctx);
