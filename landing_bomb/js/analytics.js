@@ -300,16 +300,25 @@ class AnalyticsManager {
     // Process batched events
     while (this.eventQueue.length > 0) {
       const event = this.eventQueue.shift();
-      this.sendToAdapters(event.name, event.data);
+      try {
+        this.sendToAdapters(event.name, event.data, event.eventTimestamp);
+      } catch (e) {
+        if (ANALYTICS_CONFIG.debug) {
+          console.warn('[Analytics] Failed to send event:', event.name, e);
+        }
+      }
     }
   }
   
-  sendToAdapters(eventName, data) {
+  sendToAdapters(eventName, data, eventTimestamp) {
+    // Use provided timestamp or current time
+    const timestamp = eventTimestamp || Date.now();
+    
     // Add common data
     const enrichedData = {
       ...data,
-      timestamp: Date.now(),
-      session_duration: Math.floor((Date.now() - this.sessionStartTime) / 1000),
+      timestamp: timestamp,
+      session_duration: Math.floor((timestamp - this.sessionStartTime) / 1000),
     };
     
     this.adapters.forEach(adapter => {
@@ -327,8 +336,8 @@ class AnalyticsManager {
     if (!ANALYTICS_CONFIG.enabled) return;
     
     if (ANALYTICS_CONFIG.batchEvents) {
-      // Add to queue for batching
-      this.eventQueue.push({ name: eventName, data });
+      // Add to queue for batching with timestamp at creation time
+      this.eventQueue.push({ name: eventName, data, eventTimestamp: Date.now() });
       
       // Flush immediately if queue is full
       if (this.eventQueue.length >= ANALYTICS_CONFIG.maxBatchSize) {
@@ -360,14 +369,15 @@ class AnalyticsManager {
   
   // ============== GAME SPECIFIC TRACKING ==============
   
-  trackGameStart(wave = 1) {
+  trackGameStart(wave = 1, currentScore = 0) {
     this.gameStartTime = Date.now();
     this.bombsDefeated = 0;
-    this.scoreAtGameStart = 0;
+    this.scoreAtGameStart = currentScore;
     this.currentWave = wave;
     
     this.track(EVENTS.GAME_START, {
       starting_wave: wave,
+      score_at_start: currentScore,
     });
   }
   
@@ -559,7 +569,7 @@ module.exports = {
   trackPerformance: (id, value, dimensions) => getAnalytics().trackPerformance(id, value, dimensions),
   
   // Game lifecycle
-  trackGameStart: (wave) => getAnalytics().trackGameStart(wave),
+  trackGameStart: (wave, currentScore) => getAnalytics().trackGameStart(wave, currentScore),
   trackGameEnd: (params) => getAnalytics().trackGameEnd(params),
   
   // Progression
