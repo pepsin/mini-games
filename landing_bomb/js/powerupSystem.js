@@ -602,5 +602,6 @@ module.exports = {
   updateFlashAnimations,
   drawBombFlash,
   getBombFlashAnimations,
-  getPowerupImage
+  getPowerupImage,
+  removePowerupBadge
 };
