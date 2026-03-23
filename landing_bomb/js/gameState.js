@@ -12,6 +12,7 @@ let lives = 4;
 let gameOver = false;
 let gameStarted = false;
 let gamePaused = false;
+let powerupSelecting = false; // New: powerup selection mode
 let frameCount = 0;
 let lastTime = Date.now();
 
@@ -148,6 +149,7 @@ function getLives() { return lives; }
 function isGameOver() { return gameOver; }
 function isGameStarted() { return gameStarted; }
 function isGamePaused() { return gamePaused; }
+function isPowerupSelecting() { return powerupSelecting; }
 function getFrameCount() { return frameCount; }
 function getLastTime() { return lastTime; }
 function getBombs() { return bombs; }
@@ -164,6 +166,7 @@ function addScore(val) { score += val; }
 function setGameOver(val) { gameOver = val; }
 function setGameStarted(val) { gameStarted = val; }
 function setGamePaused(val) { gamePaused = val; }
+function setPowerupSelecting(val) { powerupSelecting = val; }
 function setLastTime(val) { lastTime = val; }
 function incrementFrameCount() { frameCount++; }
 function setLives(val) { lives = val; }
@@ -176,13 +179,13 @@ module.exports = {
 
   // Getters
   getScore, getHighScore, getLives,
-  isGameOver, isGameStarted, isGamePaused,
+  isGameOver, isGameStarted, isGamePaused, isPowerupSelecting,
   getFrameCount, getLastTime,
   getBombs, getProjectiles, getExplosions, getScorePopups, getClouds,
   getFlowerAlive, getFlowerFrameIndices, getFlowerPositions,
 
   // Setters
-  setScore, addScore, setGameOver, setGameStarted, setGamePaused,
+  setScore, addScore, setGameOver, setGameStarted, setGamePaused, setPowerupSelecting,
   setLastTime, incrementFrameCount, setLives,
 
   // Actions

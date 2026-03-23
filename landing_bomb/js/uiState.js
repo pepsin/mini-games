@@ -20,4 +20,8 @@ function hitTest(name, gx, gy) {
   return gx >= b.x && gx <= b.x + b.width && gy >= b.y && gy <= b.y + b.height;
 }
 
-module.exports = { setButtonBounds, getButtonBounds, hitTest };
+function clearButtonBounds(name) {
+  delete buttonBounds[name];
+}
+
+module.exports = { setButtonBounds, getButtonBounds, hitTest, clearButtonBounds };

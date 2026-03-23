@@ -1,7 +1,7 @@
 // Input Handling Module
 
 const { W, H, toGame } = require('./config.js');
-const { isGameStarted, isGameOver, isGamePaused, setGamePaused, activePowerups } = require('./gameState.js');
+const { isGameStarted, isGameOver, isGamePaused, setGamePaused, isPowerupSelecting, activePowerups } = require('./gameState.js');
 const { createProjectile } = require('./entities/projectile.js');
 const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
@@ -10,6 +10,7 @@ const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = requ
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { hitTestInventory } = require('./powerupInventory.js');
 const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
+const { handleSelectorTouch } = require('./powerupSelector.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -89,6 +90,12 @@ function handleTouchStart(e) {
         gameCallbacks.onResume();
       }
     }
+    return;
+  }
+
+  // Check if powerup selector is active - handle selector button clicks
+  if (isPowerupSelecting()) {
+    handleSelectorTouch(gp.x, gp.y);
     return;
   }
 

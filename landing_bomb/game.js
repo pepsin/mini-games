@@ -18,8 +18,8 @@ const analytics = require('./js/analytics.js');
 
 // Game state - direct array exports
 const {
-  resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives,
-  getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused,
+  resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives, setPowerupSelecting,
+  getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused, isPowerupSelecting,
   getFlowerPositions, damageFlower, healFlower, hasDeadFlower,
   bombs, projectiles, explosions, scorePopups, clouds,
   powerups, activePowerups, powerupBursts,
@@ -47,8 +47,14 @@ const {
 // Powerup inventory system
 const {
   resetInventory, updateFlyingPowerups, drawInventorySlots, drawFlyingPowerups,
-  usePowerupFromInventory, hitTestInventory
+  usePowerupFromInventory, hitTestInventory, isInventoryFull, addPowerupToInventory
 } = require('./js/powerupInventory.js');
+
+// Powerup selector system (slot machine style)
+const {
+  initPowerupSelector, startPowerupSelection, updatePowerupSelector,
+  drawPowerupSelector, closePowerupSelector
+} = require('./js/powerupSelector.js');
 
 // Challenge system
 const {
@@ -116,6 +122,9 @@ function init() {
   // Initialize clouds
   const initialClouds = initClouds();
   clouds.push(...initialClouds);
+
+  // Initialize powerup selector
+  initPowerupSelector();
 
   // Initialize social system
   initSocialSystem();
@@ -258,7 +267,7 @@ function handleChallengeReward(reward) {
 
 // Update game logic
 function update() {
-  if (isGameOver() || !isGameStarted() || isGamePaused()) return;
+  if (isGameOver() || !isGameStarted() || isGamePaused() || isPowerupSelecting()) return;
 
   const currentTime = Date.now();
   const deltaTime = currentTime - getLastTime();
@@ -408,8 +417,37 @@ function update() {
   collisionDetector.checkProjectilePowerupCollisions((projectile, projId, powerup, powerupId) => {
     const powerupIndex = powerups.indexOf(powerup);
     if (powerupIndex >= 0) {
-      const gameState = { healFlower, explodeAllBombs };
-      pickupPowerup(powerup, powerups, powerupIndex, activePowerups, gameState);
+      // Start powerup selection (slot machine style)
+      const started = startPowerupSelection((result) => {
+        // Callback when selection is complete
+        if (result.action === 'use') {
+          // Use immediately
+          const gameState = { healFlower, explodeAllBombs };
+          activatePowerup(result.type, activePowerups, gameState);
+          // Track analytics
+          const analytics = require('./js/analytics.js');
+          analytics.trackPowerupCollected(result.type, 'use_now');
+        } else {
+          // Store in inventory
+          const { addPowerupToInventory } = require('./js/powerupInventory.js');
+          const success = addPowerupToInventory(result.type, W / 2, H / 2);
+          if (success) {
+            const analytics = require('./js/analytics.js');
+            analytics.trackPowerupCollected(result.type, 'inventory');
+          }
+        }
+        // Resume game
+        setPowerupSelecting(false);
+      });
+
+      if (started) {
+        // Remove the powerup from the game
+        const { removePowerupBadge } = require('./js/powerupSystem.js');
+        removePowerupBadge(powerup);
+        powerups.splice(powerupIndex, 1);
+        // Pause game for selection
+        setPowerupSelecting(true);
+      }
     }
   });
   
@@ -544,6 +582,9 @@ function update() {
       powerupBursts.splice(i, 1);
     }
   }
+
+  // Update powerup selector animation
+  updatePowerupSelector();
 }
 
 // Draw everything
@@ -641,6 +682,11 @@ function draw() {
   // Skin gallery (drawn on top of everything)
   if (isGalleryVisible()) {
     drawGallery(ctx);
+  }
+
+  // Powerup selector overlay (drawn on top of everything when active)
+  if (isPowerupSelecting()) {
+    drawPowerupSelector(ctx, canvas);
   }
 }
 
