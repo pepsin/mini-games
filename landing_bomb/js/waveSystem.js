@@ -162,8 +162,8 @@ function endWave() {
   // Track wave complete (use display wave for analytics consistency)
   const challengeSuccess = challengeResult && challengeResult.success;
   const challengeType = challengeResult ? challengeResult.type : null;
-  const displayWave = getDisplayWave(currentWave);
-  analytics.trackWaveComplete(displayWave, challengeSuccess, challengeType);
+  const completedDisplayWave = getDisplayWave(currentWave);
+  analytics.trackWaveComplete(completedDisplayWave, challengeSuccess, challengeType);
 
   console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
   return challengeResult;
