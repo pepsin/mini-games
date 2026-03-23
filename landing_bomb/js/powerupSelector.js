@@ -94,6 +94,15 @@ function getPowerupImage(type) {
 function updatePowerupSelector() {
   if (!isSelecting) return;
   
+  // If result is shown, stop switching and keep showing final icon
+  if (selectorState.isFinished && selectorState.resultShown) {
+    // Just update badge animation (glow effect)
+    if (selectorState.badge) {
+      selectorState.badge.update();
+    }
+    return;
+  }
+  
   const now = Date.now();
   const elapsed = now - selectorState.animationStartTime;
   
@@ -112,7 +121,7 @@ function updatePowerupSelector() {
     }
   }
   
-  // Switch powerup type
+  // Switch powerup type (only when result not shown yet)
   if (now - selectorState.lastSwitchTime >= selectorState.switchInterval) {
     selectorState.currentIndex = (selectorState.currentIndex + 1) % selectorState.types.length;
     selectorState.currentType = selectorState.types[selectorState.currentIndex];
@@ -132,6 +141,13 @@ function updatePowerupSelector() {
     selectorState.isFinished = true;
     selectorState.finalType = selectorState.currentType;
     selectorState.resultShown = true;
+    // Ensure badge shows final image
+    const def = POWERUP_TYPES[selectorState.finalType];
+    const img = getPowerupImage(selectorState.finalType);
+    if (img && img.width > 0) {
+      selectorState.badge.image = img;
+    }
+    selectorState.badge.color = def.color;
   }
   
   // Update badge animation

@@ -179,7 +179,11 @@ function trySpawnPowerup(powerups, frameCount, bombCount = 0) {
     baseX: baseX,
     phase: Math.random() * Math.PI * 2,
     glowPhase: 0,
-    trail: []
+    trail: [],
+    // For icon cycling animation
+    displayType: type,
+    iconSwitchTimer: 0,
+    iconSwitchInterval: 10 // Switch every 10 frames (~166ms)
   };
   powerups.push(powerup);
   lastSpawnTime = frameCount;
@@ -192,12 +196,24 @@ function trySpawnPowerup(powerups, frameCount, bombCount = 0) {
 
 // Update all flying powerups
 function updatePowerups(powerups, frameCount) {
+  const types = Object.keys(POWERUP_TYPES);
+  
   for (let i = powerups.length - 1; i >= 0; i--) {
     const p = powerups[i];
     p.y += p.vy;
     p.phase += 0.05;
     p.x = p.baseX + Math.sin(p.phase) * 30;
     p.glowPhase += 0.08;
+
+    // Cycle through icon types randomly
+    p.iconSwitchTimer++;
+    if (p.iconSwitchTimer >= p.iconSwitchInterval) {
+      p.iconSwitchTimer = 0;
+      // Randomly select next display type
+      p.displayType = types[Math.floor(Math.random() * types.length)];
+      // Remove cached badge to force recreation with new image
+      removePowerupBadge(p);
+    }
 
     // Add trail particle
     p.trail.push({
@@ -341,9 +357,12 @@ const powerupBadges = new Map();
 
 // Get or create ElectricBadge for a powerup
 function getOrCreateBadge(powerup) {
+  // Use displayType for visual representation
+  const displayType = powerup.displayType || powerup.type;
+  
   if (!powerupBadges.has(powerup)) {
-    const def = POWERUP_TYPES[powerup.type];
-    const img = getPowerupImage(powerup.type);
+    const def = POWERUP_TYPES[displayType];
+    const img = getPowerupImage(displayType);
     
     // Create badge with demo.html settings
     const badge = new ElectricBadge({
@@ -371,7 +390,9 @@ function removePowerupBadge(powerup) {
 
 // Draw a flying powerup
 function drawPowerup(ctx, p, frameCount = 0) {
-  const def = POWERUP_TYPES[p.type];
+  // Use displayType for visual representation (cycles randomly), actual type for collision
+  const displayType = p.displayType || p.type;
+  const def = POWERUP_TYPES[displayType];
   const px = sx(p.x), py = sy(p.y), r = ss(p.radius);
 
   // Draw trail particles
@@ -385,7 +406,7 @@ function drawPowerup(ctx, p, frameCount = 0) {
   ctx.globalAlpha = 1;
 
   // Use ElectricBadge to draw the powerup icon
-  const img = getPowerupImage(p.type);
+  const img = getPowerupImage(displayType);
   if (img && img.width > 0) {
     const badge = getOrCreateBadge(p);
     // Update badge position and draw
@@ -400,7 +421,7 @@ function drawPowerup(ctx, p, frameCount = 0) {
     ctx.font = `${ss(14)}px Arial`;
     ctx.fillStyle = '#FFFFFF';
 
-    switch (p.type) {
+    switch (displayType) {
       case 'time_slow':
         drawIce(ctx, px, py, r);
         break;
