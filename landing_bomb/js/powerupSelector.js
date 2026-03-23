@@ -71,7 +71,7 @@ function startPowerupSelection(callback) {
     radiusX: 72, // 24 * 3
     radiusY: 72,
     x: W / 2,
-    y: H / 2 - 40,
+    y: H / 3, // Position at 1/3 of screen height
     imageWidth: 120, // 40 * 3
     imageHeight: 120,
     coverRadius: 0.2,
@@ -178,26 +178,31 @@ function drawPowerupSelector(ctx, canvas) {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Draw the large powerup badge (highest z-index)
+  // Draw the large powerup badge (highest z-index) - at 1/3 of screen height
+  const badgeY = H / 3;
   if (selectorState.badge) {
-    selectorState.badge.setPosition(sx(W / 2), sy(H / 2 - 40));
+    selectorState.badge.setPosition(sx(W / 2), sy(badgeY));
     selectorState.badge.draw(ctx);
   }
   
   // Draw result UI if finished
   if (selectorState.isFinished && selectorState.resultShown) {
-    drawSelectorResult(ctx);
+    drawSelectorResult(ctx, badgeY);
   }
 }
 
 // Draw the result with buttons
-function drawSelectorResult(ctx) {
+function drawSelectorResult(ctx, badgeY) {
   const def = POWERUP_TYPES[selectorState.finalType];
   const description = POWERUP_DESCRIPTIONS[selectorState.finalType];
   
+  // Position panel 18px below the badge icon
+  // Badge has radiusY of 72, so bottom of badge is at badgeY + 72
+  const panelY = badgeY + 72 + 18;
+  
   // Create result panel
   const panel = flexContainer()
-    .position((W - 280) / 2, H / 2 + 60)
+    .position((W - 280) / 2, panelY)
     .size(280, null)
     .direction('column')
     .justify('center')
