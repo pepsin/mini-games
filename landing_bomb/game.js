@@ -267,6 +267,9 @@ function handleChallengeReward(reward) {
 
 // Update game logic
 function update() {
+  // Always update powerup selector (even when game is paused for selection)
+  updatePowerupSelector();
+  
   if (isGameOver() || !isGameStarted() || isGamePaused() || isPowerupSelecting()) return;
 
   const currentTime = Date.now();
@@ -590,9 +593,6 @@ function update() {
       powerupBursts.splice(i, 1);
     }
   }
-
-  // Update powerup selector animation
-  updatePowerupSelector();
 }
 
 // Draw everything

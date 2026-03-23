@@ -62,8 +62,11 @@ function startPowerupSelection(callback) {
   const def = POWERUP_TYPES[selectorState.currentType];
   const img = getPowerupImage(selectorState.currentType);
   
+  // Create placeholder if image not loaded yet
+  const badgeImage = img && img.width > 0 ? img : null;
+  
   selectorState.badge = new ElectricBadge({
-    image: img,
+    image: badgeImage,
     color: def.color,
     radiusX: 72, // 24 * 3
     radiusY: 72,
@@ -118,7 +121,9 @@ function updatePowerupSelector() {
     // Update badge with new image
     const def = POWERUP_TYPES[selectorState.currentType];
     const img = getPowerupImage(selectorState.currentType);
-    selectorState.badge.image = img;
+    if (img && img.width > 0) {
+      selectorState.badge.image = img;
+    }
     selectorState.badge.color = def.color;
   }
   
