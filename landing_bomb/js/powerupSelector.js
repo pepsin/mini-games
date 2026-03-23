@@ -94,10 +94,17 @@ function getPowerupImage(type) {
 function updatePowerupSelector() {
   if (!isSelecting) return;
   
-  // If result is shown, stop switching and keep showing final icon
+  // If result is shown, ensure icon matches final type and stop
   if (selectorState.isFinished && selectorState.resultShown) {
-    // Just update badge animation (glow effect)
-    if (selectorState.badge) {
+    // Ensure the badge always shows the final type
+    if (selectorState.badge && selectorState.finalType) {
+      const def = POWERUP_TYPES[selectorState.finalType];
+      const img = getPowerupImage(selectorState.finalType);
+      // Force update the badge to match finalType
+      if (img && img.width > 0) {
+        selectorState.badge.image = img;
+      }
+      selectorState.badge.color = def.color;
       selectorState.badge.update();
     }
     return;
@@ -106,6 +113,27 @@ function updatePowerupSelector() {
   const now = Date.now();
   const elapsed = now - selectorState.animationStartTime;
   
+  // Check if animation should finish (after 1000ms total) - do this BEFORE switching
+  if (elapsed >= 1000 && !selectorState.isFinished) {
+    selectorState.isFinished = true;
+    selectorState.finalType = selectorState.currentType;
+    selectorState.resultShown = true;
+    // Ensure badge shows final image
+    const def = POWERUP_TYPES[selectorState.finalType];
+    const img = getPowerupImage(selectorState.finalType);
+    if (img && img.width > 0) {
+      selectorState.badge.image = img;
+    }
+    selectorState.badge.color = def.color;
+    
+    // Update badge animation
+    if (selectorState.badge) {
+      selectorState.badge.update();
+    }
+    return;
+  }
+  
+  // Only do switching if not finished yet
   // Check if we should start slowing down (after 600ms)
   if (!selectorState.isSlowingDown && elapsed > 600) {
     selectorState.isSlowingDown = true;
@@ -121,7 +149,7 @@ function updatePowerupSelector() {
     }
   }
   
-  // Switch powerup type (only when result not shown yet)
+  // Switch powerup type (only when not finished)
   if (now - selectorState.lastSwitchTime >= selectorState.switchInterval) {
     selectorState.currentIndex = (selectorState.currentIndex + 1) % selectorState.types.length;
     selectorState.currentType = selectorState.types[selectorState.currentIndex];
@@ -130,20 +158,6 @@ function updatePowerupSelector() {
     // Update badge with new image
     const def = POWERUP_TYPES[selectorState.currentType];
     const img = getPowerupImage(selectorState.currentType);
-    if (img && img.width > 0) {
-      selectorState.badge.image = img;
-    }
-    selectorState.badge.color = def.color;
-  }
-  
-  // Check if animation should finish (after 1000ms total)
-  if (elapsed >= 1000 && !selectorState.isFinished) {
-    selectorState.isFinished = true;
-    selectorState.finalType = selectorState.currentType;
-    selectorState.resultShown = true;
-    // Ensure badge shows final image
-    const def = POWERUP_TYPES[selectorState.finalType];
-    const img = getPowerupImage(selectorState.finalType);
     if (img && img.width > 0) {
       selectorState.badge.image = img;
     }
