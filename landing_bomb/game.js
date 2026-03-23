@@ -412,9 +412,17 @@ function update() {
   
   // Perform collision detection using spatial partitioning
   const processedCollisions = new Set(); // Track processed projectile-bomb pairs
+  const processedPowerupCollisions = new Set(); // Track processed projectile-powerup pairs
   
   // Check projectile-powerup collisions
   collisionDetector.checkProjectilePowerupCollisions((projectile, projId, powerup, powerupId) => {
+    // Check if this projectile has already hit this powerup
+    const collisionKey = `${projectile.id}_${powerupId}`;
+    if (processedPowerupCollisions.has(collisionKey)) {
+      return;
+    }
+    processedPowerupCollisions.add(collisionKey);
+    
     const powerupIndex = powerups.indexOf(powerup);
     if (powerupIndex >= 0) {
       // Start powerup selection (slot machine style)
