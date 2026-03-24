@@ -22,6 +22,14 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>This app needs access to documents to load game projects.</string>
+    <key>NSFileProviderDomainUsageDescription</key>
+    <string>This app needs access to files to load game projects.</string>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

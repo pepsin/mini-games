@@ -10,6 +10,7 @@
 		AA0000011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000021 /* AppDelegate.swift */; };
 		AA0000031 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000041 /* ViewController.swift */; };
 		AA0000051 /* WebViewBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000061 /* WebViewBridge.swift */; };
+		AA0000052 /* ProjectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000062 /* ProjectManager.swift */; };
 		AA0000071 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000081 /* Assets.xcassets */; };
 		AA0000091 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA00000A1 /* LaunchScreen.storyboard */; };
 		AA00000B1 /* WeChatMock.js in Resources */ = {isa = PBXBuildFile; fileRef = AA00000C1 /* WeChatMock.js */; };
@@ -21,6 +22,7 @@
 		AA0000021 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AA0000041 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		AA0000061 /* WebViewBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewBridge.swift; sourceTree = "<group>"; };
+		AA0000062 /* ProjectManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectManager.swift; sourceTree = "<group>"; };
 		AA0000081 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA00000A1 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AA00000C1 /* WeChatMock.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = WeChatMock.js; sourceTree = "<group>"; };
@@ -53,6 +55,7 @@
 				AA0000021 /* AppDelegate.swift */,
 				AA0000041 /* ViewController.swift */,
 				AA0000061 /* WebViewBridge.swift */,
+				AA0000062 /* ProjectManager.swift */,
 				AA0000111 /* Info.plist */,
 				AA0000081 /* Assets.xcassets */,
 				AA00000A1 /* LaunchScreen.storyboard */,
@@ -161,6 +164,7 @@
 				AA0000011 /* AppDelegate.swift in Sources */,
 				AA0000031 /* ViewController.swift in Sources */,
 				AA0000051 /* WebViewBridge.swift in Sources */,
+				AA0000052 /* ProjectManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,8 +17,9 @@ we-iOS-container/
     ├── weiOSContainer.xcodeproj/          # Xcode project
     └── weiOSContainer/
         ├── AppDelegate.swift              # App entry point
-        ├── ViewController.swift           # WKWebView setup
-        ├── WebViewBridge.swift            # Native bridges
+        ├── ViewController.swift           # WKWebView setup & UI
+        ├── WebViewBridge.swift            # Native bridges for WeChat APIs
+        ├── ProjectManager.swift           # File management & project loading
         ├── LaunchScreen.storyboard        # Launch screen
         ├── Assets.xcassets/               # App icons
         ├── Info.plist                     # App configuration
@@ -87,11 +88,25 @@ Resources/game/
 
 ## Development Workflow
 
-### Option 1: Static Bundle (Current)
+### Option 1: File Picker (Easiest)
+The app includes a file picker to load game projects from anywhere on your device:
+
+1. Tap **"Add Project"** button in the toolbar
+2. Choose **"Browse Files"**
+3. Select a folder containing your game files **or** a `.zip` file
+4. The app will copy the project and load it automatically
+
+**Supported formats:**
+- Folders containing game files
+- `.zip` archives (auto-extracted)
+
+The last loaded project is saved and will reload automatically when you reopen the app.
+
+### Option 2: Static Bundle
 The game files are bundled with the app. After making changes:
 1. Rebuild and run in Xcode
 
-### Option 2: Local Web Server (Recommended for development)
+### Option 3: Local Web Server (Recommended for development)
 Run a local HTTP server and point the WKWebView to it:
 
 ```swift
@@ -103,8 +118,18 @@ if let url = URL(string: "http://192.168.1.xxx:8080") {
 
 This allows instant updates without rebuilding the app.
 
-### Option 3: File Watching (Advanced)
+### Option 4: File Watching (Advanced)
 Set up a file watcher that copies changes to the app bundle and triggers a WebView reload.
+
+## Project Management
+
+### Loading Projects
+- **Add Project**: Import a new project from Files app
+- **Reload**: Refresh the current project
+- **Load Default**: Switch back to the bundled default game
+
+### Project Storage
+Imported projects are stored in the app's Documents/Projects directory and persist between app launches.
 
 ## Limitations
 
