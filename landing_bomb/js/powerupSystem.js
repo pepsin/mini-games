@@ -8,7 +8,7 @@ const analytics = require('./analytics.js');
 
 // Track time_slow state changes and flash animations
 let wasTimeSlowActive = false;
-const bombFlashAnimations = new Map(); // bomb -> { frame, maxFrames, type }
+const wasteFlashAnimations = new Map(); // waste -> { frame, maxFrames, type }
 
 // Flash animation constants
 const FLASH_MAX_FRAMES = 20;
@@ -37,20 +37,20 @@ function resetSpawnTimer() {
   lastSpawnTime = -Infinity;
 }
 
-// Get time_slow flash animations for bombs
-function getBombFlashAnimations() {
-  return bombFlashAnimations;
+// Get time_slow flash animations for wastes
+function getWasteFlashAnimations() {
+  return wasteFlashAnimations;
 }
 
 // Check if time_slow state changed and trigger flash animations
-function updateTimeSlowFlash(activePowerups, bombs) {
+function updateTimeSlowFlash(activePowerups, wastes) {
   const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');
   
-  // Time_slow just activated - add flash to all existing bombs
+  // Time_slow just activated - add flash to all existing wastes
   if (isTimeSlowActive && !wasTimeSlowActive) {
-    bombs.forEach(bomb => {
-      if (!bomb.exploding) {
-        bombFlashAnimations.set(bomb, {
+    wastes.forEach(waste => {
+      if (!waste.exploding) {
+        wasteFlashAnimations.set(waste, {
           frame: 0,
           maxFrames: FLASH_MAX_FRAMES,
           type: 'freeze'
@@ -59,11 +59,11 @@ function updateTimeSlowFlash(activePowerups, bombs) {
     });
   }
   
-  // Time_slow just ended - add flash to all existing bombs
+  // Time_slow just ended - add flash to all existing wastes
   if (!isTimeSlowActive && wasTimeSlowActive) {
-    bombs.forEach(bomb => {
-      if (!bomb.exploding) {
-        bombFlashAnimations.set(bomb, {
+    wastes.forEach(waste => {
+      if (!waste.exploding) {
+        wasteFlashAnimations.set(waste, {
           frame: 0,
           maxFrames: FLASH_MAX_FRAMES,
           type: 'unfreeze'
@@ -77,25 +77,25 @@ function updateTimeSlowFlash(activePowerups, bombs) {
 
 // Update flash animations
 function updateFlashAnimations() {
-  for (const [bomb, anim] of bombFlashAnimations.entries()) {
+  for (const [waste, anim] of wasteFlashAnimations.entries()) {
     anim.frame++;
     if (anim.frame >= anim.maxFrames) {
-      bombFlashAnimations.delete(bomb);
+      wasteFlashAnimations.delete(waste);
     }
   }
 }
 
-// Draw flash effect on a bomb
-function drawBombFlash(ctx, bomb, frameCount) {
-  const anim = bombFlashAnimations.get(bomb);
+// Draw flash effect on a waste
+function drawWasteFlash(ctx, waste, frameCount) {
+  const anim = wasteFlashAnimations.get(waste);
   if (!anim) return;
   
   const progress = anim.frame / anim.maxFrames;
   const alpha = Math.sin(progress * Math.PI) * 0.8; // Fade in then out
-  const radius = bomb.radius * FLASH_RADIUS_MULTIPLIER * (1 + progress * 0.3);
+  const radius = waste.radius * FLASH_RADIUS_MULTIPLIER * (1 + progress * 0.3);
   
-  const px = sx(bomb.x);
-  const py = sy(bomb.y);
+  const px = sx(waste.x);
+  const py = sy(waste.y);
   
   // Draw expanding light blue circle
   const gradient = ctx.createRadialGradient(px, py, 0, px, py, ss(radius));
@@ -134,17 +134,17 @@ function getPowerupImage(type) {
 }
 
 // Weighted random selection
-function randomPowerupType(bombCount = 0) {
+function randomPowerupType(wasteCount = 0) {
   const types = Object.keys(POWERUP_TYPES);
-  const isHighBombCount = bombCount > 40;
+  const isHighWasteCount = wasteCount > 40;
 
-  // When >40 bombs, prioritize explosive and shield
+  // When >40 wastes, prioritize explosive and shield
   let weights = {};
   for (const t of types) {
     weights[t] = POWERUP_TYPES[t].weight;
   }
 
-  if (isHighBombCount) {
+  if (isHighWasteCount) {
     // Double the weight of explosive and shield
     weights['explosive'] *= 2;
     weights['shield'] *= 2;
@@ -159,15 +159,15 @@ function randomPowerupType(bombCount = 0) {
   return types[types.length - 1];
 }
 
-// Try to spawn a powerup (called on bomb kill)
-function trySpawnPowerup(powerups, frameCount, bombCount = 0) {
+// Try to spawn a powerup (called on waste kill)
+function trySpawnPowerup(powerups, frameCount, wasteCount = 0) {
   // Only one powerup at a time
   if (powerups.length > 0) return null;
   // Minimum 10 second gap between powerups
   if (frameCount - lastSpawnTime < MIN_SPAWN_INTERVAL) return null;
   if (Math.random() > SPAWN_CHANCE) return null;
 
-  const type = randomPowerupType(bombCount);
+  const type = randomPowerupType(wasteCount);
   const baseX = 50 + Math.random() * (W - 100);
   const powerup = {
     x: baseX,
@@ -289,9 +289,9 @@ function activatePowerup(type, activePowerups, gameState) {
   }
 
   if (type === 'explosive') {
-    // Explosive is now instant: explode all bombs on screen
-    if (gameState.explodeAllBombs) {
-      gameState.explodeAllBombs();
+    // Explosive is now instant: explode all wastes on screen
+    if (gameState.explodeAllWastes) {
+      gameState.explodeAllWastes();
     }
     return;
   }
@@ -347,7 +347,7 @@ function consumePowerupUse(activePowerups, type) {
   return false;
 }
 
-// Get speed multiplier for bombs
+// Get speed multiplier for wastes
 function getSpeedMultiplier(activePowerups) {
   return isPowerupActive(activePowerups, 'time_slow') ? 0.5 : 1.0;
 }
@@ -621,8 +621,8 @@ module.exports = {
   resetSpawnTimer,
   updateTimeSlowFlash,
   updateFlashAnimations,
-  drawBombFlash,
-  getBombFlashAnimations,
+  drawWasteFlash,
+  getWasteFlashAnimations,
   getPowerupImage,
   removePowerupBadge
 };

@@ -17,7 +17,7 @@ let frameCount = 0;
 let lastTime = Date.now();
 
 // Entity arrays - exported directly for mutation
-const bombs = [];
+const wastes = [];
 const projectiles = [];
 const explosions = [];
 const scorePopups = [];
@@ -34,7 +34,7 @@ const flowerFrameIndices = [0, 1, 2, 3];
 
 // Load high score from storage
 try {
-  const savedHighScore = wx.getStorageSync('bobomb_highscore');
+  const savedHighScore = wx.getStorageSync('bowaste_highscore');
   if (savedHighScore !== '') {
     highScore = parseInt(savedHighScore) || 0;
   }
@@ -67,7 +67,7 @@ function resetGame() {
   flowerFrameIndices[3] = 3;
   
   // Clear entity arrays
-  bombs.length = 0;
+  wastes.length = 0;
   projectiles.length = 0;
   explosions.length = 0;
   scorePopups.length = 0;
@@ -88,7 +88,7 @@ function saveHighScore() {
   if (score > highScore) {
     highScore = score;
     try {
-      wx.setStorageSync('bobomb_highscore', highScore.toString());
+      wx.setStorageSync('bowaste_highscore', highScore.toString());
     } catch (e) {
       console.log('Failed to save high score:', e);
     }
@@ -152,7 +152,7 @@ function isGamePaused() { return gamePaused; }
 function isPowerupSelecting() { return powerupSelecting; }
 function getFrameCount() { return frameCount; }
 function getLastTime() { return lastTime; }
-function getBombs() { return bombs; }
+function getWastes() { return wastes; }
 function getProjectiles() { return projectiles; }
 function getExplosions() { return explosions; }
 function getScorePopups() { return scorePopups; }
@@ -173,7 +173,7 @@ function setLives(val) { lives = val; }
 
 module.exports = {
   // Arrays (direct export for mutation)
-  bombs, projectiles, explosions, scorePopups, clouds,
+  wastes, projectiles, explosions, scorePopups, clouds,
   powerups, activePowerups, powerupBursts,
   flowerAlive, flowerFrameIndices,
 
@@ -181,7 +181,7 @@ module.exports = {
   getScore, getHighScore, getLives,
   isGameOver, isGameStarted, isGamePaused, isPowerupSelecting,
   getFrameCount, getLastTime,
-  getBombs, getProjectiles, getExplosions, getScorePopups, getClouds,
+  getWastes, getProjectiles, getExplosions, getScorePopups, getClouds,
   getFlowerAlive, getFlowerFrameIndices, getFlowerPositions,
 
   // Setters

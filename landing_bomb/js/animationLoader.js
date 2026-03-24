@@ -22,7 +22,7 @@ class AnimationLoader {
 
   /**
    * 加载单个资源文件夹
-   * @param {string} folder - 资源文件夹名 (如 'bomb', 'flower')
+   * @param {string} folder - 资源文件夹名 (如 'waste', 'flower')
    * @param {string} partName - 可选，加载特定部件 (如 'inner', 'outer')
    * @returns {Promise<Object>} 资源对象
    */

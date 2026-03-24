@@ -36,7 +36,7 @@ const EVENTS = {
   WAVE_COMPLETE: 'wave_complete',
   
   // Gameplay
-  BOMB_DEFEATED: 'bomb_defeated',
+  Waste_DEFEATED: 'waste_defeated',
   FLOWER_DAMAGED: 'flower_damaged',
   FLOWER_REVIVED: 'flower_revived',
   
@@ -237,7 +237,7 @@ class AnalyticsManager {
     this.sessionStartTime = Date.now();
     this.gameStartTime = null;
     this.currentWave = 0;
-    this.bombsDefeated = 0;
+    this.wastesDefeated = 0;
     this.scoreAtGameStart = 0;
     this.eventQueue = [];
     this.batchTimer = null;
@@ -381,7 +381,7 @@ class AnalyticsManager {
   
   trackGameStart(wave = 1, currentScore = 0) {
     this.gameStartTime = Date.now();
-    this.bombsDefeated = 0;
+    this.wastesDefeated = 0;
     this.scoreAtGameStart = currentScore;
     this.currentWave = wave;
     
@@ -416,7 +416,7 @@ class AnalyticsManager {
       wave,
       lives_remaining: livesRemaining,
       duration_seconds: duration,
-      bombs_defeated: this.bombsDefeated,
+      wastes_defeated: this.wastesDefeated,
       reason,
     });
     
@@ -426,7 +426,7 @@ class AnalyticsManager {
     
     // Reset game tracking
     this.gameStartTime = null;
-    this.bombsDefeated = 0;
+    this.wastesDefeated = 0;
   }
   
   trackWaveStart(wave, waveType = 'normal') {
@@ -446,11 +446,11 @@ class AnalyticsManager {
     });
   }
   
-  trackBombDefeated(bombType, comboHits = 1, scoreGained = 0) {
-    this.bombsDefeated++;
+  trackWasteDefeated(wasteType, comboHits = 1, scoreGained = 0) {
+    this.wastesDefeated++;
     
-    this.track(EVENTS.BOMB_DEFEATED, {
-      bomb_type: bombType,
+    this.track(EVENTS.Waste_DEFEATED, {
+      waste_type: wasteType,
       combo_hits: comboHits,
       score_gained: scoreGained,
       wave: this.currentWave,
@@ -608,7 +608,7 @@ module.exports = {
   trackWaveComplete: (wave, success, type) => getAnalytics().trackWaveComplete(wave, success, type),
   
   // Gameplay
-  trackBombDefeated: (type, combo, score) => getAnalytics().trackBombDefeated(type, combo, score),
+  trackWasteDefeated: (type, combo, score) => getAnalytics().trackWasteDefeated(type, combo, score),
   trackFlowerDamaged: (lives, index) => getAnalytics().trackFlowerDamaged(lives, index),
   trackFlowerRevived: (lives) => getAnalytics().trackFlowerRevived(lives),
   

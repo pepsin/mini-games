@@ -397,11 +397,11 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
             .text('拖动弹弓瞄准,松开发射!', 15)
             .textStyle('#666', 15),
           flexItem()
-            .text('在炸弹落地前打穿它们!', 15)
+            .text('在垃圾落地前打穿它们!', 15)
             .textStyle('#666', 15)
         ) : flexItem().size(0, 0),
       
-      // Bomb icon (only show when not paused)
+      // Waste icon (only show when not paused)
       !isPaused ? flexItem()
         .size(40, 40)
         .render((ctx, x, y, w, h, scale) => {
@@ -409,7 +409,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           const cy = y + h / 2;
           const radius = 18 * scale;
           
-          // Bomb body
+          // Waste body
           ctx.beginPath();
           ctx.arc(cx, cy + 5 * scale, radius, 0, Math.PI * 2);
           ctx.fillStyle = '#333';

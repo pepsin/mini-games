@@ -18,11 +18,11 @@ let hasRevivedInCurrentGame = false;
 
 // Storage keys
 const STORAGE_KEYS = {
-  dailyHighScore: 'bobomb_daily_highscore',
-  dailyHighScoreDate: 'bobomb_daily_highscore_date',
-  lastReviveTime: 'bobomb_last_revive_time',
-  reviveCountToday: 'bobomb_revive_count_today',
-  leaderboardShared: 'bobomb_leaderboard_shared'
+  dailyHighScore: 'bowaste_daily_highscore',
+  dailyHighScoreDate: 'bowaste_daily_highscore_date',
+  lastReviveTime: 'bowaste_last_revive_time',
+  reviveCountToday: 'bowaste_revive_count_today',
+  leaderboardShared: 'bowaste_leaderboard_shared'
 };
 
 // Daily limits
@@ -222,7 +222,7 @@ function shareGame(from = 'menu') {
   const highScore = getHighScore();
   const dailyHigh = getDailyHighScore();
   
-  let title = '一起来护花 - 保护花朵，消灭炸弹！';
+  let title = '一起来护花 - 保护花朵，消灭垃圾！';
   
   if (score > 0) {
     title = `我在一起来护花中获得了${score}分，你能超过我吗？`;

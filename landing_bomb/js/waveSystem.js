@@ -12,14 +12,14 @@ let waveDuration = 600;
 let interWaveTimer = 0;
 let interWaveDuration = 120;
 let isInterWave = false;
-let bombsSpawnedThisWave = 0;
-let totalBombsThisWave = 0;
+let wastesSpawnedThisWave = 0;
+let totalWastesThisWave = 0;
 let nextSpawnTime = 0;
 let waveSpawnSchedule = [];
 
-// Special bomb tracking for waves 5, 10, 15, etc.
-let specialBombsSpawned = 0;
-let totalSpecialBombs = 0;
+// Special waste tracking for waves 5, 10, 15, etc.
+let specialWastesSpawned = 0;
+let totalSpecialWastes = 0;
 
 // Challenge announce state
 let challengeAnnounce = false;
@@ -43,7 +43,7 @@ function getWaveConfig(wave) {
     difficultyMultiplier = 2.45 + excess * 0.036;
   }
   
-  const bombsPerWave = Math.floor(5 + w * 0.18 + Math.pow(w / 50, 2) * 5);
+  const wastesPerWave = Math.floor(5 + w * 0.18 + Math.pow(w / 50, 2) * 5);
   const waveDurationFrames = Math.floor((8 + Math.min(w * 0.03, 2)) * 60);
   
   const minSpeed = 0.7 + w * 0.02 + Math.pow(w / 60, 2) * 0.8;
@@ -52,22 +52,22 @@ function getWaveConfig(wave) {
   
   const minRadius = Math.max(10, 16 - w * 0.04);
   const maxRadius = Math.max(14, 20 - w * 0.04);
-  const bombHealth = w >= 50 ? 1 + Math.floor((w - 50) / 25) : 1;
+  const wasteHealth = w >= 50 ? 1 + Math.floor((w - 50) / 25) : 1;
   
-  const specialBombChance = Math.max(0, (w - 10) * 0.005);
-  const clusterBombChance = w >= 20 ? Math.min(0.15, (w - 20) * 0.003) : 0;
+  const specialWasteChance = Math.max(0, (w - 10) * 0.005);
+  const clusterWasteChance = w >= 20 ? Math.min(0.15, (w - 20) * 0.003) : 0;
   
   return {
-    bombsPerWave,
+    wastesPerWave,
     waveDurationFrames,
     minSpeed,
     maxSpeed,
     maxSway,
     minRadius,
     maxRadius,
-    bombHealth,
-    specialBombChance,
-    clusterBombChance,
+    wasteHealth,
+    specialWasteChance,
+    clusterWasteChance,
     difficultyMultiplier
   };
 }
@@ -75,14 +75,14 @@ function getWaveConfig(wave) {
 // Calculate spawn times for wave
 function calculateSpawnTimes(config) {
   const spawnTimes = [];
-  const { bombsPerWave, waveDurationFrames } = config;
+  const { wastesPerWave, waveDurationFrames } = config;
   
-  if (bombsPerWave === 0) return spawnTimes;
+  if (wastesPerWave === 0) return spawnTimes;
   
   const safeDuration = waveDurationFrames - 60;
   
-  for (let i = 0; i < bombsPerWave; i++) {
-    const basePosition = (i + 1) / (bombsPerWave + 1);
+  for (let i = 0; i < wastesPerWave; i++) {
+    const basePosition = (i + 1) / (wastesPerWave + 1);
     const randomOffset = (Math.random() - 0.5) * 0.3;
     const position = Math.max(0.05, Math.min(0.95, basePosition + randomOffset));
     spawnTimes.push(Math.floor(position * safeDuration));
@@ -102,11 +102,11 @@ function isSpecialWave(wave) {
   return displayWave > 0 && displayWave % 5 === 0;
 }
 
-// Get special bomb spawn count for wave 5, 10, 15, etc. (based on display wave)
-function getSpecialBombCountForWave(wave) {
+// Get special waste spawn count for wave 5, 10, 15, etc. (based on display wave)
+function getSpecialWasteCountForWave(wave) {
   if (!isSpecialWave(wave)) return 0;
   const displayWave = getDisplayWave(wave);
-  // Base 2 bombs, increases by 1 every 5 waves, capped at 8
+  // Base 2 wastes, increases by 1 every 5 waves, capped at 8
   // Reduced to 1/3 of original volume
   const originalCount = Math.min(2 + Math.floor((displayWave - 5) / 5), 8);
   return Math.max(1, Math.floor(originalCount / 3));
@@ -120,21 +120,21 @@ function startWave(waveNum) {
   const config = getWaveConfig(waveNum);
 
   waveTimer = 0;
-  bombsSpawnedThisWave = 0;
-  totalBombsThisWave = config.bombsPerWave;
+  wastesSpawnedThisWave = 0;
+  totalWastesThisWave = config.wastesPerWave;
   waveSpawnSchedule = calculateSpawnTimes(config);
   nextSpawnTime = waveSpawnSchedule.length > 0 ? waveSpawnSchedule[0] : 0;
 
-  // Initialize special bomb tracking for waves 5, 10, 15, etc.
-  specialBombsSpawned = 0;
-  totalSpecialBombs = getSpecialBombCountForWave(waveNum);
+  // Initialize special waste tracking for waves 5, 10, 15, etc.
+  specialWastesSpawned = 0;
+  totalSpecialWastes = getSpecialWasteCountForWave(waveNum);
 
   // Track wave start (use display wave for analytics consistency with player experience)
   const waveType = isSpecialWave(waveNum) ? 'special' : 'normal';
   const displayWave = getDisplayWave(waveNum);
   analytics.trackWaveStart(displayWave, waveType);
 
-  console.log(`Wave ${waveNum} started: ${totalBombsThisWave} bombs, ${config.waveDurationFrames / 60}s duration${totalSpecialBombs > 0 ? `, ${totalSpecialBombs} special bombs` : ''}`);
+  console.log(`Wave ${waveNum} started: ${totalWastesThisWave} wastes, ${config.waveDurationFrames / 60}s duration${totalSpecialWastes > 0 ? `, ${totalSpecialWastes} special wastes` : ''}`);
 
   return config;
 }
@@ -176,18 +176,18 @@ function resetWaves() {
   interWaveTimer = 0;
   isInterWave = true;
   interWaveDuration = 180;
-  bombsSpawnedThisWave = 0;
-  totalBombsThisWave = 0;
+  wastesSpawnedThisWave = 0;
+  totalWastesThisWave = 0;
   waveSpawnSchedule = [];
-  specialBombsSpawned = 0;
-  totalSpecialBombs = 0;
+  specialWastesSpawned = 0;
+  totalSpecialWastes = 0;
   challengeAnnounce = false;
   challengeAnnounceTimer = 0;
   pendingChallenge = null;
 }
 
 // Update wave system
-function updateWaves(bombCount) {
+function updateWaves(wasteCount) {
   if (isInterWave) {
     interWaveTimer++;
 
@@ -209,22 +209,22 @@ function updateWaves(bombCount) {
     waveTimer++;
     const config = getWaveConfig(currentWave);
 
-    if (bombsSpawnedThisWave < waveSpawnSchedule.length &&
-        waveTimer >= waveSpawnSchedule[bombsSpawnedThisWave]) {
-      bombsSpawnedThisWave++;
+    if (wastesSpawnedThisWave < waveSpawnSchedule.length &&
+        waveTimer >= waveSpawnSchedule[wastesSpawnedThisWave]) {
+      wastesSpawnedThisWave++;
 
-      // Check if we should spawn a special bomb (for waves 5, 10, 15, etc.)
-      if (isSpecialWave(currentWave) && specialBombsSpawned < totalSpecialBombs) {
-        specialBombsSpawned++;
-        // Alternate between armored and dumbbell bombs
-        const bombType = specialBombsSpawned % 2 === 1 ? 'armored' : 'dumbbell';
-        return { action: 'spawn_special_bomb', bombType: bombType };
+      // Check if we should spawn a special waste (for waves 5, 10, 15, etc.)
+      if (isSpecialWave(currentWave) && specialWastesSpawned < totalSpecialWastes) {
+        specialWastesSpawned++;
+        // Alternate between armored and dumbbell wastes
+        const wasteType = specialWastesSpawned % 2 === 1 ? 'armored' : 'dumbbell';
+        return { action: 'spawn_special_waste', wasteType: wasteType };
       }
 
-      return { action: 'spawn_bomb' };
+      return { action: 'spawn_waste' };
     }
 
-    if (waveTimer >= config.waveDurationFrames && bombCount === 0) {
+    if (waveTimer >= config.waveDurationFrames && wasteCount === 0) {
       const challengeResult = endWave();
       return { action: 'wave_ended', challengeResult: challengeResult };
     }
@@ -272,7 +272,7 @@ module.exports = {
   isChallengeAnnouncing,
   getPendingChallenge,
   isSpecialWave,
-  getSpecialBombCountForWave,
+  getSpecialWasteCountForWave,
   getDisplayWave,
   getWaveChangeAnimationProgress
 };

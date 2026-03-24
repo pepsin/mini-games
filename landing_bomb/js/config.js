@@ -70,7 +70,7 @@ const COLOR_PALETTE = [
 
 // Resource color mapping
 const RESOURCE_COLORS = {
-  bomb: 0,        // CORAL
+  waste: 0,        // CORAL
   parachute: 4,   // CREAM
   flower: 5,      // PLUM
   cloud: 2,       // SKY

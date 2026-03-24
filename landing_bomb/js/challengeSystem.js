@@ -60,7 +60,7 @@ const CHALLENGE_TYPES = {
 let currentChallenge = null;
 let challengeResult = null; // { success: bool, reward, frame, maxFrames }
 let lastKillFrame = -999;
-let killProcessedThisFrame = false; // Prevent race condition between updateChallenge and onBombKilled
+let killProcessedThisFrame = false; // Prevent race condition between updateChallenge and onWasteKilled
 let streakTimeoutVisualFrame = -999; // Frame when streak timed out (for visual feedback)
 const KILL_STREAK_WINDOW = 90; // 1.5 seconds to maintain streak
 const STREAK_TIMEOUT_VISUAL_DURATION = 30; // Show timeout indicator for 0.5 seconds
@@ -114,9 +114,9 @@ function updateChallenge(frameCount) {
   }
 }
 
-// Notify challenge of a bomb kill
+// Notify challenge of a waste kill
 // Returns { completed: true, reward } if kill_streak challenge is fulfilled immediately
-function onBombKilled(frameCount) {
+function onWasteKilled(frameCount) {
   if (!currentChallenge || currentChallenge.failed) return false;
 
   if (currentChallenge.type === 'kill_n_in_time') {
@@ -404,7 +404,7 @@ module.exports = {
   getCurrentChallenge,
   getChallengeResult,
   updateChallenge,
-  onBombKilled,
+  onWasteKilled,
   onFlowerDamaged,
   completeChallenge,
   updateChallengeResult,

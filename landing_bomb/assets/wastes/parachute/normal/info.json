@@ -1,7 +1,7 @@
 {
   "name": "parachute_normal",
   "type": "static",
-  "description": "普通炸弹降落伞",
+  "description": "普通垃圾降落伞",
   "file": "parachute.png",
   "size": {
     "width": 132,

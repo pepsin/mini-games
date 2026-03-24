@@ -21,7 +21,7 @@ const {
   resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives, setPowerupSelecting,
   getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused, isPowerupSelecting,
   getFlowerPositions, damageFlower, healFlower, hasDeadFlower,
-  bombs, projectiles, explosions, scorePopups, clouds,
+  wastes, projectiles, explosions, scorePopups, clouds,
   powerups, activePowerups, powerupBursts,
   flowerAlive, flowerFrameIndices
 } = require('./js/gameState.js');
@@ -41,7 +41,7 @@ const {
   getSpeedMultiplier,
   drawPowerup, createPowerupBurst, drawPowerupBurst,
   drawShieldEffect, randomPowerupType,
-  updateTimeSlowFlash, updateFlashAnimations, drawBombFlash
+  updateTimeSlowFlash, updateFlashAnimations, drawWasteFlash
 } = require('./js/powerupSystem.js');
 
 // Powerup inventory system
@@ -58,7 +58,7 @@ const {
 
 // Challenge system
 const {
-  updateChallenge, onBombKilled, onFlowerDamaged,
+  updateChallenge, onWasteKilled, onFlowerDamaged,
   updateChallengeResult, resetChallenges, getCurrentChallenge
 } = require('./js/challengeSystem.js');
 
@@ -78,9 +78,8 @@ const {
   clearDrag, getDragCurrent, isDragging, getSlingshot, drawTrajectoryPrediction, SLING_CONFIG
 } = require('./js/entities/slingshot.js');
 const {
-  drawBomb, createBomb, updateBomb, clearBombFrozenImages,
-  BOMB_TYPES, isSpecialWave, getSpecialBombCountForWave
-} = require('./js/entities/bomb.js');
+  drawWaste, createWaste, updateWaste, clearWasteFrozenImages
+} = require('./js/entities/waste.js');
 const { drawProjectile, updateProjectile, isOutOfBounds } = require('./js/entities/projectile.js');
 // Collision System
 const { collisionDetector } = require('./js/systems/collisionSystem.js');
@@ -163,7 +162,7 @@ function init() {
       resetWaves();
       resetChallenges();
       resetInventory();
-      clearBombFrozenImages();
+      clearWasteFrozenImages();
       resetReviveStatus();
       startWave(1);
 
@@ -173,11 +172,11 @@ function init() {
       if (proj) projectiles.push(proj);
     },
     onInventoryClick: (slotIndex) => {
-      const gameState = { healFlower, explodeAllBombs };
+      const gameState = { healFlower, explodeAllWastes };
       usePowerupFromInventory(slotIndex, activePowerups, gameState);
     },
     onRevive: () => {
-      // Revive player: revive only one flower, clear bombs, and prepare for next wave
+      // Revive player: revive only one flower, clear wastes, and prepare for next wave
       let revived = false;
       let revivedIndex = -1;
       for (let i = 0; i < 4; i++) {
@@ -190,8 +189,8 @@ function init() {
           flowerAlive[i] = false;
         }
       }
-      // Clear all bombs for a clean start
-      bombs.length = 0;
+      // Clear all wastes for a clean start
+      wastes.length = 0;
       // Mark that we need to advance to next wave when player continues
       pendingWaveAdvance = true;
       setLives(1);
@@ -199,7 +198,7 @@ function init() {
       setGamePaused(true);
       // Track flower revival
       analytics.trackFlowerRevived(1);
-      console.log('Player revived with one flower! Bombs cleared. Next wave ready when player continues.');
+      console.log('Player revived with one flower! Wastes cleared. Next wave ready when player continues.');
     },
     onResume: () => {
       // Check if we need to advance to next wave after revive
@@ -217,26 +216,26 @@ function init() {
   setupInput();
 }
 
-// Explode all bombs on screen (for explosive powerup)
-function explodeAllBombs() {
+// Explode all wastes on screen (for explosive powerup)
+function explodeAllWastes() {
   const frameCount = getFrameCount();
-  const bombCount = bombs.length;
+  const wasteCount = wastes.length;
   
-  // Explode each bomb and give 100 score per bomb
-  for (let i = bombs.length - 1; i >= 0; i--) {
-    const b = bombs[i];
-    explosions.push(createExplosion(b.x, b.y, b.bombType));
-    bombs.splice(i, 1);
-    onBombKilled(frameCount);
+  // Explode each waste and give 100 score per waste
+  for (let i = wastes.length - 1; i >= 0; i--) {
+    const b = wastes[i];
+    explosions.push(createExplosion(b.x, b.y, b.wasteType));
+    wastes.splice(i, 1);
+    onWasteKilled(frameCount);
   }
   
-  // Add score: 100 points per bomb
-  if (bombCount > 0) {
-    addScore(bombCount * 100);
+  // Add score: 100 points per waste
+  if (wasteCount > 0) {
+    addScore(wasteCount * 100);
     // Create a big score popup
-    const popup = createScorePopup(W / 2, H / 2, bombCount);
-    popup.totalScore = bombCount * 100;
-    popup.text = `+${bombCount * 100}`;
+    const popup = createScorePopup(W / 2, H / 2, wasteCount);
+    popup.totalScore = wasteCount * 100;
+    popup.text = `+${wasteCount * 100}`;
     scorePopups.push(popup);
   }
 }
@@ -255,7 +254,7 @@ function handleChallengeReward(reward) {
   } else if (reward.type === 'powerup') {
     // Grant a random powerup directly
     const type = randomPowerupType();
-    activatePowerup(type, activePowerups, { healFlower, explodeAllBombs });
+    activatePowerup(type, activePowerups, { healFlower, explodeAllWastes });
   }
 }
 
@@ -275,7 +274,7 @@ function update() {
   const frameCount = getFrameCount();
 
   // Update animations
-  // Note: bomb animations removed - now using waste sprites instead
+  // Note: waste animations removed - now using waste sprites instead
 
   // Update flowers
   if (frameCount % 15 === 0) {
@@ -290,19 +289,19 @@ function update() {
   updateClouds(clouds);
 
   // Update wave system
-  const waveAction = updateWaves(bombs.length);
+  const waveAction = updateWaves(wastes.length);
   if (waveAction.action === 'start_wave') {
     startWave(waveAction.wave);
 
-  } else if (waveAction.action === 'spawn_bomb') {
+  } else if (waveAction.action === 'spawn_waste') {
     const waveConfig = getCurrentWaveConfig();
-    const bomb = createBomb(waveConfig, getCurrentWave());
-    bombs.push(bomb);
-  } else if (waveAction.action === 'spawn_special_bomb') {
-    // Spawn special bomb (armored or dumbbell) for waves 5, 10, 15, etc.
+    const waste = createWaste(waveConfig, getCurrentWave());
+    wastes.push(waste);
+  } else if (waveAction.action === 'spawn_special_waste') {
+    // Spawn special waste (armored or dumbbell) for waves 5, 10, 15, etc.
     const waveConfig = getCurrentWaveConfig();
-    const bomb = createBomb(waveConfig, getCurrentWave(), waveAction.bombType);
-    bombs.push(bomb);
+    const waste = createWaste(waveConfig, getCurrentWave(), waveAction.wasteType);
+    wastes.push(waste);
   } else if (waveAction.action === 'wave_ended') {
     // Handle challenge result reward
     if (waveAction.challengeResult && waveAction.challengeResult.success) {
@@ -314,7 +313,7 @@ function update() {
   updateActivePowerups(activePowerups);
 
   // Update time_slow flash animations
-  updateTimeSlowFlash(activePowerups, bombs);
+  updateTimeSlowFlash(activePowerups, wastes);
   updateFlashAnimations();
 
   // Update wave announce animation
@@ -327,27 +326,27 @@ function update() {
   // Get speed multiplier for time_slow
   const speedMult = getSpeedMultiplier(activePowerups);
 
-  // Update bombs and register with collision system
+  // Update wastes and register with collision system
   const flowerPositions = getFlowerPositions();
   const hasShield = isPowerupActive(activePowerups, 'shield');
   
   // Clear and rebuild collision system grids
   collisionDetector.clear();
   
-  // Update bombs and register for collision detection
-  for (let i = bombs.length - 1; i >= 0; i--) {
-    const bomb = bombs[i];
-    updateBomb(bomb, frameCount, speedMult);
+  // Update wastes and register for collision detection
+  for (let i = wastes.length - 1; i >= 0; i--) {
+    const waste = wastes[i];
+    updateWaste(waste, frameCount, speedMult);
 
     // Check ground collision
-    if (bomb.y > 820 - bomb.radius) {
+    if (waste.y > 820 - waste.radius) {
       if (hasShield) {
-        // Shield active: destroy bomb without damaging flowers
-        explosions.push(createExplosion(bomb.x, bomb.y, 'normal'));
-        bombs.splice(i, 1);
+        // Shield active: destroy waste without damaging flowers
+        explosions.push(createExplosion(waste.x, waste.y, 'normal'));
+        wastes.splice(i, 1);
       } else {
-        explosions.push(createGroundExplosion(bomb.x, 815));
-        bombs.splice(i, 1);
+        explosions.push(createGroundExplosion(waste.x, 815));
+        wastes.splice(i, 1);
 
         // Find nearest flower
         let closestIdx = -1;
@@ -355,7 +354,7 @@ function update() {
         for (let f = 0; f < 4; f++) {
           if (!flowerAlive[f]) continue;
           const pos = flowerPositions[f];
-          const dist = Math.abs(bomb.x - pos.x);
+          const dist = Math.abs(waste.x - pos.x);
           if (dist < 50 && dist < closestDist) {
             closestDist = dist;
             closestIdx = f;
@@ -367,11 +366,11 @@ function update() {
           onFlowerDamaged();
         }
       }
-      continue; // Skip registering destroyed bombs
+      continue; // Skip registering destroyed wastes
     }
     
-    // Register bomb with collision system
-    collisionDetector.registerBomb(bomb, `bomb_${i}`);
+    // Register waste with collision system
+    collisionDetector.registerWaste(waste, `waste_${i}`);
   }
 
   // Update flying powerups and register with collision system
@@ -399,7 +398,7 @@ function update() {
   }
   
   // Perform collision detection using spatial partitioning
-  const processedCollisions = new Set(); // Track processed projectile-bomb pairs
+  const processedCollisions = new Set(); // Track processed projectile-waste pairs
   const processedPowerupCollisions = new Set(); // Track processed projectile-powerup pairs
   
   // Check projectile-powerup collisions
@@ -418,7 +417,7 @@ function update() {
         // Callback when selection is complete
         if (result.action === 'use') {
           // Use immediately
-          const gameState = { healFlower, explodeAllBombs };
+          const gameState = { healFlower, explodeAllWastes };
           activatePowerup(result.type, activePowerups, gameState);
           // Track analytics
           const analytics = require('./js/analytics.js');
@@ -447,42 +446,42 @@ function update() {
     }
   });
   
-  // Check projectile-bomb collisions
-  collisionDetector.checkProjectileBombCollisions((projectile, projId, bomb, bombId) => {
-    // Check if this projectile has already hit this bomb
-    const collisionKey = `${projectile.id}_${bombId}`;
+  // Check projectile-waste collisions
+  collisionDetector.checkProjectileWasteCollisions((projectile, projId, waste, wasteId) => {
+    // Check if this projectile has already hit this waste
+    const collisionKey = `${projectile.id}_${wasteId}`;
     if (processedCollisions.has(collisionKey)) {
       return;
     }
     
-    if (bomb.hitByProjectiles && bomb.hitByProjectiles.includes(projectile.id)) {
+    if (waste.hitByProjectiles && waste.hitByProjectiles.includes(projectile.id)) {
       return; // Skip if already hit by this projectile
     }
     
     // Mark collision as processed
     processedCollisions.add(collisionKey);
     
-    // Record that this projectile has hit this bomb
-    if (!bomb.hitByProjectiles) {
-      bomb.hitByProjectiles = [];
+    // Record that this projectile has hit this waste
+    if (!waste.hitByProjectiles) {
+      waste.hitByProjectiles = [];
     }
-    bomb.hitByProjectiles.push(projectile.id);
+    waste.hitByProjectiles.push(projectile.id);
     
     projectile.hits = (projectile.hits || 0) + 1;
-    const popup = createScorePopup(bomb.x, bomb.y, projectile.hits);
+    const popup = createScorePopup(waste.x, waste.y, projectile.hits);
     scorePopups.push(popup);
     addScore(popup.totalScore);
 
-    // Track bomb defeat
-    analytics.trackBombDefeated(bomb.bombType || 'normal', projectile.hits, popup.totalScore);
+    // Track waste defeat
+    analytics.trackWasteDefeated(waste.wasteType || 'normal', projectile.hits, popup.totalScore);
 
-    // Create explosion effect for destroyed bomb
-    explosions.push(createExplosion(bomb.x, bomb.y, bomb.bombType));
+    // Create explosion effect for destroyed waste
+    explosions.push(createExplosion(waste.x, waste.y, waste.wasteType));
 
-    // Remove bomb from array
-    const bombIndex = bombs.indexOf(bomb);
-    if (bombIndex >= 0) {
-      bombs.splice(bombIndex, 1);
+    // Remove waste from array
+    const wasteIndex = wastes.indexOf(waste);
+    if (wasteIndex >= 0) {
+      wastes.splice(wasteIndex, 1);
     }
 
     // Screen shake feedback on hit (skip vibration in developer tools)
@@ -492,17 +491,17 @@ function update() {
     }
 
     // Notify challenge
-    const challengeComplete = onBombKilled(frameCount);
+    const challengeComplete = onWasteKilled(frameCount);
     if (challengeComplete && challengeComplete.completed) {
       // Kill streak fulfilled - give reward immediately
       // Challenge completion is tracked in completeChallenge() for consistency
       handleChallengeReward(challengeComplete.reward);
     }
 
-    // Try to spawn powerup on kill (pass bomb count for priority adjustment)
-    trySpawnPowerup(powerups, frameCount, bombs.length);
+    // Try to spawn powerup on kill (pass waste count for priority adjustment)
+    trySpawnPowerup(powerups, frameCount, wastes.length);
 
-    // Try to drop skin (5% chance on bomb kill)
+    // Try to drop skin (5% chance on waste kill)
     if (Math.random() < 0.05) {
       const droppedSkin = tryDropSkin();
       if (droppedSkin) {
@@ -603,11 +602,11 @@ function draw() {
   // Draw powerup burst effects
   powerupBursts.forEach(b => drawPowerupBurst(ctx, b));
 
-  // Bombs at top of z-index (drawn last among game entities)
+  // Wastes at top of z-index (drawn last among game entities)
   const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');
-  bombs.forEach(b => {
-    drawBomb(ctx, b, frameCount, isTimeSlowActive);
-    drawBombFlash(ctx, b, frameCount);
+  wastes.forEach(b => {
+    drawWaste(ctx, b, frameCount, isTimeSlowActive);
+    drawWasteFlash(ctx, b, frameCount);
   });
 
   // Wave announce arc

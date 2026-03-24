@@ -9,10 +9,10 @@ Assets are organized in the `assets/` folder with the following structure:
 ```
 assets/
 ├── background/           # Static background image
-├── bomb/                 # Bomb-related assets
-│   ├── bomb_normal/      # Normal bomb animation
-│   ├── bomb_shielded/    # Shielded bomb animation
-│   ├── bomb_twin/        # Twin/dumbbell bomb animation
+├── waste/                 # Waste-related assets
+│   ├── waste_normal/      # Normal waste animation
+│   ├── waste_shielded/    # Shielded waste animation
+│   ├── waste_twin/        # Twin/dumbbell waste animation
 │   ├── iced_box/         # Frozen overlay image (for time_slow effect)
 │   ├── bottom_shield/    # Shield powerup image
 │   └── parachute/        # Parachute image
@@ -29,9 +29,9 @@ assets/
 
 ### Folder Names
 
-- Use `snake_case` for folder names (e.g., `bomb_normal`, `iced_bomb`)
+- Use `snake_case` for folder names (e.g., `waste_normal`, `iced_waste`)
 - The folder name becomes the resource key used in code
-- Example: `assets/bomb/bomb_normal/` → `getResource('bomb_normal')`
+- Example: `assets/waste/waste_normal/` → `getResource('waste_normal')`
 
 ### Multi-Part Assets
 
@@ -58,7 +58,7 @@ Every asset folder must contain an `info.json` file that describes the asset.
 
 ```json
 {
-  "name": "bomb_normal",
+  "name": "waste_normal",
   "type": "animation",
   "description": "Human-readable description"
 }
@@ -72,13 +72,13 @@ For animated sprites using a single sprite sheet image:
 
 ```json
 {
-  "name": "bomb_normal",
+  "name": "waste_normal",
   "type": "animation",
-  "description": "Normal bomb animation",
+  "description": "Normal waste animation",
   "fps": 8,
   "loop": true,
   "spriteSheet": {
-    "file": "normal_bomb_sheet.png",
+    "file": "normal_waste_sheet.png",
     "frameWidth": 64,
     "frameHeight": 64,
     "frameDuration": 125
@@ -190,7 +190,7 @@ The resource system automatically:
 
 1. **Simple assets**: Folder name = resource key
    - `assets/cloud/` → `cloud`
-   - `assets/bomb/bomb_normal/` → `bomb_normal`
+   - `assets/waste/waste_normal/` → `waste_normal`
 
 2. **Multi-part assets**: `{folder}_{part}`
    - `sun` folder + `inner` part → `sun_inner`
@@ -209,21 +209,21 @@ No code changes needed in `resources.js`!
 
 ## Examples
 
-### Adding a New Bomb Type
+### Adding a New Waste Type
 
-1. Create folder: `assets/bomb/bomb_ice/`
-2. Add sprite sheet: `assets/bomb/bomb_ice/ice_bomb_sheet.png`
-3. Create `assets/bomb/bomb_ice/info.json`:
+1. Create folder: `assets/waste/waste_ice/`
+2. Add sprite sheet: `assets/waste/waste_ice/ice_waste_sheet.png`
+3. Create `assets/waste/waste_ice/info.json`:
 
 ```json
 {
-  "name": "bomb_ice",
+  "name": "waste_ice",
   "type": "animation",
-  "description": "Ice bomb that slows time",
+  "description": "Ice waste that slows time",
   "fps": 8,
   "loop": true,
   "spriteSheet": {
-    "file": "ice_bomb_sheet.png",
+    "file": "ice_waste_sheet.png",
     "frameWidth": 64,
     "frameHeight": 64,
     "frameDuration": 125
@@ -239,7 +239,7 @@ No code changes needed in `resources.js`!
 }
 ```
 
-4. Use in code: `getResource('bomb_ice')`
+4. Use in code: `getResource('waste_ice')`
 
 ### Adding a New Powerup
 

@@ -149,16 +149,16 @@ class SpatialGrid {
 class CollisionDetector {
   constructor() {
     // Separate grids for different entity types to optimize queries
-    this.bombGrid = new SpatialGrid();
+    this.wasteGrid = new SpatialGrid();
     this.powerupGrid = new SpatialGrid();
     
     // Entity storage for ID lookup
-    this.bombs = new Map(); // id -> bomb object
+    this.wastes = new Map(); // id -> waste object
     this.powerups = new Map(); // id -> powerup object
     this.projectiles = new Map(); // id -> projectile object
     
     // Collision callbacks
-    this.onProjectileBombCollision = null;
+    this.onProjectileWasteCollision = null;
     this.onProjectilePowerupCollision = null;
     
     // Statistics for debugging
@@ -173,9 +173,9 @@ class CollisionDetector {
    * Clear all entities and reset grids
    */
   clear() {
-    this.bombGrid.clear();
+    this.wasteGrid.clear();
     this.powerupGrid.clear();
-    this.bombs.clear();
+    this.wastes.clear();
     this.powerups.clear();
     this.projectiles.clear();
     this.stats.checksPerFrame = 0;
@@ -183,13 +183,13 @@ class CollisionDetector {
   }
 
   /**
-   * Register a bomb in the collision system
-   * @param {Object} bomb - Bomb entity
+   * Register a waste in the collision system
+   * @param {Object} waste - Waste entity
    * @param {string|number} id - Unique identifier
    */
-  registerBomb(bomb, id) {
-    this.bombs.set(id, bomb);
-    this.bombGrid.insert(bomb, id);
+  registerWaste(waste, id) {
+    this.wastes.set(id, waste);
+    this.wasteGrid.insert(waste, id);
   }
 
   /**
@@ -212,12 +212,12 @@ class CollisionDetector {
   }
 
   /**
-   * Remove a bomb from the collision system
+   * Remove a waste from the collision system
    * @param {string|number} id - Unique identifier
    */
-  removeBomb(id) {
-    this.bombGrid.remove(id);
-    this.bombs.delete(id);
+  removeWaste(id) {
+    this.wasteGrid.remove(id);
+    this.wastes.delete(id);
   }
 
   /**
@@ -238,12 +238,12 @@ class CollisionDetector {
   }
 
   /**
-   * Update bomb position in spatial grid (call after bomb moves)
-   * @param {Object} bomb - Bomb entity
+   * Update waste position in spatial grid (call after waste moves)
+   * @param {Object} waste - Waste entity
    * @param {string|number} id - Unique identifier
    */
-  updateBomb(bomb, id) {
-    this.bombGrid.insert(bomb, id);
+  updateWaste(waste, id) {
+    this.wasteGrid.insert(waste, id);
   }
 
   /**
@@ -302,32 +302,32 @@ class CollisionDetector {
   }
 
   /**
-   * Check all projectile-bomb collisions using spatial partitioning
-   * @param {Function} callback - Called for each collision with (projectile, projectileId, bomb, bombId)
+   * Check all projectile-waste collisions using spatial partitioning
+   * @param {Function} callback - Called for each collision with (projectile, projectileId, waste, wasteId)
    * @returns {Array} Array of collision results
    */
-  checkProjectileBombCollisions(callback) {
+  checkProjectileWasteCollisions(callback) {
     const collisions = [];
     this.stats.checksPerFrame = 0;
     this.stats.collisionsPerFrame = 0;
 
     for (const [projId, projectile] of this.projectiles) {
       // Query spatial grid for potential collisions
-      const candidateIds = this.bombGrid.query(projectile);
+      const candidateIds = this.wasteGrid.query(projectile);
       
-      for (const bombId of candidateIds) {
-        const bomb = this.bombs.get(bombId);
-        if (!bomb) continue;
+      for (const wasteId of candidateIds) {
+        const waste = this.wastes.get(wasteId);
+        if (!waste) continue;
 
         this.stats.checksPerFrame++;
 
         // Check collision with AABB + Circle phases
-        if (CollisionDetector.checkCollision(projectile, bomb)) {
+        if (CollisionDetector.checkCollision(projectile, waste)) {
           this.stats.collisionsPerFrame++;
-          collisions.push({ projectile, projId, bomb, bombId });
+          collisions.push({ projectile, projId, waste, wasteId });
           
           if (callback) {
-            callback(projectile, projId, bomb, bombId);
+            callback(projectile, projId, waste, wasteId);
           }
         }
       }
@@ -372,13 +372,13 @@ class CollisionDetector {
   /**
    * Batch update all entity positions in spatial grids
    * Call this once per frame after all entities have moved
-   * @param {Array} bombs - Array of {bomb, id} objects
+   * @param {Array} wastes - Array of {waste, id} objects
    * @param {Array} powerups - Array of {powerup, id} objects
    */
-  updateSpatialGrids(bombs, powerups) {
-    // Update bomb positions
-    for (const { bomb, id } of bombs) {
-      this.updateBomb(bomb, id);
+  updateSpatialGrids(wastes, powerups) {
+    // Update waste positions
+    for (const { waste, id } of wastes) {
+      this.updateWaste(waste, id);
     }
 
     // Update powerup positions
@@ -392,7 +392,7 @@ class CollisionDetector {
    * @returns {Object} Statistics object
    */
   getStats() {
-    this.stats.totalEntities = this.bombs.size + this.powerups.size + this.projectiles.size;
+    this.stats.totalEntities = this.wastes.size + this.powerups.size + this.projectiles.size;
     return { ...this.stats };
   }
 }
@@ -405,14 +405,14 @@ const collisionDetector = new CollisionDetector();
 /**
  * Legacy collision check function - delegates to CollisionDetector
  * @param {Object} proj - Projectile entity
- * @param {Object} bomb - Bomb entity
+ * @param {Object} waste - Waste entity
  * @returns {boolean} True if collision detected
  */
-function checkCollision(proj, bomb) {
-  if (!bomb || typeof bomb.x !== 'number' || typeof bomb.y !== 'number') {
+function checkCollision(proj, waste) {
+  if (!waste || typeof waste.x !== 'number' || typeof waste.y !== 'number') {
     return false;
   }
-  return CollisionDetector.checkCollision(proj, bomb);
+  return CollisionDetector.checkCollision(proj, waste);
 }
 
 /**

@@ -29,10 +29,10 @@ const EXPLOSION_COLORS = {
 };
 
 // Create explosion
-function createExplosion(x, y, bombType = 'normal') {
+function createExplosion(x, y, wasteType = 'normal') {
   const particles = [];
-  const colors = EXPLOSION_COLORS[bombType] || EXPLOSION_COLORS.normal;
-  const particleCount = bombType === 'normal' ? 20 : 28;
+  const colors = EXPLOSION_COLORS[wasteType] || EXPLOSION_COLORS.normal;
+  const particleCount = wasteType === 'normal' ? 20 : 28;
   
   for (let i = 0; i < particleCount; i++) {
     const angle = Math.random() * Math.PI * 2;

@@ -89,15 +89,15 @@ function isOutOfBounds(proj) {
   return proj.x < -50 || proj.x > W + 50 || proj.y < -100 || proj.y > H + 50;
 }
 
-// Check collision with bomb
-function checkCollision(proj, bomb) {
-  if (!bomb || typeof bomb.x !== 'number' || typeof bomb.y !== 'number') {
+// Check collision with waste
+function checkCollision(proj, waste) {
+  if (!waste || typeof waste.x !== 'number' || typeof waste.y !== 'number') {
     return false;
   }
-  const dx = proj.x - bomb.x;
-  const dy = proj.y - bomb.y;
+  const dx = proj.x - waste.x;
+  const dy = proj.y - waste.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  return dist < proj.radius + bomb.radius + 5;
+  return dist < proj.radius + waste.radius + 5;
 }
 
 // Draw projectile

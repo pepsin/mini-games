@@ -1,5 +1,5 @@
 // Falling Shield Effect Module
-// When a shielded bomb gets hit, the shield drops and falls to the ground
+// When a shielded waste gets hit, the shield drops and falls to the ground
 
 const { GROUND_Y } = require('../config.js');
 const { getResource } = require('../resources.js');
@@ -16,7 +16,7 @@ const SHIELD_CONFIG = {
   groundYOffsetMax: 30
 };
 
-// Create a falling shield at the bomb's position
+// Create a falling shield at the waste's position
 function createFallingShield(x, y) {
   const shieldRes = getResource('bottom_shield');
   if (!shieldRes || !shieldRes.image) return null;

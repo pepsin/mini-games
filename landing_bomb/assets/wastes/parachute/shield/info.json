@@ -1,7 +1,7 @@
 {
   "name": "parachute_shield",
   "type": "static",
-  "description": "护盾炸弹降落伞",
+  "description": "护盾垃圾降落伞",
   "file": "parachute.png",
   "size": {
     "width": 132,

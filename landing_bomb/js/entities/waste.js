@@ -1,4 +1,4 @@
-// Bomb Entity Module
+// Waste Entity Module
 
 const { W, GROUND_Y, RESOURCE_COLORS, WAVE_DISPLAY_OFFSET } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
@@ -7,45 +7,36 @@ const { animationLoader } = require('../animationLoader.js');
 const { Parachute } = require('../parachute.js');
 const { sx, sy, ss } = require('../config.js');
 
-// Bomb type definitions
-const BOMB_TYPES = {
-  NORMAL: 'normal',
-  CLUSTER: 'cluster',
-  FAST: 'fast',
-  ZIGZAG: 'zigzag'
-  // ARMORED and DUMBBELL removed - now using waste sprites only
-};
+// Store frozen waste images for each waste when time_slow starts
+const wasteFrozenImages = new Map();
 
-// Store frozen bomb images for each bomb when time_slow starts
-const bombFrozenImages = new Map();
-
-// Helper function to get parachute type based on bomb type
-// All bombs now use normal parachute (shield and twin removed)
-function getParachuteType(bombType) {
+// Helper function to get parachute type based on waste type
+// All wastes now use normal parachute (shield and twin removed)
+function getParachuteType(wasteType) {
   return 'normal';
 }
 
-// Draw bomb with waste sprites
-function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
-  if (bomb.exploding) return;
+// Draw waste with waste sprites
+function drawWaste(ctx, waste, frameCount, isTimeSlowActive) {
+  if (waste.exploding) return;
 
   // Draw parachute - only normal parachute now (shield and twin removed)
   const resources = {
     normal: getResource('normal')
   };
   
-  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss, 'normal');
+  Parachute.draw(ctx, waste, resources, animationLoader, sx, sy, frameCount, ss, 'normal');
 
   // Draw waste sprite
   let usePlaceholder = true;
   const wasteRes = getResource('wastes');
 
   if (isResourcesLoaded() && wasteRes) {
-    // Get the current waste variant for this bomb
-    const variantId = bomb.wasteVariant || 'cans_1';
+    // Get the current waste variant for this waste
+    const variantId = waste.wasteVariant || 'cans_1';
     
     // Get the fixed sprite frame for this waste variant
-    const frame = getWasteFrame(wasteRes, variantId, bomb.wasteFrame);
+    const frame = getWasteFrame(wasteRes, variantId, waste.wasteFrame);
     
     if (frame) {
       const size = getWasteSize(wasteRes, variantId);
@@ -62,16 +53,16 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
         // Save context for rotation
         ctx.save();
         
-        // Translate to bomb position and rotate
-        ctx.translate(sx(bomb.x), sy(bomb.y));
-        ctx.rotate(bomb.wasteRotation || 0);
+        // Translate to waste position and rotate
+        ctx.translate(sx(waste.x), sy(waste.y));
+        ctx.rotate(waste.wasteRotation || 0);
         
         // Calculate draw dimensions
         const aspectRatio = imgWidth / imgHeight;
         const drawWidth = ss(size.width * 0.8);
         const drawHeight = drawWidth / aspectRatio;
         
-        // Draw at rotated position (origin is now at bomb center due to translate)
+        // Draw at rotated position (origin is now at waste center due to translate)
         const drawX = -drawWidth * anchor.x;
         const drawY = -drawHeight * anchor.y;
         
@@ -101,9 +92,9 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
         // Save context for rotation
         ctx.save();
         
-        // Translate to bomb position and rotate
-        ctx.translate(sx(bomb.x), sy(bomb.y));
-        ctx.rotate(bomb.wasteRotation || 0);
+        // Translate to waste position and rotate
+        ctx.translate(sx(waste.x), sy(waste.y));
+        ctx.rotate(waste.wasteRotation || 0);
         
         // Calculate draw dimensions
         const drawWidth = ss(icedSize.width);
@@ -122,7 +113,7 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
   }
 
   if (usePlaceholder) {
-    drawPlaceholder(ctx, bomb.x, bomb.y, 64, 64, 'WASTE', RESOURCE_COLORS.bomb, 0.5, 0.5);
+    drawPlaceholder(ctx, waste.x, waste.y, 64, 64, 'WASTE', RESOURCE_COLORS.waste, 0.5, 0.5);
   }
 }
 
@@ -156,37 +147,37 @@ function getWasteSize(wasteRes, variantId) {
 }
 
 // Clear stored frozen images (call on game reset)
-function clearBombFrozenImages() {
-  bombFrozenImages.clear();
+function clearWasteFrozenImages() {
+  wasteFrozenImages.clear();
 }
 
-// Create bomb properties based on wave config
-function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
+// Create waste properties based on wave config
+function createWaste(waveConfig, currentWave, wasteTypeOverride = null) {
   const cfg = waveConfig;
 
-  const isSpecial = Math.random() < cfg.specialBombChance;
-  const isCluster = Math.random() < cfg.clusterBombChance;
+  const isSpecial = Math.random() < cfg.specialWasteChance;
+  const isCluster = Math.random() < cfg.clusterWasteChance;
 
   const radius = cfg.minRadius + Math.random() * (cfg.maxRadius - cfg.minRadius);
   let speed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed);
   let sway = Math.random() * cfg.maxSway;
 
-  let bombType = 'normal';
-  let health = cfg.bombHealth;
+  let wasteType = 'normal';
+  let health = cfg.wasteHealth;
 
-  // If bomb type is overridden (for special wave spawning), use it
+  // If waste type is overridden (for special wave spawning), use it
   // Note: ARMORED and DUMBBELL types removed - now using waste sprites only
-  if (bombTypeOverride) {
-    bombType = bombTypeOverride;
-    // All bombs now use normal behavior with waste sprites
+  if (wasteTypeOverride) {
+    wasteType = wasteTypeOverride;
+    // All wastes now use normal behavior with waste sprites
   } else if (isCluster) {
-    bombType = 'cluster';
+    wasteType = 'cluster';
     speed *= 0.85;
   } else if (isSpecial) {
     const specialTypes = ['fast', 'zigzag'];
-    bombType = specialTypes[Math.floor(Math.random() * specialTypes.length)];
+    wasteType = specialTypes[Math.floor(Math.random() * specialTypes.length)];
 
-    switch (bombType) {
+    switch (wasteType) {
       case 'fast':
         speed *= 1.4;
         sway *= 0.5;
@@ -212,7 +203,7 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
     'wrapper_1': 45  // 9x5
   };
   const frameCount = frameCounts[wasteVariant];
-  const fixedFrame = Math.floor(Math.random() * frameCount); // Fixed frame for this bomb
+  const fixedFrame = Math.floor(Math.random() * frameCount); // Fixed frame for this waste
   
   // Random fixed rotation for this waste (in radians, range: -30 to +30 degrees)
   const fixedRotation = (Math.random() - 0.5) * Math.PI / 3;
@@ -225,15 +216,15 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
     sway: sway,
     swayOffset: Math.random() * Math.PI * 2,
     exploding: false,
-    bombType: bombType,
+    wasteType: wasteType,
     health: health,
     maxHealth: health,
-    parachute: Parachute.createBombParachute(),
+    parachute: Parachute.createWasteParachute(),
     parachuteType: 'normal', // All use normal parachute now
     wasteVariant: wasteVariant, // Random waste sprite variant
     wasteFrame: fixedFrame, // Fixed frame index - doesn't animate
     wasteRotation: fixedRotation, // Fixed rotation angle
-    hitByProjectiles: [] // Track which projectiles have hit this bomb
+    hitByProjectiles: [] // Track which projectiles have hit this waste
   };
 }
 
@@ -250,29 +241,28 @@ function isSpecialWave(wave) {
   return displayWave > 0 && displayWave % 5 === 0;
 }
 
-// Get special bomb spawn count for wave 5, 10, 15, etc. (based on display wave)
-function getSpecialBombCountForWave(wave) {
+// Get special waste spawn count for wave 5, 10, 15, etc. (based on display wave)
+function getSpecialWasteCountForWave(wave) {
   if (!isSpecialWave(wave)) return 0;
   const displayWave = getDisplayWave(wave);
-  // Base 2 bombs, increases by 1 every 5 waves, capped at 8
+  // Base 2 wastes, increases by 1 every 5 waves, capped at 8
   // Reduced to 1/3 of original volume
   const originalCount = Math.min(2 + Math.floor((displayWave - 5) / 5), 8);
   return Math.max(1, Math.floor(originalCount / 3));
 }
 
-// Update bomb position
-function updateBomb(bomb, frameCount, speedMultiplier) {
+// Update waste position
+function updateWaste(waste, frameCount, speedMultiplier) {
   const sm = speedMultiplier || 1;
-  bomb.y += bomb.speed * sm;
-  bomb.x += Math.sin(frameCount * 0.02 + bomb.swayOffset) * bomb.sway * sm;
+  waste.y += waste.speed * sm;
+  waste.x += Math.sin(frameCount * 0.02 + waste.swayOffset) * waste.sway * sm;
 }
 
 module.exports = {
-  drawBomb,
-  createBomb,
-  updateBomb,
-  clearBombFrozenImages,
-  BOMB_TYPES,
+  drawWaste,
+  createWaste,
+  updateWaste,
+  clearWasteFrozenImages,
   isSpecialWave,
-  getSpecialBombCountForWave
+  getSpecialWasteCountForWave
 };
