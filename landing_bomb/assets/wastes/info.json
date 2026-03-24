@@ -8,6 +8,10 @@
       "spriteSheet": {
         "cols": 10,
         "rows": 5
+      },
+      "size": {
+        "width": 128,
+        "height": 128
       }
     },
     {
@@ -16,6 +20,10 @@
       "spriteSheet": {
         "cols": 6,
         "rows": 4
+      },
+      "size": {
+        "width": 192,
+        "height": 192
       }
     },
     {
@@ -24,6 +32,10 @@
       "spriteSheet": {
         "cols": 9,
         "rows": 5
+      },
+      "size": {
+        "width": 192,
+        "height": 192
       }
     }
   ]

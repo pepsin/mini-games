@@ -468,7 +468,7 @@ class AnimationLoader {
     if (!resource || !resource.variants || !resource.variants[variantId]) return;
     
     resource.currentVariant = variantId;
-    resource.image = resource.variants[variantId];
+    resource.image = resource.variants[variantId].image;
   }
 
   /**

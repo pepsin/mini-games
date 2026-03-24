@@ -89,9 +89,6 @@ const {
   drawExplosion, drawScorePopup
 } = require('./js/entities/explosion.js');
 
-// Wave announce
-const { triggerWaveAnnounce, updateWaveAnnounce, drawWaveAnnounce } = require('./js/waveAnnounce.js');
-
 // UI and Input
 const { drawUI, drawGameOver, drawStartScreen, drawPauseScreen } = require('./js/ui.js');
 const { drawGallery, isGalleryVisible } = require('./js/skinGallery.js');
@@ -148,7 +145,7 @@ function init() {
       resetInventory();
       resetReviveStatus();
       startWave(1);
-      triggerWaveAnnounce(1);
+
       analytics.trackGameStart(1);
     },
     onGameReset: () => {
@@ -169,7 +166,7 @@ function init() {
       clearBombFrozenImages();
       resetReviveStatus();
       startWave(1);
-      triggerWaveAnnounce(1);
+
       analytics.trackGameStart(1);
     },
     onFire: (proj) => {
@@ -296,7 +293,7 @@ function update() {
   const waveAction = updateWaves(bombs.length);
   if (waveAction.action === 'start_wave') {
     startWave(waveAction.wave);
-    triggerWaveAnnounce(waveAction.wave);
+
   } else if (waveAction.action === 'spawn_bomb') {
     const waveConfig = getCurrentWaveConfig();
     const bomb = createBomb(waveConfig, getCurrentWave());
@@ -321,7 +318,7 @@ function update() {
   updateFlashAnimations();
 
   // Update wave announce animation
-  updateWaveAnnounce();
+
 
   // Update challenge
   updateChallenge(frameCount);
@@ -614,7 +611,7 @@ function draw() {
   });
 
   // Wave announce arc
-  drawWaveAnnounce(ctx);
+
 
   // UI
   drawUI(ctx);

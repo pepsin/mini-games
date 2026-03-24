@@ -128,7 +128,7 @@ function drawBombFlash(ctx, bomb, frameCount) {
 function getPowerupImage(type) {
   const res = getResource('powerup');
   if (res && res.variants && res.variants[type]) {
-    return res.variants[type];
+    return res.variants[type].image;
   }
   return null;
 }

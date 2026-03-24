@@ -150,8 +150,9 @@ function getWasteSize(wasteRes, variantId) {
   const variant = wasteRes.variants[variantId];
   if (!variant) return { width: 64, height: 64 };
   
-  // Default size for waste sprites
-  return { width: 64, height: 64 };
+  if (!variant.size) return { width: 64, height: 64 };
+  
+  return variant.size;
 }
 
 // Clear stored frozen images (call on game reset)
