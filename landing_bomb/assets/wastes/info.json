@@ -1,0 +1,30 @@
+{
+  "name": "wastes",
+  "type": "static",
+  "variants": [
+    {
+      "id": "cans_1",
+      "file": "cans_1.png",
+      "spriteSheet": {
+        "cols": 10,
+        "rows": 5
+      }
+    },
+    {
+      "id": "cans_2",
+      "file": "cans_2.png",
+      "spriteSheet": {
+        "cols": 6,
+        "rows": 4
+      }
+    },
+    {
+      "id": "wrapper_1",
+      "file": "wrapper_1.png",
+      "spriteSheet": {
+        "cols": 9,
+        "rows": 5
+      }
+    }
+  ]
+}

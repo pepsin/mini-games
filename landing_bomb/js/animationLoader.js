@@ -209,7 +209,48 @@ class AnimationLoader {
           const path = `${this.basePath}${folder}/${variant.file}`;
           console.log(`加载变体: ${path}`);
           const img = await this.loadImage(path);
-          resource.variants[variant.id] = img;
+          
+          // Check if variant has sprite sheet configuration
+          if (variant.spriteSheet) {
+            const sheetConfig = variant.spriteSheet;
+            const frameWidth = Math.floor(img.width / sheetConfig.cols);
+            const frameHeight = Math.floor(img.height / sheetConfig.rows);
+            const frameCount = sheetConfig.cols * sheetConfig.rows;
+            
+            console.log(`变体精灵图: ${img.width}x${img.height}, 每帧: ${frameWidth}x${frameHeight}, 共 ${frameCount} 帧 (${sheetConfig.cols}列 x ${sheetConfig.rows}行)`);
+            
+            // Create frames array for sprite sheet
+            const frames = [];
+            for (let i = 0; i < frameCount; i++) {
+              const row = Math.floor(i / sheetConfig.cols);
+              const col = i % sheetConfig.cols;
+              
+              frames.push({
+                image: img,
+                sx: col * frameWidth,
+                sy: row * frameHeight,
+                sw: frameWidth,
+                sh: frameHeight,
+                isSpriteFrame: true
+              });
+            }
+            
+            resource.variants[variant.id] = {
+              image: img,
+              frames: frames,
+              spriteSheet: true,
+              cols: sheetConfig.cols,
+              rows: sheetConfig.rows,
+              frameWidth: frameWidth,
+              frameHeight: frameHeight
+            };
+          } else {
+            // Regular image variant
+            resource.variants[variant.id] = {
+              image: img,
+              spriteSheet: false
+            };
+          }
         } catch (e) {
           console.error(`加载变体失败: ${variant.file}`, e);
         }
@@ -218,7 +259,7 @@ class AnimationLoader {
       const variantIds = Object.keys(resource.variants);
       if (variantIds.length > 0) {
         resource.currentVariant = variantIds[0];
-        resource.image = resource.variants[resource.currentVariant];
+        resource.image = resource.variants[variantIds[0]].image;
       }
     } else {
       // 单张静态图

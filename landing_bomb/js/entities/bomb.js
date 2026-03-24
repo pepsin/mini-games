@@ -12,107 +12,83 @@ const BOMB_TYPES = {
   NORMAL: 'normal',
   CLUSTER: 'cluster',
   FAST: 'fast',
-  ZIGZAG: 'zigzag',
-  ARMORED: 'armored',    // 带护甲炸弹：需打2次，第一次打掉护甲变普通
-  DUMBBELL: 'dumbbell'   // 哑铃炸弹：打中后分裂成2个普通炸弹
+  ZIGZAG: 'zigzag'
+  // ARMORED and DUMBBELL removed - now using waste sprites only
 };
 
 // Store frozen bomb images for each bomb when time_slow starts
 const bombFrozenImages = new Map();
 
 // Helper function to get parachute type based on bomb type
+// All bombs now use normal parachute (shield and twin removed)
 function getParachuteType(bombType) {
-  switch (bombType) {
-    case BOMB_TYPES.ARMORED:
-      return 'shield';
-    case BOMB_TYPES.DUMBBELL:
-      return 'twin';
-    case BOMB_TYPES.NORMAL:
-    default:
-      return 'normal';
-  }
+  return 'normal';
 }
 
-// Draw bomb
+// Draw bomb with waste sprites
 function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
   if (bomb.exploding) return;
 
-  // Draw parachute with all available parachute resources
-  // Note: resources are named after their folder names: normal, shield, twin
+  // Draw parachute - only normal parachute now (shield and twin removed)
   const resources = {
-    bomb_normal: getResource('bomb_normal'),
-    normal: getResource('normal'),
-    shield: getResource('shield'),
-    twin: getResource('twin')
+    normal: getResource('normal')
   };
   
-  // Determine which parachute type to use (bomb.parachuteType overrides)
-  const parachuteType = bomb.parachuteType || getParachuteType(bomb.bombType);
-  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss, parachuteType);
+  Parachute.draw(ctx, bomb, resources, animationLoader, sx, sy, frameCount, ss, 'normal');
 
-  // Determine which bomb resource to use based on type
-  let bombResKey = 'bomb_normal';
-  if (bomb.bombType === BOMB_TYPES.ARMORED) {
-    bombResKey = 'bomb_shielded';
-  } else if (bomb.bombType === BOMB_TYPES.DUMBBELL) {
-    bombResKey = 'bomb_twin';
-  }
-
-  // Draw bomb body based on type
+  // Draw waste sprite
   let usePlaceholder = true;
-  const bombRes = getResource(bombResKey);
+  const wasteRes = getResource('wastes');
 
-  if (isResourcesLoaded() && bombRes) {
-    let img = null;
-
-    if (isTimeSlowActive) {
-      // During time_slow, freeze the current frame and overlay iced_box
-      if (!bombFrozenImages.has(bomb)) {
-        // Capture the current frame when freezing starts
-        bombFrozenImages.set(bomb, animationLoader.getCurrentFrame(bombRes));
-      }
-      // Use the frozen frame
-      img = bombFrozenImages.get(bomb);
-    } else {
-      // Time_slow ended - clear frozen frame and resume normal animation
-      bombFrozenImages.delete(bomb);
-      // Use normal animation
-      img = animationLoader.getCurrentFrame(bombRes);
-    }
-
-    if (img) {
+  if (isResourcesLoaded() && wasteRes) {
+    // Get the current waste variant for this bomb
+    const variantId = bomb.wasteVariant || 'cans_1';
+    
+    // Get the fixed sprite frame for this waste variant
+    const frame = getWasteFrame(wasteRes, variantId, bomb.wasteFrame);
+    
+    if (frame) {
+      const size = getWasteSize(wasteRes, variantId);
+      const anchor = { x: 0.5, y: 0.5 }; // Center anchor
+      
       // Check if it's a sprite frame or regular image
-      const isSpriteFrame = img.isSpriteFrame;
-      const imgWidth = isSpriteFrame ? img.sw : img.width;
-      const imgHeight = isSpriteFrame ? img.sh : img.height;
+      const isSpriteFrame = frame.isSpriteFrame;
+      const imgWidth = isSpriteFrame ? frame.sw : frame.width;
+      const imgHeight = isSpriteFrame ? frame.sh : frame.height;
       
       if (imgWidth > 0 && imgHeight > 0) {
-        const size = animationLoader.getSize(bombRes);
-        const anchor = animationLoader.getAnchor(bombRes);
-
         let result;
+        
+        // Save context for rotation
+        ctx.save();
+        
+        // Translate to bomb position and rotate
+        ctx.translate(sx(bomb.x), sy(bomb.y));
+        ctx.rotate(bomb.wasteRotation || 0);
+        
+        // Calculate draw dimensions
+        const aspectRatio = imgWidth / imgHeight;
+        const drawWidth = ss(size.width * 0.8);
+        const drawHeight = drawWidth / aspectRatio;
+        
+        // Draw at rotated position (origin is now at bomb center due to translate)
+        const drawX = -drawWidth * anchor.x;
+        const drawY = -drawHeight * anchor.y;
+        
         if (isSpriteFrame) {
-          // Sprite sheet frame - pass image and frame data separately
-          result = drawImageProportional(
-            ctx, img.image,
-            bomb.x, bomb.y,
-            size.width * 0.8,
-            anchor.x, anchor.y,
-            { sx: img.sx, sy: img.sy, sw: img.sw, sh: img.sh }
+          // Sprite sheet frame
+          ctx.drawImage(
+            frame.image,
+            frame.sx, frame.sy, frame.sw, frame.sh,
+            drawX, drawY, drawWidth, drawHeight
           );
         } else {
           // Regular image
-          result = drawImageProportional(
-            ctx, img,
-            bomb.x, bomb.y,
-            size.width * 0.8,
-            anchor.x, anchor.y
-          );
+          ctx.drawImage(frame, drawX, drawY, drawWidth, drawHeight);
         }
-
-        if (result) {
-          usePlaceholder = false;
-        }
+        
+        ctx.restore();
+        usePlaceholder = false;
       }
     }
 
@@ -121,22 +97,61 @@ function drawBomb(ctx, bomb, frameCount, isTimeSlowActive) {
       const icedBoxRes = getResource('iced_box');
       if (icedBoxRes && icedBoxRes.image && icedBoxRes.image.width > 0) {
         const icedSize = animationLoader.getSize(icedBoxRes);
-        const icedAnchor = animationLoader.getAnchor(icedBoxRes);
-        // Scale up iced_box for twin bombs by 1.4x
-        const icedBoxScale = (bomb.bombType === BOMB_TYPES.DUMBBELL) ? 1.4 : 1.0;
-        drawImageProportional(
-          ctx, icedBoxRes.image,
-          bomb.x, bomb.y,
-          icedSize.width * icedBoxScale,
-          icedAnchor.x, icedAnchor.y
+        
+        // Save context for rotation
+        ctx.save();
+        
+        // Translate to bomb position and rotate
+        ctx.translate(sx(bomb.x), sy(bomb.y));
+        ctx.rotate(bomb.wasteRotation || 0);
+        
+        // Calculate draw dimensions
+        const drawWidth = ss(icedSize.width);
+        const drawHeight = drawWidth * (icedBoxRes.image.height / icedBoxRes.image.width);
+        
+        // Draw at rotated position
+        ctx.drawImage(
+          icedBoxRes.image,
+          -drawWidth * 0.5, -drawHeight * 0.5,
+          drawWidth, drawHeight
         );
+        
+        ctx.restore();
       }
     }
   }
 
   if (usePlaceholder) {
-    drawPlaceholder(ctx, bomb.x, bomb.y, 64, 64, 'BOMB', RESOURCE_COLORS.bomb, 0.5, 0.5);
+    drawPlaceholder(ctx, bomb.x, bomb.y, 64, 64, 'WASTE', RESOURCE_COLORS.bomb, 0.5, 0.5);
   }
+}
+
+// Get fixed frame for a waste variant (no animation)
+function getWasteFrame(wasteRes, variantId, fixedFrameIndex) {
+  if (!wasteRes || !wasteRes.variants) return null;
+  
+  const variant = wasteRes.variants[variantId];
+  if (!variant) return null;
+  
+  // If it's a sprite sheet, return the fixed frame
+  if (variant.spriteSheet && variant.frames) {
+    const frameIndex = Math.max(0, Math.min(fixedFrameIndex, variant.frames.length - 1));
+    return variant.frames[frameIndex];
+  }
+  
+  // Regular image
+  return variant.image;
+}
+
+// Get size for a waste variant
+function getWasteSize(wasteRes, variantId) {
+  if (!wasteRes || !wasteRes.variants) return { width: 64, height: 64 };
+  
+  const variant = wasteRes.variants[variantId];
+  if (!variant) return { width: 64, height: 64 };
+  
+  // Default size for waste sprites
+  return { width: 64, height: 64 };
 }
 
 // Clear stored frozen images (call on game reset)
@@ -159,18 +174,10 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
   let health = cfg.bombHealth;
 
   // If bomb type is overridden (for special wave spawning), use it
+  // Note: ARMORED and DUMBBELL types removed - now using waste sprites only
   if (bombTypeOverride) {
     bombType = bombTypeOverride;
-    switch (bombType) {
-      case BOMB_TYPES.ARMORED:
-        speed *= 0.85;
-        health = 2; // Armor provides 1 extra health
-        break;
-      case BOMB_TYPES.DUMBBELL:
-        speed *= 0.9;
-        sway *= 0.8;
-        break;
-    }
+    // All bombs now use normal behavior with waste sprites
   } else if (isCluster) {
     bombType = 'cluster';
     speed *= 0.85;
@@ -193,6 +200,22 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
   const margin = 30 + Math.min(currentWave * 0.5, 30);
   const x = margin + Math.random() * (W - margin * 2);
 
+  // Randomly select waste variant and a fixed frame
+  const wasteVariants = ['cans_1', 'cans_2', 'wrapper_1'];
+  const wasteVariant = wasteVariants[Math.floor(Math.random() * wasteVariants.length)];
+  
+  // Get frame counts for each variant
+  const frameCounts = {
+    'cans_1': 50,    // 10x5
+    'cans_2': 24,    // 6x4
+    'wrapper_1': 45  // 9x5
+  };
+  const frameCount = frameCounts[wasteVariant];
+  const fixedFrame = Math.floor(Math.random() * frameCount); // Fixed frame for this bomb
+  
+  // Random fixed rotation for this waste (in radians, range: -30 to +30 degrees)
+  const fixedRotation = (Math.random() - 0.5) * Math.PI / 3;
+
   return {
     x: x,
     y: -50,
@@ -205,34 +228,15 @@ function createBomb(waveConfig, currentWave, bombTypeOverride = null) {
     health: health,
     maxHealth: health,
     parachute: Parachute.createBombParachute(),
-    parachuteType: getParachuteType(bombType),
+    parachuteType: 'normal', // All use normal parachute now
+    wasteVariant: wasteVariant, // Random waste sprite variant
+    wasteFrame: fixedFrame, // Fixed frame index - doesn't animate
+    wasteRotation: fixedRotation, // Fixed rotation angle
     hitByProjectiles: [] // Track which projectiles have hit this bomb
   };
 }
 
-// Create a normal bomb at specific position (for dumbbell split)
-function createNormalBombAt(x, y, waveConfig, currentWave, parachuteTypeOverride = null) {
-  const cfg = waveConfig;
-  const radius = cfg.minRadius + Math.random() * (cfg.maxRadius - cfg.minRadius);
-  const speed = cfg.minSpeed + Math.random() * (cfg.maxSpeed - cfg.minSpeed) * 0.9;
-  const sway = Math.random() * cfg.maxSway;
 
-  return {
-    x: x,
-    y: y,
-    radius: radius,
-    speed: speed,
-    sway: sway,
-    swayOffset: Math.random() * Math.PI * 2,
-    exploding: false,
-    bombType: BOMB_TYPES.NORMAL,
-    health: 1,
-    maxHealth: 1,
-    parachute: Parachute.createBombParachute(),
-    parachuteType: parachuteTypeOverride || 'normal',
-    hitByProjectiles: [] // Track which projectiles have hit this bomb
-  };
-}
 
 // Convert internal wave to display wave (what player sees)
 function getDisplayWave(internalWave) {
@@ -265,7 +269,6 @@ function updateBomb(bomb, frameCount, speedMultiplier) {
 module.exports = {
   drawBomb,
   createBomb,
-  createNormalBombAt,
   updateBomb,
   clearBombFrozenImages,
   BOMB_TYPES,

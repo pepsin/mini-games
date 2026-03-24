@@ -66,9 +66,7 @@ const {
 const { tryDropSkin, unlockSkin } = require('./js/slingshotSkinSystem.js');
 
 // Falling shield effect
-const {
-  createFallingShield, updateFallingShields, drawFallingShields, clearFallingShields
-} = require('./js/entities/fallingShield.js');
+
 
 // Entities
 const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
@@ -80,7 +78,7 @@ const {
   clearDrag, getDragCurrent, isDragging, getSlingshot, drawTrajectoryPrediction, SLING_CONFIG
 } = require('./js/entities/slingshot.js');
 const {
-  drawBomb, createBomb, createNormalBombAt, updateBomb, clearBombFrozenImages,
+  drawBomb, createBomb, updateBomb, clearBombFrozenImages,
   BOMB_TYPES, isSpecialWave, getSpecialBombCountForWave
 } = require('./js/entities/bomb.js');
 const { drawProjectile, updateProjectile, isOutOfBounds } = require('./js/entities/projectile.js');
@@ -169,7 +167,6 @@ function init() {
       resetChallenges();
       resetInventory();
       clearBombFrozenImages();
-      clearFallingShields();
       resetReviveStatus();
       startWave(1);
       triggerWaveAnnounce(1);
@@ -281,13 +278,7 @@ function update() {
   const frameCount = getFrameCount();
 
   // Update animations
-  const bombResources = ['bomb_normal', 'bomb_shielded', 'bomb_twin'];
-  bombResources.forEach(key => {
-    const bombRes = getResource(key);
-    if (bombRes) {
-      animationLoader.update(bombRes, deltaTime);
-    }
-  });
+  // Note: bomb animations removed - now using waste sprites instead
 
   // Update flowers
   if (frameCount % 15 === 0) {
@@ -395,9 +386,6 @@ function update() {
   // Update inventory fly-in animations
   updateFlyingPowerups();
 
-  // Update falling shields
-  updateFallingShields();
-
   // Update projectiles and register with collision system
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
@@ -487,47 +475,6 @@ function update() {
     const popup = createScorePopup(bomb.x, bomb.y, projectile.hits);
     scorePopups.push(popup);
     addScore(popup.totalScore);
-
-    // Handle special bomb types
-    if (bomb.bombType === BOMB_TYPES.ARMORED) {
-      // Armored bomb: reduce health, if still has health, transform to normal
-      bomb.health--;
-      if (bomb.health > 0) {
-        // Armor broken, transform to normal bomb
-        bomb.bombType = BOMB_TYPES.NORMAL;
-        bomb.health = 1;
-        // Create falling shield effect
-        createFallingShield(bomb.x, bomb.y);
-        // Create armor break effect (smaller explosion)
-        explosions.push(createExplosion(bomb.x, bomb.y, 'normal'));
-        // Don't remove the bomb, it continues falling
-        return;
-      }
-    } else if (bomb.bombType === BOMB_TYPES.DUMBBELL) {
-      // Dumbbell bomb: split into two normal bombs
-      const waveConfig = getCurrentWaveConfig();
-      const currentWave = getCurrentWave();
-
-      // Calculate split positions with boundary check
-      const splitDistance = 50;
-      const margin = 40; // Minimum distance from screen edge
-      const leftX = Math.max(margin, bomb.x - splitDistance);
-      const rightX = Math.min(W - margin, bomb.x + splitDistance);
-
-      // Create left split bomb (keeps twin parachute)
-      const leftBomb = createNormalBombAt(leftX, bomb.y, waveConfig, currentWave, 'twin');
-      leftBomb.speed = bomb.speed * 1.1;
-      leftBomb.sway = bomb.sway * 0.8;
-      leftBomb.swayOffset = Math.PI; // Start with leftward sway
-      bombs.push(leftBomb);
-
-      // Create right split bomb (keeps twin parachute)
-      const rightBomb = createNormalBombAt(rightX, bomb.y, waveConfig, currentWave, 'twin');
-      rightBomb.speed = bomb.speed * 1.1;
-      rightBomb.sway = bomb.sway * 0.8;
-      rightBomb.swayOffset = 0; // Start with rightward sway
-      bombs.push(rightBomb);
-    }
 
     // Track bomb defeat
     analytics.trackBombDefeated(bomb.bombType || 'normal', projectile.hits, popup.totalScore);
@@ -658,9 +605,6 @@ function draw() {
 
   // Draw powerup burst effects
   powerupBursts.forEach(b => drawPowerupBurst(ctx, b));
-
-  // Draw falling shields (behind bombs)
-  drawFallingShields(ctx, config.sx, config.sy, config.ss);
 
   // Bombs at top of z-index (drawn last among game entities)
   const isTimeSlowActive = isPowerupActive(activePowerups, 'time_slow');
