@@ -22,6 +22,7 @@ const projectiles = [];
 const explosions = [];
 const scorePopups = [];
 const clouds = [];
+const birds = [];
 
 // Powerup arrays
 const powerups = [];
@@ -71,6 +72,7 @@ function resetGame() {
   projectiles.length = 0;
   explosions.length = 0;
   scorePopups.length = 0;
+  birds.length = 0;
   powerups.length = 0;
   activePowerups.length = 0;
   powerupBursts.length = 0;
@@ -173,7 +175,7 @@ function setLives(val) { lives = val; }
 
 module.exports = {
   // Arrays (direct export for mutation)
-  wastes, projectiles, explosions, scorePopups, clouds,
+  wastes, projectiles, explosions, scorePopups, clouds, birds,
   powerups, activePowerups, powerupBursts,
   flowerAlive, flowerFrameIndices,
 

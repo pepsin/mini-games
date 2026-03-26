@@ -21,7 +21,7 @@ const {
   resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives, setPowerupSelecting,
   getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused, isPowerupSelecting,
   getFlowerPositions, damageFlower, healFlower, hasDeadFlower,
-  wastes, projectiles, explosions, scorePopups, clouds,
+  wastes, projectiles, explosions, scorePopups, clouds, birds,
   powerups, activePowerups, powerupBursts,
   flowerAlive, flowerFrameIndices
 } = require('./js/gameState.js');
@@ -71,6 +71,7 @@ const { tryDropSkin, unlockSkin } = require('./js/slingshotSkinSystem.js');
 // Entities
 const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
 const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
+const { initBirds, updateBirds, drawBird } = require('./js/entities/bird.js');
 const { drawWall } = require('./js/entities/wall.js');
 const { drawHealthFlowers } = require('./js/entities/flower.js');
 const {
@@ -117,6 +118,10 @@ function init() {
   const initialClouds = initClouds();
   clouds.push(...initialClouds);
 
+  // Initialize birds
+  const initialBirds = initBirds();
+  birds.push(...initialBirds);
+
   // Initialize powerup selector
   initPowerupSelector();
 
@@ -139,6 +144,8 @@ function init() {
     onGameStart: () => {
       setGameStarted(true);
       resetGame();
+      const initialBirds = initBirds();
+      birds.push(...initialBirds);
       resetWaves();
       resetChallenges();
       resetInventory();
@@ -159,6 +166,8 @@ function init() {
       });
       
       resetGame();
+      const initialBirds = initBirds();
+      birds.push(...initialBirds);
       resetWaves();
       resetChallenges();
       resetInventory();
@@ -287,6 +296,9 @@ function update() {
 
   // Update clouds
   updateClouds(clouds);
+
+  // Update birds
+  updateBirds(birds);
 
   // Update wave system
   const waveAction = updateWaves(wastes.length);
@@ -559,6 +571,7 @@ function draw() {
 
   // Game entities (clipped to game area)
   clouds.forEach(c => drawCloud(ctx, c));
+  birds.forEach(b => drawBird(ctx, b));
   drawWall(ctx);
 
   // Shield effect on flowers
