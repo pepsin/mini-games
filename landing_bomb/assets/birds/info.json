@@ -1,0 +1,30 @@
+{
+  "name": "birds",
+  "type": "static",
+  "parts": [
+    {
+      "id": "common_1",
+      "file": "common_1.png",
+      "size": {
+        "width": 256,
+        "height": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "id": "common_2",
+      "file": "common_2.png",
+      "size": {
+        "width": 256,
+        "height": 256
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  ]
+}

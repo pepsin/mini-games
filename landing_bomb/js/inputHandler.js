@@ -11,6 +11,8 @@ const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGal
 const { hitTestInventory } = require('./powerupInventory.js');
 const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
 const { handleSelectorTouch } = require('./powerupSelector.js');
+const { birdSystem } = require('./birdSystem.js');
+const analytics = require('./analytics.js');
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -109,6 +111,17 @@ function handleTouchStart(e) {
   const inventorySlot = hitTestInventory(gp.x, gp.y);
   if (inventorySlot >= 0) {
     gameCallbacks.onInventoryClick && gameCallbacks.onInventoryClick(inventorySlot);
+    return;
+  }
+
+  // Check camera button click (only when bird is active)
+  if (birdSystem.isCameraButtonClicked(gp.x, gp.y)) {
+    const birdName = birdSystem.handleCameraClick();
+    if (birdName) {
+      // Track bird capture
+      analytics.trackBirdWatchSuccess(birdName, 'common');
+      console.log(`Bird ${birdName} watch success!`);
+    }
     return;
   }
 

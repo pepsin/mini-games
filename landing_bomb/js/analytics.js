@@ -56,6 +56,9 @@ const EVENTS = {
   // Challenges
   CHALLENGE_COMPLETED: 'challenge_completed',
   CHALLENGE_FAILED: 'challenge_failed',
+
+  // Birds
+  BIRD_WATCH_SUCCESS: 'bird_watch_success',
   
   // Performance
   GAME_LOADED: 'game_loaded',
@@ -537,7 +540,15 @@ class AnalyticsManager {
       wave: this.currentWave,
     });
   }
-  
+
+  trackBirdWatchSuccess(birdName, birdType = 'common') {
+    this.track(EVENTS.BIRD_WATCH_SUCCESS, {
+      bird_name: birdName,
+      bird_type: birdType,
+      wave: this.currentWave,
+    });
+  }
+
   trackGameLoaded(loadTimeMs) {
     this.track(EVENTS.GAME_LOADED, {
       load_time_ms: loadTimeMs,
@@ -628,7 +639,10 @@ module.exports = {
   // Challenges
   trackChallengeCompleted: (type, reward) => getAnalytics().trackChallengeCompleted(type, reward),
   trackChallengeFailed: (type, reason) => getAnalytics().trackChallengeFailed(type, reason),
-  
+
+  // Birds
+  trackBirdWatchSuccess: (birdName, birdType) => getAnalytics().trackBirdWatchSuccess(birdName, birdType),
+
   // Performance
   trackGameLoaded: (time) => getAnalytics().trackGameLoaded(time),
   trackFPSDrop: (fps, threshold) => getAnalytics().trackFPSDrop(fps, threshold),

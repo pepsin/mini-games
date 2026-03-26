@@ -73,6 +73,9 @@ const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
 const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
 const { drawWall } = require('./js/entities/wall.js');
 const { drawHealthFlowers } = require('./js/entities/flower.js');
+
+// Bird system
+const { birdSystem } = require('./js/birdSystem.js');
 const {
   updateSlingshotPosition, drawSlingshot, drawSlingshotBody, drawSlingshotBandsOnly,
   clearDrag, getDragCurrent, isDragging, getSlingshot, drawTrajectoryPrediction, SLING_CONFIG
@@ -129,6 +132,17 @@ function init() {
     console.log('Resources loaded, starting game');
     updateSlingshotPosition();
 
+    // Initialize bird system with loaded sprite sheets
+    const birdsResource = getResource('birds');
+    if (birdsResource && birdsResource.parts) {
+      const sprite1 = birdsResource.parts['common_1']?.image;
+      const sprite2 = birdsResource.parts['common_2']?.image;
+      if (sprite1 && sprite2) {
+        birdSystem.init(sprite1, sprite2);
+        console.log('Bird system initialized');
+      }
+    }
+
     // Track game load performance
     const loadTime = Date.now() - loadStartTime;
     analytics.trackGameLoaded(loadTime);
@@ -164,6 +178,7 @@ function init() {
       resetInventory();
       clearWasteFrozenImages();
       resetReviveStatus();
+      birdSystem.reset(); // Reset bird system
       startWave(1);
 
       analytics.trackGameStart(1);
@@ -262,11 +277,14 @@ function handleChallengeReward(reward) {
 function update() {
   // Always update powerup selector (even when game is paused for selection)
   updatePowerupSelector();
-  
-  if (isGameOver() || !isGameStarted() || isGamePaused() || isPowerupSelecting()) return;
 
+  // Always update bird system (for flash effect)
   const currentTime = Date.now();
   const deltaTime = currentTime - getLastTime();
+  birdSystem.update(deltaTime, isGameStarted() && !isGameOver() && !isGamePaused() && !isPowerupSelecting());
+
+  if (isGameOver() || !isGameStarted() || isGamePaused() || isPowerupSelecting()) return;
+
   lastDeltaTime = deltaTime;
   setLastTime(currentTime);
 
@@ -612,6 +630,12 @@ function draw() {
   // Wave announce arc
 
 
+  // Birds (drawn above wastes but below UI)
+  birdSystem.drawBirds(ctx, config.sx, config.sy, config.ss);
+
+  // Camera button (drawn on top of game area)
+  birdSystem.drawCameraButton(ctx, config.sx, config.sy, config.ss);
+
   // UI
   drawUI(ctx);
 
@@ -636,6 +660,9 @@ function draw() {
   if (isPowerupSelecting()) {
     drawPowerupSelector(ctx, canvas);
   }
+
+  // Flash effect (drawn on top of everything)
+  birdSystem.drawFlash(ctx, canvas);
 }
 
 // Game loop
