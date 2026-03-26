@@ -1,0 +1,30 @@
+{
+  "name": "birds",
+  "type": "static",
+  "variants": [
+    {
+      "id": "common_1",
+      "file": "common_1.png",
+      "spriteSheet": {
+        "cols": 4,
+        "rows": 4
+      },
+      "size": {
+        "width": 128,
+        "height": 128
+      }
+    },
+    {
+      "id": "common_2",
+      "file": "common_2.png",
+      "spriteSheet": {
+        "cols": 4,
+        "rows": 4
+      },
+      "size": {
+        "width": 192,
+        "height": 192
+      }
+    }
+  ]
+}
