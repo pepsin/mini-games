@@ -76,13 +76,87 @@
         const SEGMENT_WIDTH = 20;
         const PHASE_SCALE = 0.02;
 
+        // Pseudo-random hash function for reproducible randomness
+        function hash(x) {
+            let n = Math.sin(x * 12.9898) * 43758.5453;
+            return n - Math.floor(n);
+        }
+
         function getYAtAbsoluteX(absoluteX) {
             const height = canvas.height;
-            const amplitude = height * 0.15;
+            const baseAmplitude = height * 0.15;
             const centerY = height * 0.7;
-            const phase = absoluteX * PHASE_SCALE * 0.3;
-            const noise = Math.sin(phase * 2.7) * 0.3 + Math.sin(phase * 5.3) * 0.2;
-            return centerY + Math.sin(phase + noise) * amplitude;
+            
+            // Base terrain
+            const phase = absoluteX * PHASE_SCALE;
+            let y = centerY + Math.sin(phase) * baseAmplitude * 0.5;
+            
+            // Add occasional weird features
+            const featureSeed = Math.floor(absoluteX / 400);
+            const featureType = hash(featureSeed * 123.45);
+            const localX = absoluteX % 400;
+            const featurePos = hash(featureSeed * 67.89) * 300 + 50;
+            const featureWidth = hash(featureSeed * 45.67) * 80 + 40;
+            
+            // Feature 1: Sharp spike/hook
+            if (featureType < 0.15 && Math.abs(localX - featurePos) < featureWidth) {
+                const t = (localX - featurePos) / featureWidth;
+                const spikeHeight = baseAmplitude * (2 + hash(featureSeed) * 2);
+                const spike = Math.sin(t * Math.PI) * spikeHeight;
+                const hook = t < 0.5 ? spike * 1.5 : spike * 0.3;
+                y -= hook;
+            }
+            
+            // Feature 2: Steep cliff
+            else if (featureType >= 0.15 && featureType < 0.30 && Math.abs(localX - featurePos) < 60) {
+                const cliffHeight = baseAmplitude * (1 + hash(featureSeed) * 1.5);
+                const direction = hash(featureSeed * 11.11) > 0.5 ? 1 : -1;
+                y += cliffHeight * direction * (localX < featurePos ? 0 : 1);
+            }
+            
+            // Feature 3: Jagged zigzag section
+            else if (featureType >= 0.30 && featureType < 0.45 && Math.abs(localX - featurePos) < featureWidth * 1.5) {
+                const t = (localX - featurePos) / featureWidth;
+                const jaggedFreq = 8 + Math.floor(hash(featureSeed) * 8);
+                const jagged = Math.sin(t * jaggedFreq * Math.PI) * baseAmplitude * 0.8;
+                y += jagged;
+            }
+            
+            // Feature 4: Plateau with overhang
+            else if (featureType >= 0.45 && featureType < 0.55) {
+                const plateauWidth = 150 + hash(featureSeed) * 100;
+                const plateauHeight = baseAmplitude * (0.5 + hash(featureSeed * 2.34) * 1.0);
+                if (Math.abs(localX - featurePos) < plateauWidth / 2) {
+                    y -= plateauHeight;
+                }
+            }
+            
+            // Feature 5: Crater/dip
+            else if (featureType >= 0.55 && featureType < 0.70 && Math.abs(localX - featurePos) < featureWidth) {
+                const t = (localX - featurePos) / featureWidth;
+                const craterDepth = baseAmplitude * (1.2 + hash(featureSeed));
+                const dip = Math.cos(t * Math.PI) * craterDepth;
+                y += dip;
+            }
+            
+            // Feature 6: Series of small bumps
+            else if (featureType >= 0.70 && featureType < 0.85) {
+                const bumpFreq = 6 + Math.floor(hash(featureSeed) * 6);
+                const bumps = Math.sin(localX * 0.05 + featureSeed * 10) * baseAmplitude * 0.4;
+                y += bumps;
+            }
+            
+            // Feature 7: Angular terrain (triangular waves)
+            else if (featureType >= 0.85) {
+                const angleFreq = 0.1 + hash(featureSeed) * 0.15;
+                const triangle = Math.abs((localX * angleFreq) % 2 - 1) * baseAmplitude;
+                y += triangle - baseAmplitude * 0.5;
+            }
+            
+            // Small noise for texture
+            y += Math.sin(phase * 3.7) * baseAmplitude * 0.1;
+            
+            return y;
         }
 
         function drawZigZag(viewOffset) {
