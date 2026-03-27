@@ -76,6 +76,11 @@ const {
   getPolaroidPhoto, updatePolaroid, shouldDimBirds
 } = require('./js/birdWatchingSystem.js');
 
+// Bird album
+const {
+  isBirdAlbumVisible, handleAlbumTouch, drawBirdAlbum
+} = require('./js/birdAlbum.js');
+
 // Entities
 const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
 const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
@@ -388,12 +393,13 @@ function drawPolaroidPhoto(ctx) {
 
   ctx.restore(); // End clip
 
-  // Draw polaroid caption text
+  // Draw polaroid caption text (bird name)
   ctx.fillStyle = '#333';
-  ctx.font = `${ss(10)}px Arial`;
+  ctx.font = `bold ${ss(11)}px Arial`;
   ctx.textAlign = 'center';
-  const textY = posY + photoHeight - 8 * scale;
-  ctx.fillText('Captured!', sx(x), textY);
+  const textY = posY + photoHeight - 10 * scale;
+  const displayName = polaroid.birdName || 'Unknown Bird';
+  ctx.fillText(displayName, sx(x), textY);
 
   ctx.restore();
 }
@@ -825,6 +831,11 @@ function draw() {
   // Skin gallery (drawn on top of everything)
   if (isGalleryVisible()) {
     drawGallery(ctx);
+  }
+
+  // Bird album (drawn on top of everything)
+  if (isBirdAlbumVisible()) {
+    drawBirdAlbum(ctx, canvas);
   }
 
   // Powerup selector overlay (drawn on top of everything when active)

@@ -2,6 +2,7 @@
 // Manages bird spawning, camera interactions, and recording watched birds
 
 const { W } = require('./config.js');
+const { getBirdName, recordBirdCapture } = require('./birdAlbum.js');
 
 // Constants
 const BIRD_SPAWN_CHANCE = 1; // 10% chance per wave
@@ -196,8 +197,15 @@ function getWatchedBirdStats() {
 
 // Capture a polaroid photo of a bird at the given position
 function capturePolaroidPhoto(bird, x, y) {
+  // Record this bird as captured in the album
+  recordBirdCapture(bird.variant, bird.frameIndex);
+  
+  // Get the bird's name
+  const birdName = getBirdName(bird.variant, bird.frameIndex);
+  
   polaroidPhoto = {
     bird: { ...bird }, // Copy bird data
+    birdName: birdName,
     x: x,
     y: y,
     createdAt: Date.now(),

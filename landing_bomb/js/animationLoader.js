@@ -242,7 +242,8 @@ class AnimationLoader {
               cols: sheetConfig.cols,
               rows: sheetConfig.rows,
               frameWidth: frameWidth,
-              frameHeight: frameHeight
+              frameHeight: frameHeight,
+              names: variant.names || [] // Store bird names from config
             };
           } else {
             // Regular image variant

@@ -457,8 +457,14 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
             .cornerRadius(8)
         ) : flexItem().size(0, 0),
       
-      // Skin gallery button (hidden for now)
-      flexItem().size(0, 0)
+      // Bird album button
+      flexItem()
+        .tag('birdAlbumButton')
+        .text('鸟类图鉴', 14)
+        .textStyle('#FFFFFF', 14, 'Arial', 'bold')
+        .background('#8B4513')
+        .padding({ left: 25, right: 25, top: 8, bottom: 8 })
+        .cornerRadius(8)
     );
 
   panel.draw(ctx);
@@ -472,6 +478,10 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
     const leaderboardBounds = panel.getTaggedBounds('leaderboardButton');
     if (leaderboardBounds) setButtonBounds('leaderboardButton', leaderboardBounds.x, leaderboardBounds.y, leaderboardBounds.width, leaderboardBounds.height);
   }
+  
+  // Bird album button bounds (available in both start and pause menus)
+  const birdAlbumBounds = panel.getTaggedBounds('birdAlbumButton');
+  if (birdAlbumBounds) setButtonBounds('birdAlbumButton', birdAlbumBounds.x, birdAlbumBounds.y, birdAlbumBounds.width, birdAlbumBounds.height);
 }
 
 function drawPauseScreen(ctx, canvas) {

@@ -9,6 +9,7 @@ const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
 const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds } = require('./birdWatchingSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
+const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll } = require('./birdAlbum.js');
 const { hitTestInventory } = require('./powerupInventory.js');
 const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
 const { handleSelectorTouch } = require('./powerupSelector.js');
@@ -24,7 +25,13 @@ function registerCallbacks(callbacks) {
 function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
 
-  // Handle gallery touch first
+  // Handle bird album touch first
+  if (isBirdAlbumVisible()) {
+    handleAlbumTouch(gp.x, gp.y);
+    return;
+  }
+
+  // Handle gallery touch
   if (isGalleryVisible()) {
     handleGalleryTouch(gp.x, gp.y);
     return;
@@ -49,6 +56,11 @@ function handleTouchStart(e) {
     // Skin gallery button
     if (hitTest('skinGalleryButton', gp.x, gp.y)) {
       openGallery();
+      return;
+    }
+    // Bird album button
+    if (hitTest('birdAlbumButton', gp.x, gp.y)) {
+      openBirdAlbum();
       return;
     }
     return;
@@ -84,12 +96,19 @@ function handleTouchStart(e) {
 
   // Check if game is paused - handle resume button click
   if (isGamePaused()) {
+    // Resume button
     if (hitTest('startButton', gp.x, gp.y)) {
       setGamePaused(false);
       // Call resume callback if registered
       if (gameCallbacks.onResume) {
         gameCallbacks.onResume();
       }
+      return;
+    }
+    // Bird album button in pause menu
+    if (hitTest('birdAlbumButton', gp.x, gp.y)) {
+      openBirdAlbum();
+      return;
     }
     return;
   }
@@ -146,8 +165,22 @@ function handleTouchStart(e) {
 
 // Handle touch move
 function handleTouchMove(e) {
+  const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
+  
+  // Handle bird album scrolling
+  if (isBirdAlbumVisible()) {
+    // Calculate scroll delta
+    const touch = e.touches[0];
+    if (touch.lastY !== undefined) {
+      const dy = touch.clientY - touch.lastY;
+      handleAlbumScroll(dy);
+    }
+    touch.lastY = touch.clientY;
+    return;
+  }
+  
   if (!isDragging()) return;
-  setDragCurrent(toGame(e.touches[0].clientX, e.touches[0].clientY));
+  setDragCurrent(gp);
 }
 
 // Handle touch end
