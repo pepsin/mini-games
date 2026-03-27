@@ -72,7 +72,8 @@ const { tryDropSkin, unlockSkin } = require('./js/slingshotSkinSystem.js');
 const {
   updateFlash, isFlashActive, shouldShowCameraButton,
   getCameraButtonBounds, setCameraButtonBounds,
-  recordAllCurrentBirdsWatched, getCurrentWaveBirds
+  recordAllCurrentBirdsWatched, getCurrentWaveBirds,
+  getPolaroidPhoto, updatePolaroid, shouldDimBirds
 } = require('./js/birdWatchingSystem.js');
 
 // Entities
@@ -251,30 +252,30 @@ function explodeAllWastes() {
 // Draw camera button for bird watching
 function drawCameraButton(ctx) {
   const { sx, sy, ss } = config;
-  
+
   // Position: middle right side of screen
   const buttonSize = 56;
   const buttonX = W - buttonSize - 20;
   const buttonY = H / 2 - buttonSize / 2;
-  
+
   // Draw yellow circular button
   const cx = sx(buttonX + buttonSize / 2);
   const cy = sy(buttonY + buttonSize / 2);
   const radius = ss(buttonSize / 2);
-  
+
   // Button background (yellow)
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.fillStyle = '#FFD700'; // Gold/Yellow
   ctx.fill();
-  
+
   // Button border
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.strokeStyle = '#FFA500'; // Orange border
   ctx.lineWidth = ss(3);
   ctx.stroke();
-  
+
   // Camera icon (simplified)
   ctx.fillStyle = '#333';
   // Camera body
@@ -295,9 +296,106 @@ function drawCameraButton(ctx) {
   ctx.arc(cx - camWidth / 3, cy - camHeight / 2 - ss(3), ss(2), 0, Math.PI * 2);
   ctx.fillStyle = '#FFF';
   ctx.fill();
-  
+
   // Store button bounds for hit testing
   setCameraButtonBounds(buttonX, buttonY, buttonSize, buttonSize);
+}
+
+// Draw polaroid photo of a bird
+function drawPolaroidPhoto(ctx) {
+  const polaroid = getPolaroidPhoto();
+  if (!polaroid) return;
+
+  const { sx, sy, ss } = config;
+  const { bird, x, y, scale, opacity = 1 } = polaroid;
+
+  ctx.save();
+
+  // Apply opacity for fade out effect
+  ctx.globalAlpha = opacity;
+
+  // Polaroid dimensions
+  const photoWidth = 100 * scale;
+  const photoHeight = 120 * scale;
+  const borderWidth = 10 * scale;
+
+  // Position at camera button location (centered)
+  const posX = sx(x) - photoWidth / 2;
+  const posY = sy(y) - photoHeight / 2;
+
+  // Draw polaroid background (white)
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+  ctx.shadowBlur = 15 * scale;
+  ctx.shadowOffsetX = 5 * scale;
+  ctx.shadowOffsetY = 5 * scale;
+  ctx.fillRect(posX, posY, photoWidth, photoHeight);
+
+  // Reset shadow for photo content
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Draw bird sprite inside polaroid
+  const innerX = posX + borderWidth;
+  const innerY = posY + borderWidth;
+  const innerWidth = photoWidth - borderWidth * 2;
+  const innerHeight = photoHeight - borderWidth * 2 - 15 * scale; // Extra space at bottom for text
+
+  // Clip to inner area
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(innerX, innerY, innerWidth, innerHeight);
+  ctx.clip();
+
+  // Draw bird
+  const birdRes = getResource('birds');
+  if (birdRes?.variants && bird.variant) {
+    const variant = birdRes.variants[bird.variant];
+    if (variant?.spriteSheet && variant.frames?.length > 0) {
+      const frame = variant.frames[bird.frameIndex || 0];
+      if (frame?.image) {
+        // Calculate scaling to fit bird in polaroid
+        const birdScale = Math.min(
+          innerWidth / (variant.frameWidth * 0.5),
+          innerHeight / (variant.frameHeight * 0.5)
+        ) * 0.8;
+
+        const drawWidth = variant.frameWidth * birdScale * 0.5;
+        const drawHeight = variant.frameHeight * birdScale * 0.5;
+
+        // Center the bird
+        const drawX = innerX + innerWidth / 2;
+        const drawY = innerY + innerHeight / 2;
+
+        // Handle direction flip
+        if (bird.direction > 0) {
+          ctx.translate(drawX, drawY);
+          ctx.scale(-1, 1);
+          ctx.translate(-drawX, -drawY);
+        }
+
+        ctx.drawImage(
+          frame.image,
+          frame.sx, frame.sy, frame.sw, frame.sh,
+          drawX - drawWidth / 2, drawY - drawHeight / 2,
+          drawWidth, drawHeight
+        );
+      }
+    }
+  }
+
+  ctx.restore(); // End clip
+
+  // Draw polaroid caption text
+  ctx.fillStyle = '#333';
+  ctx.font = `${ss(10)}px Arial`;
+  ctx.textAlign = 'center';
+  const textY = posY + photoHeight - 8 * scale;
+  ctx.fillText('Captured!', sx(x), textY);
+
+  ctx.restore();
 }
 
 // Draw screen flash effect (white flash)
@@ -362,6 +460,9 @@ function update() {
   
   // Update flash effect
   updateFlash();
+  
+  // Update polaroid photo state
+  updatePolaroid();
 
   // Update wave system
   const waveAction = updateWaves(wastes.length);
@@ -635,9 +736,10 @@ function draw() {
   // Game entities (clipped to game area)
   clouds.forEach(c => drawCloud(ctx, c));
   
-  // Draw wave birds (bird watching feature)
+  // Draw wave birds (bird watching feature) - dimmed if polaroid is shown
   const waveBirds = getCurrentWaveBirds();
-  waveBirds.forEach(b => drawBird(ctx, b));
+  const dimOpacity = shouldDimBirds() ? 0.3 : 1;
+  waveBirds.forEach(b => drawBird(ctx, b, dimOpacity));
   
   drawWall(ctx);
 
@@ -694,11 +796,14 @@ function draw() {
 
   // UI
   drawUI(ctx);
-  
-  // Draw camera button for bird watching (if birds are present)
+
+  // Draw camera button for bird watching (if birds are present and no polaroid showing)
   if (shouldShowCameraButton()) {
     drawCameraButton(ctx);
   }
+
+  // Draw polaroid photo if active (on top of everything)
+  drawPolaroidPhoto(ctx);
 
   // Restore context (remove clipping)
   ctx.restore();

@@ -7,7 +7,7 @@ const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDr
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
-const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash } = require('./birdWatchingSystem.js');
+const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds } = require('./birdWatchingSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { hitTestInventory } = require('./powerupInventory.js');
 const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
@@ -124,6 +124,16 @@ function handleTouchStart(e) {
       
       // Start screen flash effect
       startFlash();
+      
+      // Capture polaroid photo of the first bird (or pick one randomly)
+      const birds = getCurrentWaveBirds();
+      if (birds.length > 0) {
+        // Pick a random bird from the flock to photograph
+        const randomBird = birds[Math.floor(Math.random() * birds.length)];
+        // Capture at camera button position
+        capturePolaroidPhoto(randomBird, x + width / 2, y + height / 2);
+      }
+      
       return;
     }
   }
