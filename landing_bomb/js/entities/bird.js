@@ -1,46 +1,8 @@
 // Bird Entity Module
 
-const { W, H, RESOURCE_COLORS } = require('../config.js');
+const { W, RESOURCE_COLORS } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
-const { drawImageProportional, drawPlaceholder } = require('../renderer.js');
-const { animationLoader } = require('../animationLoader.js');
-
-// Initialize birds array
-function initBirds() {
-  const birds = [];
-  const birdRes = getResource('birds');
-  const variants = birdRes?.variants ? Object.keys(birdRes.variants) : ['common_1', 'common_2'];
-  
-  // Create 3-5 birds at random positions
-  const birdCount = 3 + Math.floor(Math.random() * 3);
-  
-  for (let i = 0; i < birdCount; i++) {
-    const variant = variants[Math.floor(Math.random() * variants.length)];
-    const scale = 0.4 + Math.random() * 0.4; // Smaller scale than clouds
-    const speed = 1.5 + Math.random() * 1.5; // Birds fly faster than clouds
-    
-    // Pick a random sprite frame for this bird
-    let frameIndex = 0;
-    if (birdRes?.variants?.[variant]?.frames) {
-      const frameCount = birdRes.variants[variant].frames.length;
-      frameIndex = Math.floor(Math.random() * frameCount);
-    }
-    
-    birds.push({
-      x: Math.random() * W,
-      y: 30 + Math.random() * 150, // Fly in upper portion of sky
-      variant: variant,
-      scale: scale,
-      speed: speed,
-      direction: Math.random() > 0.5 ? 1 : -1, // Random direction: 1 = right, -1 = left
-      frameIndex: frameIndex // Static sprite frame
-    });
-  }
-  
-  // Sort by scale (larger birds behind)
-  birds.sort((a, b) => b.scale - a.scale);
-  return birds;
-}
+const { drawPlaceholder } = require('../renderer.js');
 
 // Update birds position
 function updateBirds(birds) {
@@ -108,7 +70,6 @@ function drawBird(ctx, bird) {
 }
 
 module.exports = {
-  initBirds,
   updateBirds,
   drawBird
 };

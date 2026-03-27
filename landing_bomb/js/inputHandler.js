@@ -7,6 +7,7 @@ const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDr
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
+const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash } = require('./birdWatchingSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { hitTestInventory } = require('./powerupInventory.js');
 const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
@@ -110,6 +111,21 @@ function handleTouchStart(e) {
   if (inventorySlot >= 0) {
     gameCallbacks.onInventoryClick && gameCallbacks.onInventoryClick(inventorySlot);
     return;
+  }
+
+  // Check camera button click (bird watching feature)
+  const cameraBounds = getCameraButtonBounds();
+  if (cameraBounds) {
+    const { x, y, width, height } = cameraBounds;
+    if (gp.x >= x && gp.x <= x + width && gp.y >= y && gp.y <= y + height) {
+      // Record all current birds as watched
+      const recordedCount = recordAllCurrentBirdsWatched();
+      console.log(`Camera clicked! Recorded ${recordedCount} new birds.`);
+      
+      // Start screen flash effect
+      startFlash();
+      return;
+    }
   }
 
   // Start dragging

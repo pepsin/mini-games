@@ -21,7 +21,7 @@ const {
   resetGame, addScore, setGameStarted, setGameOver, setGamePaused, setLastTime, incrementFrameCount, setLives, setPowerupSelecting,
   getScore, getFrameCount, getLastTime, isGameOver, isGameStarted, isGamePaused, isPowerupSelecting,
   getFlowerPositions, damageFlower, healFlower, hasDeadFlower,
-  wastes, projectiles, explosions, scorePopups, clouds, birds,
+  wastes, projectiles, explosions, scorePopups, clouds,
   powerups, activePowerups, powerupBursts,
   flowerAlive, flowerFrameIndices
 } = require('./js/gameState.js');
@@ -68,10 +68,17 @@ const { tryDropSkin, unlockSkin } = require('./js/slingshotSkinSystem.js');
 // Falling shield effect
 
 
+// Bird watching system
+const {
+  updateFlash, isFlashActive, shouldShowCameraButton,
+  getCameraButtonBounds, setCameraButtonBounds,
+  recordAllCurrentBirdsWatched, getCurrentWaveBirds
+} = require('./js/birdWatchingSystem.js');
+
 // Entities
 const { drawSky, drawSun, drawRainbow } = require('./js/entities/sky.js');
 const { initClouds, updateClouds, drawCloud } = require('./js/entities/cloud.js');
-const { initBirds, updateBirds, drawBird } = require('./js/entities/bird.js');
+const { updateBirds, drawBird } = require('./js/entities/bird.js');
 const { drawWall } = require('./js/entities/wall.js');
 const { drawHealthFlowers } = require('./js/entities/flower.js');
 const {
@@ -118,10 +125,6 @@ function init() {
   const initialClouds = initClouds();
   clouds.push(...initialClouds);
 
-  // Initialize birds
-  const initialBirds = initBirds();
-  birds.push(...initialBirds);
-
   // Initialize powerup selector
   initPowerupSelector();
 
@@ -144,8 +147,6 @@ function init() {
     onGameStart: () => {
       setGameStarted(true);
       resetGame();
-      const initialBirds = initBirds();
-      birds.push(...initialBirds);
       resetWaves();
       resetChallenges();
       resetInventory();
@@ -166,8 +167,6 @@ function init() {
       });
       
       resetGame();
-      const initialBirds = initBirds();
-      birds.push(...initialBirds);
       resetWaves();
       resetChallenges();
       resetInventory();
@@ -249,6 +248,66 @@ function explodeAllWastes() {
   }
 }
 
+// Draw camera button for bird watching
+function drawCameraButton(ctx) {
+  const { sx, sy, ss } = config;
+  
+  // Position: middle right side of screen
+  const buttonSize = 56;
+  const buttonX = W - buttonSize - 20;
+  const buttonY = H / 2 - buttonSize / 2;
+  
+  // Draw yellow circular button
+  const cx = sx(buttonX + buttonSize / 2);
+  const cy = sy(buttonY + buttonSize / 2);
+  const radius = ss(buttonSize / 2);
+  
+  // Button background (yellow)
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFD700'; // Gold/Yellow
+  ctx.fill();
+  
+  // Button border
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#FFA500'; // Orange border
+  ctx.lineWidth = ss(3);
+  ctx.stroke();
+  
+  // Camera icon (simplified)
+  ctx.fillStyle = '#333';
+  // Camera body
+  const camWidth = ss(24);
+  const camHeight = ss(18);
+  ctx.fillRect(cx - camWidth / 2, cy - camHeight / 2, camWidth, camHeight);
+  // Camera lens
+  ctx.beginPath();
+  ctx.arc(cx, cy, ss(6), 0, Math.PI * 2);
+  ctx.fillStyle = '#666';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, ss(4), 0, Math.PI * 2);
+  ctx.fillStyle = '#333';
+  ctx.fill();
+  // Flash dot
+  ctx.beginPath();
+  ctx.arc(cx - camWidth / 3, cy - camHeight / 2 - ss(3), ss(2), 0, Math.PI * 2);
+  ctx.fillStyle = '#FFF';
+  ctx.fill();
+  
+  // Store button bounds for hit testing
+  setCameraButtonBounds(buttonX, buttonY, buttonSize, buttonSize);
+}
+
+// Draw screen flash effect (white flash)
+function drawScreenFlash(ctx) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
 // Handle challenge reward
 function handleChallengeReward(reward) {
   if (!reward) return;
@@ -296,9 +355,13 @@ function update() {
 
   // Update clouds
   updateClouds(clouds);
-
-  // Update birds
-  updateBirds(birds);
+  
+  // Update wave birds (bird watching feature)
+  const waveBirds = getCurrentWaveBirds();
+  updateBirds(waveBirds);
+  
+  // Update flash effect
+  updateFlash();
 
   // Update wave system
   const waveAction = updateWaves(wastes.length);
@@ -571,7 +634,11 @@ function draw() {
 
   // Game entities (clipped to game area)
   clouds.forEach(c => drawCloud(ctx, c));
-  birds.forEach(b => drawBird(ctx, b));
+  
+  // Draw wave birds (bird watching feature)
+  const waveBirds = getCurrentWaveBirds();
+  waveBirds.forEach(b => drawBird(ctx, b));
+  
   drawWall(ctx);
 
   // Shield effect on flowers
@@ -627,9 +694,19 @@ function draw() {
 
   // UI
   drawUI(ctx);
+  
+  // Draw camera button for bird watching (if birds are present)
+  if (shouldShowCameraButton()) {
+    drawCameraButton(ctx);
+  }
 
   // Restore context (remove clipping)
   ctx.restore();
+  
+  // Draw screen flash effect (outside clipping)
+  if (isFlashActive()) {
+    drawScreenFlash(ctx);
+  }
 
   // Screens (drawn without clipping)
   if (isGameOver()) {

@@ -4,6 +4,8 @@ const { isChallengeWave, generateChallenge, completeChallenge } = require('./cha
 const { WAVE_DISPLAY_OFFSET } = require('./config.js');
 const { getFrameCount } = require('./gameState.js');
 const analytics = require('./analytics.js');
+const { shouldSpawnBirds, spawnWaveBirds, clearWaveBirds } = require('./birdWatchingSystem.js');
+const { getResource } = require('./resources.js');
 
 // Wave state
 let currentWave = 1;
@@ -134,7 +136,16 @@ function startWave(waveNum) {
   const displayWave = getDisplayWave(waveNum);
   analytics.trackWaveStart(displayWave, waveType);
 
-  console.log(`Wave ${waveNum} started: ${totalWastesThisWave} wastes, ${config.waveDurationFrames / 60}s duration${totalSpecialWastes > 0 ? `, ${totalSpecialWastes} special wastes` : ''}`);
+  // Check if birds should spawn this wave (10% chance)
+  let waveBirds = [];
+  if (shouldSpawnBirds()) {
+    const birdRes = getResource('birds');
+    waveBirds = spawnWaveBirds(birdRes);
+  } else {
+    clearWaveBirds();
+  }
+
+  console.log(`Wave ${waveNum} started: ${totalWastesThisWave} wastes, ${config.waveDurationFrames / 60}s duration${totalSpecialWastes > 0 ? `, ${totalSpecialWastes} special wastes` : ''}${waveBirds.length > 0 ? `, ${waveBirds.length} birds` : ''}`);
 
   return config;
 }
@@ -164,6 +175,9 @@ function endWave() {
   const challengeType = challengeResult ? challengeResult.type : null;
   const completedDisplayWave = getDisplayWave(currentWave);
   analytics.trackWaveComplete(completedDisplayWave, challengeSuccess, challengeType);
+
+  // Clear wave birds when wave ends
+  clearWaveBirds();
 
   console.log(`Wave ${currentWave} completed! Break time: ${interWaveDuration / 60}s`);
   return challengeResult;
