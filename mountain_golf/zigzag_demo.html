@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zig-Zag Line Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        canvas {
+            border: 2px solid #16213e;
+            border-radius: 8px;
+            display: block;
+            margin: 20px auto;
+            background: #0f0f1e;
+            touch-action: none;
+            user-select: none;
+        }
+        .hint {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 8px 12px;
+            font-size: 16px;
+            border: 2px solid #16213e;
+            border-radius: 4px;
+            background: #0f0f1e;
+            color: #fff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label for="offset">Phase Offset:</label>
+        <input type="number" id="offset" value="0">
+    </div>
+    <canvas id="canvas" width="800" height="400"></canvas>
+    <div class="hint">Drag horizontally on canvas to explore</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const offsetInput = document.getElementById('offset');
+
+        // Drag state
+        let isDragging = false;
+        let lastX = 0;
+        let currentOffset = 0;
+
+        // Color configuration
+        const ABOVE_COLOR = '#fff';
+        const BELOW_TOP_COLOR = '#444';
+        const BELOW_BOTTOM_COLOR = '#000';
+        const LINE_COLOR = '#fff';
+        const LINE_WIDTH = 3;
+
+        const SEGMENT_WIDTH = 20;
+        const PHASE_SCALE = 0.02;
+
+        function getYAtAbsoluteX(absoluteX) {
+            const height = canvas.height;
+            const amplitude = height * 0.15;
+            const centerY = height * 0.7;
+            const phase = absoluteX * PHASE_SCALE * 0.3;
+            const noise = Math.sin(phase * 2.7) * 0.3 + Math.sin(phase * 5.3) * 0.2;
+            return centerY + Math.sin(phase + noise) * amplitude;
+        }
+
+        function drawZigZag(viewOffset) {
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Calculate visible range
+            const startX = Math.floor(viewOffset / SEGMENT_WIDTH) * SEGMENT_WIDTH;
+            const endX = startX + width + SEGMENT_WIDTH;
+            
+            // Generate points based on absolute world positions
+            const points = [];
+            for (let absX = startX; absX <= endX; absX += SEGMENT_WIDTH) {
+                const screenX = absX - viewOffset;
+                const y = getYAtAbsoluteX(absX);
+                points.push({ x: screenX, y });
+            }
+
+            // Draw below area with gradient
+            const minY = Math.min(...points.map(p => p.y));
+            const gradient = ctx.createLinearGradient(0, minY, 0, height);
+            gradient.addColorStop(0, BELOW_TOP_COLOR);
+            gradient.addColorStop(1, BELOW_BOTTOM_COLOR);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            ctx.lineTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.lineTo(width, height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw above area
+            ctx.fillStyle = ABOVE_COLOR;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.lineTo(width, 0);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Event listener
+        offsetInput.addEventListener('change', (e) => {
+            let value = parseFloat(e.target.value);
+            if (isNaN(value)) value = 0;
+            currentOffset = value;
+            e.target.value = value;
+            drawZigZag(currentOffset);
+        });
+
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.clientX;
+            canvas.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - lastX;
+            lastX = e.clientX;
+            currentOffset -= deltaX; // Drag right -> view moves right (positive offset)
+            offsetInput.value = currentOffset.toFixed(0);
+            drawZigZag(currentOffset);
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            lastX = e.touches[0].clientX;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.touches[0].clientX - lastX;
+            lastX = e.touches[0].clientX;
+            currentOffset -= deltaX;
+            offsetInput.value = currentOffset.toFixed(0);
+            drawZigZag(currentOffset);
+        });
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Set initial cursor
+        canvas.style.cursor = 'grab';
+
+        // Initial draw
+        drawZigZag(0);
+    </script>
+</body>
+</html>
