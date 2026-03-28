@@ -22,8 +22,8 @@
         "rows": 4
       },
       "size": {
-        "width": 192,
-        "height": 192
+        "width": 128,
+        "height": 128
       }
     },
     {
@@ -34,8 +34,8 @@
         "rows": 5
       },
       "size": {
-        "width": 192,
-        "height": 192
+        "width": 128,
+        "height": 128
       }
     }
   ]

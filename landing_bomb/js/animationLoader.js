@@ -213,8 +213,8 @@ class AnimationLoader {
           // Check if variant has sprite sheet configuration
           if (variant.spriteSheet) {
             const sheetConfig = variant.spriteSheet;
-            const frameWidth = Math.floor(img.width / sheetConfig.cols);
-            const frameHeight = Math.floor(img.height / sheetConfig.rows);
+            const frameWidth = Math.ceil(img.width / sheetConfig.cols);
+            const frameHeight = Math.ceil(img.height / sheetConfig.rows);
             const frameCount = sheetConfig.cols * sheetConfig.rows;
             
             console.log(`变体精灵图: ${img.width}x${img.height}, 每帧: ${frameWidth}x${frameHeight}, 共 ${frameCount} 帧 (${sheetConfig.cols}列 x ${sheetConfig.rows}行)`);

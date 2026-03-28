@@ -59,7 +59,7 @@ function drawWaste(ctx, waste, frameCount, isTimeSlowActive) {
         
         // Calculate draw dimensions
         const aspectRatio = imgWidth / imgHeight;
-        const drawWidth = ss(size.width * 0.8);
+        const drawWidth = ss(size.width);
         const drawHeight = drawWidth / aspectRatio;
         
         // Draw at rotated position (origin is now at waste center due to translate)
