@@ -1,6 +1,6 @@
 // UI Rendering Module
 
-const { W, H, GROUND_Y, sx, sy, ss, TOPBAR_CONFIG, WAVE_DISPLAY_OFFSET } = require('./config.js');
+const { W, H, GROUND_Y, sx, sy, ss, TOPBAR_CONFIG, WAVE_DISPLAY_OFFSET, INVENTORY_CONFIG } = require('./config.js');
 const { getScore, getHighScore, isGameOver, isGamePaused, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
 const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge, getWaveChangeAnimationProgress } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
@@ -130,14 +130,17 @@ function drawUI(ctx) {
   ctx.fillText(displayWaveText, -displayWaveWidth, 0);
   ctx.restore();
 
-  // Row 2: Powerup HUD (only if active) - positioned below inventory
+  // Row 2: Powerup HUD (only if active) - positioned to the right of inventory
   let topbarHeight = TOPBAR_CONFIG.baseHeight;
   if (activePowerups.length > 0) {
-    // Inventory is at baseHeight + 6 with buttonSize 40, so HUD goes below it
-    const inventoryBottom = TOPBAR_CONFIG.baseHeight + 6 + 40;
-    const powerupRowY = inventoryBottom + 8; // 8px gap below inventory
-    drawPowerupHUD(ctx, activePowerups, marginX, powerupRowY);
-    topbarHeight = powerupRowY + 42; // 42 is icon height (28 * 1.5)
+    // Position HUD to the right of inventory with 10px margin
+    const inventoryRightEdge = INVENTORY_CONFIG.baseX + 
+      INVENTORY_CONFIG.maxSlots * (INVENTORY_CONFIG.buttonSize + INVENTORY_CONFIG.gap) - 
+      INVENTORY_CONFIG.gap;
+    const powerupHudX = inventoryRightEdge + 10; // 10px margin from inventory
+    const powerupHudY = INVENTORY_CONFIG.baseY + (INVENTORY_CONFIG.buttonSize - 36) / 2; // Vertically centered
+    drawPowerupHUD(ctx, activePowerups, powerupHudX, powerupHudY);
+    topbarHeight = Math.max(topbarHeight, INVENTORY_CONFIG.baseY + INVENTORY_CONFIG.buttonSize);
   }
 
   // Challenge HUD (drawn separately as it's centered and has different styling)
