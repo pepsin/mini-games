@@ -5,7 +5,7 @@ const { W } = require('./config.js');
 const { getBirdName, recordBirdCapture } = require('./birdAlbum.js');
 
 // Constants
-const BIRD_SPAWN_CHANCE = 1; // 10% chance per wave
+const BIRD_SPAWN_CHANCE = 0.5; // 10% chance per wave
 const FLASH_DURATION_MS = 20; // 20ms flash duration
 const STORAGE_KEY = 'bowaste_watched_birds';
 
@@ -125,7 +125,8 @@ function spawnWaveBirds(birdRes) {
   }
   
   currentWaveBirds = newBirds;
-  showCameraButton = newBirds.length > 0;
+  // Show camera button if there are any birds visible on screen
+  showCameraButton = hasVisibleBirds();
   
   console.log(`Spawned ${newBirds.length} birds for this wave`);
   return newBirds;
@@ -183,6 +184,81 @@ function recordAllCurrentBirdsWatched() {
   return recordedCount;
 }
 
+// Get unwatched birds (birds that haven't been watched before)
+function getUnwatchedBirds() {
+  return currentWaveBirds.filter(bird => !isBirdWatched(bird.id));
+}
+
+// Check if any birds are currently visible on screen (watched or unwatched)
+function hasVisibleBirds() {
+  if (currentWaveBirds.length === 0) return false;
+  
+  // Margin for partially visible birds (birds are visible when within -100 to W+100)
+  const margin = 100;
+  
+  return currentWaveBirds.some(bird => {
+    // Bird is visible if it's within the screen bounds (with margin)
+    return bird.x > -margin && bird.x < W + margin;
+  });
+}
+
+// Check if any unwatched birds are currently visible on screen
+function hasVisibleUnwatchedBirds() {
+  const unwatchedBirds = getUnwatchedBirds();
+  if (unwatchedBirds.length === 0) return false;
+  
+  // Margin for partially visible birds (birds are visible when within -100 to W+100)
+  const margin = 100;
+  
+  return unwatchedBirds.some(bird => {
+    // Bird is visible if it's within the screen bounds (with margin)
+    return bird.x > -margin && bird.x < W + margin;
+  });
+}
+
+// Mark a bird as currently being watched (for fade-out animation)
+function markBirdAsBeingWatched(birdId) {
+  const bird = currentWaveBirds.find(b => b.id === birdId);
+  if (bird) {
+    bird.isBeingWatched = true;
+    bird.fadeStartTime = Date.now();
+    bird.fadeDuration = 500; // 500ms fade out
+  }
+}
+
+// Update birds (handle fade-out and removal)
+function updateWaveBirds() {
+  const now = Date.now();
+  
+  // Update fade-out for birds being watched
+  currentWaveBirds.forEach(bird => {
+    if (bird.isBeingWatched && bird.fadeStartTime) {
+      const elapsed = now - bird.fadeStartTime;
+      bird.fadeProgress = Math.min(elapsed / bird.fadeDuration, 1);
+      
+      // Calculate alpha (1 -> 0)
+      bird.currentAlpha = 1 - bird.fadeProgress;
+    } else {
+      bird.currentAlpha = 1;
+    }
+  });
+  
+  // Remove birds that have fully faded out
+  const birdsToRemove = currentWaveBirds.filter(bird => 
+    bird.isBeingWatched && bird.fadeProgress >= 1
+  );
+  
+  if (birdsToRemove.length > 0) {
+    // Remove faded birds
+    currentWaveBirds = currentWaveBirds.filter(bird => 
+      !(bird.isBeingWatched && bird.fadeProgress >= 1)
+    );
+    
+    // Update camera button visibility
+    showCameraButton = hasVisibleBirds();
+  }
+}
+
 // Get watched birds stats
 function getWatchedBirdStats() {
   const birdIds = Object.keys(watchedBirds);
@@ -196,7 +272,8 @@ function getWatchedBirdStats() {
 // Polaroid photo functions
 
 // Capture a polaroid photo of a bird at the given position
-function capturePolaroidPhoto(bird, x, y) {
+// tintColor: optional tint color (e.g., 'yellow' for already watched birds)
+function capturePolaroidPhoto(bird, x, y, tintColor = null) {
   // Record this bird as captured in the album
   recordBirdCapture(bird.variant, bird.frameIndex);
   
@@ -209,7 +286,8 @@ function capturePolaroidPhoto(bird, x, y) {
     x: x,
     y: y,
     createdAt: Date.now(),
-    scale: 0
+    scale: 0,
+    tintColor: tintColor // Store tint color for drawing
   };
   birdsDimmed = true;
   
@@ -276,9 +354,9 @@ function shouldDimBirds() {
   return birdsDimmed;
 }
 
-// Check if camera button should be shown
+// Check if camera button should be shown (if there are any birds visible on screen)
 function shouldShowCameraButton() {
-  return showCameraButton && currentWaveBirds.length > 0 && !polaroidPhoto;
+  return showCameraButton && hasVisibleBirds() && !polaroidPhoto;
 }
 
 // Reset polaroid and dim state (call when wave ends)
@@ -305,5 +383,10 @@ module.exports = {
   capturePolaroidPhoto,
   getPolaroidPhoto,
   updatePolaroid,
-  shouldDimBirds
+  shouldDimBirds,
+  getUnwatchedBirds,
+  hasVisibleUnwatchedBirds,
+  hasVisibleBirds,
+  markBirdAsBeingWatched,
+  updateWaveBirds
 };

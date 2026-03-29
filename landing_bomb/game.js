@@ -7,6 +7,13 @@ const ctx = canvas.getContext('2d');
 // Module-level deltaTime for use in render
 let lastDeltaTime = 16;
 
+// Camera button animation state
+const CAMERA_BUTTON_SLIDE_DURATION = 500; // 500ms to slide in/out
+let cameraButtonSlideStartTime = null;
+let cameraButtonSlideDirection = 'in'; // 'in' or 'out'
+let cameraButtonLastBirdCount = 0; // Track last known bird count
+let cameraButtonIsVisible = false; // Whether button should be visible
+
 // Core modules
 const config = require('./js/config.js');
 const { W, H, updateScale, isDevTools } = config;
@@ -73,7 +80,8 @@ const {
   updateFlash, isFlashActive, shouldShowCameraButton,
   getCameraButtonBounds, setCameraButtonBounds,
   recordAllCurrentBirdsWatched, getCurrentWaveBirds,
-  getPolaroidPhoto, updatePolaroid, shouldDimBirds
+  getPolaroidPhoto, updatePolaroid, shouldDimBirds,
+  isBirdWatched, updateWaveBirds, getUnwatchedBirds, hasVisibleBirds
 } = require('./js/birdWatchingSystem.js');
 
 // Bird album
@@ -254,56 +262,120 @@ function explodeAllWastes() {
   }
 }
 
-// Draw camera button for bird watching
-function drawCameraButton(ctx) {
+// Draw camera button for bird watching with slide-in/slide-out animation
+function drawCameraButton(ctx, currentTime) {
   const { sx, sy, ss } = config;
 
-  // Position: middle right side of screen
-  const buttonSize = 56;
-  const buttonX = W - buttonSize - 20;
-  const buttonY = H / 2 - buttonSize / 2;
+  // Button dimensions - bigger button
+  const buttonWidth = 72;
+  const buttonHeight = 72;
+  const cornerRadius = 12;
+  const buttonY = H / 2 - buttonHeight / 2;
+  
+  // Check if there are any birds visible on screen (watched or unwatched)
+  const birdsAreVisible = hasVisibleBirds();
+  
+  // Determine if state changed
+  const stateChanged = birdsAreVisible !== cameraButtonIsVisible;
+  if (stateChanged) {
+    cameraButtonSlideStartTime = currentTime || Date.now();
+    cameraButtonSlideDirection = birdsAreVisible ? 'in' : 'out';
+    cameraButtonIsVisible = birdsAreVisible;
+  }
+  
+  // Initialize animation start time on first call
+  if (cameraButtonSlideStartTime === null) {
+    cameraButtonSlideStartTime = currentTime || Date.now();
+    cameraButtonSlideDirection = birdsAreVisible ? 'in' : 'out';
+  }
+  
+  const elapsed = (currentTime || Date.now()) - cameraButtonSlideStartTime;
+  let slideProgress = Math.min(elapsed / CAMERA_BUTTON_SLIDE_DURATION, 1);
+  
+  // Ease out cubic for smooth animation
+  const easeOut = 1 - Math.pow(1 - slideProgress, 3);
+  
+  // Calculate positions
+  const offScreenX = W + buttonWidth;
+  const onScreenX = W - buttonWidth;
+  
+  let currentX;
+  if (cameraButtonSlideDirection === 'in') {
+    // Slide in from outside to visible position
+    currentX = offScreenX - (offScreenX - onScreenX) * easeOut;
+  } else {
+    // Slide out from visible position to outside
+    currentX = onScreenX + (offScreenX - onScreenX) * easeOut;
+  }
+  
+  // Convert to screen coordinates
+  const drawX = sx(currentX);
+  const drawY = sy(buttonY);
+  const drawWidth = ss(buttonWidth);
+  const drawHeight = ss(buttonHeight);
+  const drawRadius = ss(cornerRadius);
 
-  // Draw yellow circular button
-  const cx = sx(buttonX + buttonSize / 2);
-  const cy = sy(buttonY + buttonSize / 2);
-  const radius = ss(buttonSize / 2);
+  // Draw button with rounded left corners, straight right corners
+  ctx.beginPath();
+  // Top-left corner (rounded)
+  ctx.moveTo(drawX + drawRadius, drawY);
+  // Top edge to top-right corner (straight)
+  ctx.lineTo(drawX + drawWidth, drawY);
+  // Right edge down to bottom-right corner (straight)
+  ctx.lineTo(drawX + drawWidth, drawY + drawHeight);
+  // Bottom edge to bottom-left corner
+  ctx.lineTo(drawX + drawRadius, drawY + drawHeight);
+  // Bottom-left corner (rounded)
+  ctx.arcTo(drawX, drawY + drawHeight, drawX, drawY + drawHeight - drawRadius, drawRadius);
+  // Left edge up
+  ctx.lineTo(drawX, drawY + drawRadius);
+  // Top-left corner (rounded)
+  ctx.arcTo(drawX, drawY, drawX + drawRadius, drawY, drawRadius);
+  ctx.closePath();
 
   // Button background (yellow)
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.fillStyle = '#FFD700'; // Gold/Yellow
+  ctx.fillStyle = '#FFD700';
   ctx.fill();
 
   // Button border
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.strokeStyle = '#FFA500'; // Orange border
+  ctx.strokeStyle = '#FFA500';
   ctx.lineWidth = ss(3);
   ctx.stroke();
 
   // Camera icon (simplified)
+  const centerX = drawX + drawWidth / 2;
+  const centerY = drawY + drawHeight / 2;
+  
   ctx.fillStyle = '#333';
   // Camera body
-  const camWidth = ss(24);
-  const camHeight = ss(18);
-  ctx.fillRect(cx - camWidth / 2, cy - camHeight / 2, camWidth, camHeight);
+  const camWidth = ss(30);
+  const camHeight = ss(22);
+  ctx.fillRect(centerX - camWidth / 2, centerY - camHeight / 2, camWidth, camHeight);
+  
   // Camera lens
   ctx.beginPath();
-  ctx.arc(cx, cy, ss(6), 0, Math.PI * 2);
+  ctx.arc(centerX, centerY, ss(8), 0, Math.PI * 2);
   ctx.fillStyle = '#666';
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(cx, cy, ss(4), 0, Math.PI * 2);
+  ctx.arc(centerX, centerY, ss(5), 0, Math.PI * 2);
   ctx.fillStyle = '#333';
   ctx.fill();
+  
   // Flash dot
   ctx.beginPath();
-  ctx.arc(cx - camWidth / 3, cy - camHeight / 2 - ss(3), ss(2), 0, Math.PI * 2);
+  ctx.arc(centerX - camWidth / 3, centerY - camHeight / 2 - ss(4), ss(3), 0, Math.PI * 2);
   ctx.fillStyle = '#FFF';
   ctx.fill();
 
-  // Store button bounds for hit testing
-  setCameraButtonBounds(buttonX, buttonY, buttonSize, buttonSize);
+  // Store button bounds for hit testing (use final position for hit testing)
+  // Only allow clicking when button is visible (sliding in or fully visible)
+  if (cameraButtonSlideDirection === 'in' || (birdsAreVisible && slideProgress >= 1)) {
+    setCameraButtonBounds(onScreenX, buttonY, buttonWidth, buttonHeight);
+  } else {
+    // Set bounds to null when sliding out so it can't be clicked
+    setCameraButtonBounds(null, null, 0, 0);
+  }
 }
 
 // Draw polaroid photo of a bird
@@ -393,6 +465,12 @@ function drawPolaroidPhoto(ctx) {
 
   ctx.restore(); // End clip
 
+  // Apply yellow tint overlay if the bird was already watched
+  if (polaroid.tintColor === 'yellow') {
+    ctx.fillStyle = 'rgba(255, 220, 0, 0.25)'; // Semi-transparent yellow
+    ctx.fillRect(innerX, innerY, innerWidth, innerHeight);
+  }
+
   // Draw polaroid caption text (bird name)
   ctx.fillStyle = '#333';
   ctx.font = `bold ${ss(11)}px Arial`;
@@ -463,6 +541,9 @@ function update() {
   // Update wave birds (bird watching feature)
   const waveBirds = getCurrentWaveBirds();
   updateBirds(waveBirds);
+  
+  // Update bird fade-out animations and remove fully faded birds
+  updateWaveBirds();
   
   // Update flash effect
   updateFlash();
@@ -742,10 +823,14 @@ function draw() {
   // Game entities (clipped to game area)
   clouds.forEach(c => drawCloud(ctx, c));
   
-  // Draw wave birds (bird watching feature) - dimmed if polaroid is shown
+  // Draw wave birds (bird watching feature) - use bird's currentAlpha (fades to 0 when being watched)
   const waveBirds = getCurrentWaveBirds();
-  const dimOpacity = shouldDimBirds() ? 0.3 : 1;
-  waveBirds.forEach(b => drawBird(ctx, b, dimOpacity));
+  const polaroidDimOpacity = shouldDimBirds() ? 0.3 : 1;
+  waveBirds.forEach(b => {
+    // Bird fades out when being watched, otherwise uses polaroid dim opacity
+    const birdOpacity = (b.currentAlpha !== undefined ? b.currentAlpha : 1) * polaroidDimOpacity;
+    drawBird(ctx, b, birdOpacity);
+  });
   
   drawWall(ctx);
 
@@ -803,10 +888,8 @@ function draw() {
   // UI
   drawUI(ctx);
 
-  // Draw camera button for bird watching (if birds are present and no polaroid showing)
-  if (shouldShowCameraButton()) {
-    drawCameraButton(ctx);
-  }
+  // Draw camera button for bird watching (always shown with slide-in animation)
+  drawCameraButton(ctx, Date.now());
 
   // Draw polaroid photo if active (on top of everything)
   drawPolaroidPhoto(ctx);

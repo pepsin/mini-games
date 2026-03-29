@@ -7,7 +7,7 @@ const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDr
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
-const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds } = require('./birdWatchingSystem.js');
+const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds, markBirdAsBeingWatched, getUnwatchedBirds } = require('./birdWatchingSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll } = require('./birdAlbum.js');
 const { hitTestInventory } = require('./powerupInventory.js');
@@ -134,23 +134,38 @@ function handleTouchStart(e) {
 
   // Check camera button click (bird watching feature)
   const cameraBounds = getCameraButtonBounds();
-  if (cameraBounds) {
+  if (cameraBounds && cameraBounds.x !== null) {
     const { x, y, width, height } = cameraBounds;
     if (gp.x >= x && gp.x <= x + width && gp.y >= y && gp.y <= y + height) {
-      // Record all current birds as watched
-      const recordedCount = recordAllCurrentBirdsWatched();
-      console.log(`Camera clicked! Recorded ${recordedCount} new birds.`);
+      // Get all current birds and unwatched birds
+      const allBirds = getCurrentWaveBirds();
+      const unwatchedBirds = getUnwatchedBirds();
       
-      // Start screen flash effect
-      startFlash();
-      
-      // Capture polaroid photo of the first bird (or pick one randomly)
-      const birds = getCurrentWaveBirds();
-      if (birds.length > 0) {
-        // Pick a random bird from the flock to photograph
-        const randomBird = birds[Math.floor(Math.random() * birds.length)];
-        // Capture at camera button position
-        capturePolaroidPhoto(randomBird, x + width / 2, y + height / 2);
+      if (allBirds.length > 0) {
+        // Start screen flash effect
+        startFlash();
+        
+        if (unwatchedBirds.length > 0) {
+          // Mark all unwatched birds as being watched (start fade-out)
+          unwatchedBirds.forEach(bird => {
+            markBirdAsBeingWatched(bird.id);
+          });
+          
+          // Record all unwatched birds in the album
+          const recordedCount = recordAllCurrentBirdsWatched();
+          console.log(`Camera clicked! Recording ${recordedCount} new birds.`);
+          
+          // Capture polaroid photo of the first unwatched bird (normal tint)
+          const firstBird = unwatchedBirds[0];
+          capturePolaroidPhoto(firstBird, x + width / 2, y + height / 2);
+        } else {
+          // All birds are already watched - show yellow tinted polaroid
+          console.log('Camera clicked! All birds already watched - showing yellow tint.');
+          
+          // Pick a random bird for the polaroid
+          const randomBird = allBirds[Math.floor(Math.random() * allBirds.length)];
+          capturePolaroidPhoto(randomBird, x + width / 2, y + height / 2, 'yellow');
+        }
       }
       
       return;
