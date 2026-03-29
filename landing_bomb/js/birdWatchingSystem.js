@@ -5,7 +5,7 @@ const { W } = require('./config.js');
 const { getBirdName, recordBirdCapture } = require('./birdAlbum.js');
 
 // Constants
-const BIRD_SPAWN_CHANCE = 0.5; // 10% chance per wave
+const BIRD_SPAWN_CHANCE = 0.04; // 10% chance per wave
 const FLASH_DURATION_MS = 20; // 20ms flash duration
 const STORAGE_KEY = 'bowaste_watched_birds';
 
