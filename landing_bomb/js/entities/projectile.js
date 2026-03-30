@@ -2,6 +2,7 @@
 
 const { W, H, sx, sy, ss } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
+const { animationLoader } = require('../animationLoader.js');
 
 // Get slingshot tips (same logic as in slingshot.js)
 function getSlingshotTips(sling) {
@@ -101,32 +102,55 @@ function checkCollision(proj, waste) {
 }
 
 // Draw projectile
-function drawProjectile(ctx, proj) {
+function drawProjectile(ctx, proj, frameCount = 0) {
   const px = sx(proj.x), py = sy(proj.y), r = ss(proj.radius);
   
-  // Dragon bullet: draw as fireball with large radius
+  // Dragon bullet: draw as animated fireball sprite sheet
   if (proj.isDragonBullet) {
-    // Outer glow
-    const glowRadius = r * 1.2;
-    const glowGrad = ctx.createRadialGradient(px, py, r * 0.5, px, py, glowRadius);
-    glowGrad.addColorStop(0, 'rgba(255, 100, 0, 0.8)');
-    glowGrad.addColorStop(0.5, 'rgba(255, 50, 0, 0.4)');
-    glowGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
-    ctx.beginPath();
-    ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
-    ctx.fillStyle = glowGrad;
-    ctx.fill();
+    const fireballRes = getResource('fireball');
     
-    // Core fireball
-    ctx.beginPath();
-    ctx.arc(px, py, r, 0, Math.PI * 2);
-    const fireGrad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, r * 0.1, px, py, r);
-    fireGrad.addColorStop(0, '#FFFF00');
-    fireGrad.addColorStop(0.3, '#FF8800');
-    fireGrad.addColorStop(0.7, '#FF4400');
-    fireGrad.addColorStop(1, '#AA0000');
-    ctx.fillStyle = fireGrad;
-    ctx.fill();
+    if (fireballRes && fireballRes.frames && fireballRes.frames.length > 0) {
+      // Calculate animation frame based on global frameCount (6 fps = every 10 frames)
+      const animFrame = Math.floor(frameCount / 10) % fireballRes.frames.length;
+      
+      // Get current frame from sprite sheet
+      const frame = fireballRes.frames[animFrame];
+      if (frame && frame.image) {
+        // Draw the sprite frame - use actual projectile radius (diameter = r * 2)
+        // Dragon bullets have larger radius (W/3 = 150) vs normal (18), so visual scales accordingly
+        const displaySize = r * 2;
+        
+        // Save context for rotation
+        ctx.save();
+        
+        // Move to center position and rotate based on velocity direction
+        ctx.translate(px, py);
+        const angle = Math.atan2(proj.vy, proj.vx);
+        ctx.rotate(angle * 3);
+        
+        // Draw centered (offset by -displaySize/2 to center the image)
+        ctx.drawImage(
+          frame.image,
+          frame.sx, frame.sy, frame.sw, frame.sh,
+          -displaySize / 2, -displaySize / 2,
+          displaySize, displaySize
+        );
+        
+        ctx.restore();
+      }
+    } else {
+      // Fallback: programmatic fireball if sprite not loaded      
+      // Core fireball
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      const fireGrad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, r * 0.1, px, py, r);
+      fireGrad.addColorStop(0, '#FFFF00');
+      fireGrad.addColorStop(0.3, '#FF8800');
+      fireGrad.addColorStop(0.7, '#FF4400');
+      fireGrad.addColorStop(1, '#AA0000');
+      ctx.fillStyle = fireGrad;
+      ctx.fill();
+    }
     
     // Fire trail
     ctx.globalAlpha = 0.5;

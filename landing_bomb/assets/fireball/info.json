@@ -1,0 +1,12 @@
+{
+  "name": "fireball",
+  "type": "animation",
+  "spriteSheet": {
+    "file": "fireball.png",
+    "frameWidth": 240,
+    "frameHeight": 240,
+    "frameDuration": 125
+  },
+  "fps": 32,
+  "loop": true
+}

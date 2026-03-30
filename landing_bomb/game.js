@@ -855,7 +855,7 @@ function draw() {
   }
 
   // Projectiles (above slingshot body, below bands)
-  projectiles.forEach(p => drawProjectile(ctx, p));
+  projectiles.forEach(p => drawProjectile(ctx, p, frameCount));
 
   // Slingshot bands (above projectiles)
   drawSlingshotBandsOnly(ctx);
