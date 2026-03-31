@@ -224,7 +224,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   const highScore = getHighScore();
   const currentWave = getCurrentWave();
   
-  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Rating text
@@ -250,24 +250,24 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   const dailyHigh = socialData ? socialData.dailyHigh : getDailyHighScore();
   const isNewDailyHigh = socialData ? socialData.isNewDailyHigh : false;
 
-  // Game over panel with flex layout
+  // Game over panel with flex layout - 与开始菜单风格一致
   const gameOverPanel = flexContainer()
-    .position((W - 320) / 2, (H - 420) / 2)
-    .size(320, null) // Fixed width, auto height
+    .position((W - 300) / 2, (H - 480) / 2)
+    .size(300, null) // Fixed width, auto height
     .direction('column')
     .justify('center')
     .align('center')
-    .setGap(10)
-    .setPadding(20)
+    .setGap(12)
+    .setPadding(25)
     .background('#FFFFFF')
     .border(6, '#FF6B35')
-    .cornerRadius(16);
+    .cornerRadius(20);
 
   // Title
   gameOverPanel.addChild(
     flexItem()
-      .text('游戏结束', 32)
-      .textStyle('#FF6B35', 32, 'Arial', 'bold')
+      .text('游戏结束', 28)
+      .textStyle('#FF6B35', 28, 'Arial', 'bold')
   );
 
   // Stats container
@@ -275,34 +275,18 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
     .direction('column')
     .justify('center')
     .align('center')
-    .setGap(6)
+    .setGap(8)
     .addChildren(
       flexItem()
-        .size(10, 20),
+        .text(`分数: ${score}`, 18)
+        .textStyle('#333', 18, 'Arial', 'bold'),
       flexItem()
-        .text(`分数: ${score}`, 20)
-        .textStyle('#333', 20, 'Arial', 'bold'),
-      flexItem()
-        .text(`今日最高: ${dailyHigh}`, 16)
-        .textStyle('#333', 16, 'Arial', 'bold'),
+        .text(`今日最高: ${dailyHigh}`, 15)
+        .textStyle('#666', 15, 'Arial', 'normal'),
       flexItem()
         .text(`历史最高: ${highScore}`, 14)
-        .textStyle('#666', 14, 'Arial', 'normal')
+        .textStyle('#999', 14, 'Arial', 'normal')
     );
-
-  if (score >= highScore && score > 0) {
-    statsContainer.addChild(
-      flexItem()
-        .text('🏆 新纪录! 🏆', 14)
-        .textStyle('#FFD700', 14, 'Arial', 'bold')
-    );
-  } else if (isNewDailyHigh && score > 0) {
-    statsContainer.addChild(
-      flexItem()
-        .text('📅 今日新高! 📅', 14)
-        .textStyle('#4ECDC4', 14, 'Arial', 'bold')
-    );
-  }
 
   if (rating) {
     statsContainer.addChild(
@@ -314,26 +298,26 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
 
   gameOverPanel.addChild(statsContainer);
 
-  // Social buttons container - always show share, show revive when available
-  if (showSocialFeatures && socialData) {
-    const buttonContainer = flexContainer()
-      .direction('row')
-      .justify('center')
-      .align('center')
-      .setGap(10);
+  // Buttons container - 与开始菜单一致的垂直排列
+  const buttonContainer = flexContainer()
+    .direction('column')
+    .justify('center')
+    .align('center')
+    .setGap(10);
 
-    // Share button - always show
+  // 分享按钮（如果可用）- 与开始菜单按钮风格一致
+  if (showSocialFeatures && socialData) {
     buttonContainer.addChild(
       flexItem()
         .tag('shareButton')
         .text('分享战绩', 16)
         .textStyle('#FFFFFF', 16, 'Arial', 'bold')
         .background('#4ECDC4')
-        .padding({ left: 20, right: 20, top: 10, bottom: 10 })
-        .cornerRadius(8)
+        .size(200, 45)
+        .cornerRadius(12)
     );
 
-    // Revive button (if available)
+    // 复活按钮（如果可用）- 与开始菜单按钮风格一致
     if (socialData.canRevive) {
       buttonContainer.addChild(
         flexItem()
@@ -341,24 +325,25 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
           .text(socialData.reviveMessage, 16)
           .textStyle('#FFFFFF', 16, 'Arial', 'bold')
           .background('#FF6B6B')
-          .padding({ left: 20, right: 20, top: 10, bottom: 10 })
-          .cornerRadius(8)
+          .size(200, 45)
+          .cornerRadius(12)
       );
     }
-
-    gameOverPanel.addChild(buttonContainer);
   }
 
-  // Play again button
-  gameOverPanel.addChild(
+  // 再来一次按钮 - 主按钮风格，与开始菜单的"开始游戏"按钮一致
+  buttonContainer.addChild(
     flexItem()
       .tag('restartButton')
-      .text('再来一次', 22)
-      .textStyle('#FFFFFF', 22, 'Arial', 'bold')
+      .text('再来一次', 18)
+      .textStyle('#FFFFFF', 18, 'Arial', 'bold')
       .background('#FF6B35')
-      .padding({ left: 50, right: 50, top: 12, bottom: 12 })
+      .linearGradient(['#FF6B35', '#FF4500'], 90)
+      .size(200, 45)
       .cornerRadius(12)
   );
+
+  gameOverPanel.addChild(buttonContainer);
 
   gameOverPanel.draw(ctx);
   
@@ -395,7 +380,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
     .addChildren(
       // Title
       flexItem()
-        .text(isPaused ? '游戏暂停' : '一起来护花!', 28)
+        .text(isPaused ? '游戏暂停' : '一起来护花', 28)
         .textStyle('#FF6B35', 28, 'Arial', 'bold'),
       
       // Instructions container (only show when not paused)
@@ -403,80 +388,72 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
         .direction('column')
         .justify('center')
         .align('center')
-        .setGap(5)
+        .setGap(7)
         .addChildren(
           flexItem()
             .text('拖动弹弓瞄准,松开发射!', 15)
             .textStyle('#666', 15),
           flexItem()
-            .text('在垃圾落地前打穿它们!', 15)
+            .text('在垃圾落地前打爆它们,', 15)
+            .textStyle('#666', 15),
+          flexItem()
+            .text('保护四朵小花!', 15)
             .textStyle('#666', 15)
         ) : flexItem().size(0, 0),
       
-      // Waste icon (only show when not paused)
-      !isPaused ? flexItem()
-        .size(40, 40)
-        .render((ctx, x, y, w, h, scale) => {
-          const cx = x + w / 2;
-          const cy = y + h / 2;
-          const radius = 18 * scale;
-          
-          // Waste body
-          ctx.beginPath();
-          ctx.arc(cx, cy + 5 * scale, radius, 0, Math.PI * 2);
-          ctx.fillStyle = '#333';
-          ctx.fill();
-          
-          // Fuse
-          ctx.fillStyle = '#FF6B35';
-          ctx.beginPath();
-          ctx.arc(cx, cy - 10 * scale, 5 * scale, 0, Math.PI * 2);
-          ctx.fill();
-        }) : flexItem().size(0, 0),
-      
-      // Start/Resume button
-      flexItem()
-        .tag('startButton')
-        .text(isPaused ? '继续' : '开始游戏', 22)
-        .textStyle('#FFFFFF', 22, 'Arial', 'bold')
-        .background('#FF6B35')
-        .linearGradient(['#FF6B35', '#FF4500'], 90)
-        .padding({ left: 50, right: 50, top: 12, bottom: 12 })
-        .cornerRadius(15),
-      
-      // Social buttons row
-      !isPaused ? flexContainer()
-        .direction('row')
+      // Buttons container - sequential arrangement with consistent sizing
+      flexContainer()
+        .direction('column')
         .justify('center')
         .align('center')
         .setGap(10)
         .addChildren(
+          // Start/Resume button - 主按钮风格
+          flexItem()
+            .tag('startButton')
+            .text(isPaused ? '继续游戏' : '开始游戏', 18)
+            .textStyle('#FFFFFF', 18, 'Arial', 'bold')
+            .background('#FF6B35')
+            .linearGradient(['#FF6B35', '#FF4500'], 90)
+            .size(200, 45)
+            .cornerRadius(12),
+          
+          // Restart button - 只在暂停菜单显示
+          isPaused ? flexItem()
+            .tag('restartFromPauseButton')
+            .text('重新开始', 16)
+            .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+            .background('#FF6B6B')
+            .size(200, 45)
+            .cornerRadius(12) : flexItem().size(0, 0),
+          
           // Leaderboard button
-          flexItem()
+          !isPaused ? flexItem()
             .tag('leaderboardButton')
-            .text('排行榜', 14)
-            .textStyle('#FFFFFF', 14, 'Arial', 'bold')
-            .background('#FFD700')
-            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
-            .cornerRadius(8),
+            .text('排行榜', 16)
+            .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+            .background('#CCAC00')
+            .size(200, 45)
+            .cornerRadius(12) : flexItem().size(0, 0),
+          
           // Share button
-          flexItem()
+          !isPaused ? flexItem()
             .tag('menuShareButton')
-            .text('邀请好友', 14)
-            .textStyle('#FFFFFF', 14, 'Arial', 'bold')
-            .background('#4ECDC4')
-            .padding({ left: 20, right: 20, top: 8, bottom: 8 })
-            .cornerRadius(8)
-        ) : flexItem().size(0, 0),
-      
-      // Bird album button
-      flexItem()
-        .tag('birdAlbumButton')
-        .text('鸟类图鉴', 14)
-        .textStyle('#FFFFFF', 14, 'Arial', 'bold')
-        .background('#8B4513')
-        .padding({ left: 25, right: 25, top: 8, bottom: 8 })
-        .cornerRadius(8)
+            .text('邀请好友', 16)
+            .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+            .background('#3EA49D')
+            .size(200, 45)
+            .cornerRadius(12) : flexItem().size(0, 0),
+          
+          // Bird album button
+          flexItem()
+            .tag('birdAlbumButton')
+            .text('观鸟图鉴', 16)
+            .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+            .background('#8B4513')
+            .size(200, 45)
+            .cornerRadius(12)
+        )
     );
 
   panel.draw(ctx);
@@ -489,6 +466,10 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
     
     const leaderboardBounds = panel.getTaggedBounds('leaderboardButton');
     if (leaderboardBounds) setButtonBounds('leaderboardButton', leaderboardBounds.x, leaderboardBounds.y, leaderboardBounds.width, leaderboardBounds.height);
+  } else {
+    // 暂停菜单中的重新开始按钮
+    const restartFromPauseBounds = panel.getTaggedBounds('restartFromPauseButton');
+    if (restartFromPauseBounds) setButtonBounds('restartFromPauseButton', restartFromPauseBounds.x, restartFromPauseBounds.y, restartFromPauseBounds.width, restartFromPauseBounds.height);
   }
   
   // Bird album button bounds (available in both start and pause menus)

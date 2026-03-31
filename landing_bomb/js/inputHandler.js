@@ -105,6 +105,11 @@ function handleTouchStart(e) {
       }
       return;
     }
+    // Restart from pause button
+    if (hitTest('restartFromPauseButton', gp.x, gp.y)) {
+      gameCallbacks.onGameReset && gameCallbacks.onGameReset();
+      return;
+    }
     // Bird album button in pause menu
     if (hitTest('birdAlbumButton', gp.x, gp.y)) {
       openBirdAlbum();
