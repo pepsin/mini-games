@@ -297,9 +297,6 @@ function drawTrajectoryPrediction(ctx, sling, dragCurrent, maxDrag) {
     if (i % 3 === 0) { // Sample every 3rd frame for dotted effect
       points.push({ x: simX, y: simY });
     }
-    
-    // Stop if below ground
-    if (simY > 820) break;
   }
   
   // Draw dotted trajectory line
@@ -315,14 +312,13 @@ function drawTrajectoryPrediction(ctx, sling, dragCurrent, maxDrag) {
     ctx.lineTo(sx(point.x), sy(point.y));
   }
   ctx.stroke();
-  
   // Draw trajectory dots
   ctx.setLineDash([]);
   for (let i = 0; i < points.length; i++) {
-    const alpha = 1 - (i / points.length);
+    const alpha = Math.max(0,1 - (i / points.length));
     ctx.beginPath();
     ctx.arc(sx(points[i].x), sy(points[i].y), ss(3), 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * (0.4 + chargeLevel * 0.4)})`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + alpha * (0.4 + chargeLevel * 0.4)})`;
     ctx.fill();
   }
   
