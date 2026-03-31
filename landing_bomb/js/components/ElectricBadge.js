@@ -180,14 +180,30 @@ class ElectricBadge {
     ctx.shadowBlur = 0;
     
     // Draw image in center - always map to given size, no aspect ratio preservation
-    if (this.image && this.image.complete) {
-      ctx.drawImage(
-        this.image,
-        this.x - this.imageWidth / 2,
-        this.y - this.imageHeight / 2,
-        this.imageWidth,
-        this.imageHeight
-      );
+    // Support both regular images and sprite frames (with cropping info)
+    if (this.image) {
+      const isSpriteFrame = this.image.isSpriteFrame;
+      const actualImage = isSpriteFrame ? this.image.image : this.image;
+      
+      if (actualImage && actualImage.complete) {
+        const destX = this.x - this.imageWidth / 2;
+        const destY = this.y - this.imageHeight / 2;
+        
+        if (isSpriteFrame) {
+          // Sprite frame: use cropping coordinates
+          ctx.drawImage(
+            actualImage,
+            this.image.sx, this.image.sy, this.image.sw, this.image.sh,
+            destX, destY, this.imageWidth, this.imageHeight
+          );
+        } else {
+          // Regular image
+          ctx.drawImage(
+            actualImage,
+            destX, destY, this.imageWidth, this.imageHeight
+          );
+        }
+      }
     }
 
         

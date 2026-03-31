@@ -201,9 +201,18 @@ function drawPowerupHUD(ctx, activePowerups, startX, startY) {
       ctx.fillText(`${ap.remaining}`, cx, cy);
     } else {
       const img = getPowerupImage(ap.type);
-      if (img && img.width > 0) {
+      const isSpriteFrame = img && img.isSpriteFrame;
+      const actualImg = isSpriteFrame ? img.image : img;
+      
+      if (actualImg && actualImg.width > 0) {
         const imgSize = r * 0.8;
-        ctx.drawImage(img, cx - imgSize, cy - imgSize, imgSize * 2, imgSize * 2);
+        if (isSpriteFrame) {
+          // Sprite frame: use cropping coordinates
+          ctx.drawImage(actualImg, img.sx, img.sy, img.sw, img.sh, cx - imgSize, cy - imgSize, imgSize * 2, imgSize * 2);
+        } else {
+          // Regular image
+          ctx.drawImage(actualImg, cx - imgSize, cy - imgSize, imgSize * 2, imgSize * 2);
+        }
       }
     }
   });

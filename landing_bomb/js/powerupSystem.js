@@ -17,12 +17,12 @@ const FLASH_RADIUS_MULTIPLIER = 1.5;
 
 // Powerup definitions
 const POWERUP_TYPES = {
-  time_slow: { color: '#719508', glowColor: '#ffffff', label: '减速', weight: 22, duration: 300 },
-  multi_shot: { color: '#719508', glowColor: '#ffffff', label: '散射', weight: 22, duration: 3 },
-  explosive: { color: '#719508', glowColor: '#ffffff', label: '爆破', weight: 18, duration: 0 },
-  heal: { color: '#719508', glowColor: '#ffffff', label: '治愈', weight: 13, duration: 0 },
-  shield: { color: '#719508', glowColor: '#ffffff', label: '护盾', weight: 13, duration: 480 },
-  dragon_bullet: { color: '#FF4500', glowColor: '#FFD700', label: '火龙', weight: 12, duration: 3 }
+  time_slow: { color: '#FF9800', glowColor: '#ffffff', label: '减速', weight: 22, duration: 300 },
+  multi_shot: { color: '#FF9800', glowColor: '#ffffff', label: '散射', weight: 22, duration: 3 },
+  explosive: { color: '#FF9800', glowColor: '#ffffff', label: '爆破', weight: 18, duration: 0 },
+  heal: { color: '#FF9800', glowColor: '#ffffff', label: '治愈', weight: 13, duration: 0 },
+  shield: { color: '#FF9800', glowColor: '#ffffff', label: '护盾', weight: 13, duration: 480 },
+  dragon_bullet: { color: '#FF9800', glowColor: '#FFD700', label: '火龙', weight: 12, duration: 3 }
 };
 
 const SPAWN_CHANCE = 0.15;
@@ -125,7 +125,26 @@ function drawWasteFlash(ctx, waste, frameCount) {
 }
 
 // Get loaded image for a powerup type (or null if not loaded)
+// Returns: Image object for static images, or frame data { image, sx, sy, sw, sh, isSpriteFrame } for sprite frames
 function getPowerupImage(type) {
+  // Dragon bullet uses first frame of fireball animation as icon
+  if (type === 'dragon_bullet') {
+    const fireballRes = getResource('fireball');
+    if (fireballRes && fireballRes.frames && fireballRes.frames.length > 0) {
+      // Return the first frame with cropping info
+      const frame = fireballRes.frames[0];
+      return {
+        image: frame.image,
+        sx: frame.sx,
+        sy: frame.sy,
+        sw: frame.sw,
+        sh: frame.sh,
+        isSpriteFrame: true
+      };
+    }
+    return null;
+  }
+  
   const res = getResource('powerup');
   if (res && res.variants && res.variants[type]) {
     return res.variants[type].image;
@@ -407,7 +426,10 @@ function drawPowerup(ctx, p, frameCount = 0) {
 
   // Use ElectricBadge to draw the powerup icon
   const img = getPowerupImage(displayType);
-  if (img && img.width > 0) {
+  // Support both regular images and sprite frames
+  const isSpriteFrame = img && img.isSpriteFrame;
+  const actualImg = isSpriteFrame ? img.image : img;
+  if (actualImg && actualImg.width > 0) {
     const badge = getOrCreateBadge(p);
     // Update badge position and draw
     badge.setPosition(px, py);

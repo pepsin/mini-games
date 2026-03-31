@@ -63,7 +63,10 @@ function startPowerupSelection(callback) {
   const img = getPowerupImage(selectorState.currentType);
   
   // Create placeholder if image not loaded yet
-  const badgeImage = img && img.width > 0 ? img : null;
+  // Support both regular images and sprite frames
+  const isSpriteFrame = img && img.isSpriteFrame;
+  const actualImg = isSpriteFrame ? img.image : img;
+  const badgeImage = actualImg && actualImg.width > 0 ? img : null;
   
   selectorState.badge = new ElectricBadge({
     image: badgeImage,
@@ -82,7 +85,26 @@ function startPowerupSelection(callback) {
 }
 
 // Get powerup image
+// Returns: Image object for static images, or frame data { image, sx, sy, sw, sh, isSpriteFrame } for sprite frames
 function getPowerupImage(type) {
+  // Dragon bullet uses first frame of fireball animation as icon
+  if (type === 'dragon_bullet') {
+    const fireballRes = getResource('fireball');
+    if (fireballRes && fireballRes.frames && fireballRes.frames.length > 0) {
+      // Return the first frame with cropping info
+      const frame = fireballRes.frames[0];
+      return {
+        image: frame.image,
+        sx: frame.sx,
+        sy: frame.sy,
+        sw: frame.sw,
+        sh: frame.sh,
+        isSpriteFrame: true
+      };
+    }
+    return null;
+  }
+  
   const res = getResource('powerup');
   if (res && res.variants && res.variants[type]) {
     return res.variants[type].image;
@@ -101,7 +123,10 @@ function updatePowerupSelector() {
       const def = POWERUP_TYPES[selectorState.finalType];
       const img = getPowerupImage(selectorState.finalType);
       // Force update the badge to match finalType
-      if (img && img.width > 0) {
+      // Support both regular images and sprite frames
+      const isSpriteFrame1 = img && img.isSpriteFrame;
+      const actualImg1 = isSpriteFrame1 ? img.image : img;
+      if (actualImg1 && actualImg1.width > 0) {
         selectorState.badge.image = img;
       }
       selectorState.badge.color = def.color;
@@ -121,7 +146,10 @@ function updatePowerupSelector() {
     // Ensure badge shows final image
     const def = POWERUP_TYPES[selectorState.finalType];
     const img = getPowerupImage(selectorState.finalType);
-    if (img && img.width > 0) {
+    // Support both regular images and sprite frames
+    const isSpriteFrame2 = img && img.isSpriteFrame;
+    const actualImg2 = isSpriteFrame2 ? img.image : img;
+    if (actualImg2 && actualImg2.width > 0) {
       selectorState.badge.image = img;
     }
     selectorState.badge.color = def.color;
@@ -158,7 +186,10 @@ function updatePowerupSelector() {
     // Update badge with new image
     const def = POWERUP_TYPES[selectorState.currentType];
     const img = getPowerupImage(selectorState.currentType);
-    if (img && img.width > 0) {
+    // Support both regular images and sprite frames
+    const isSpriteFrame3 = img && img.isSpriteFrame;
+    const actualImg3 = isSpriteFrame3 ? img.image : img;
+    if (actualImg3 && actualImg3.width > 0) {
       selectorState.badge.image = img;
     }
     selectorState.badge.color = def.color;
@@ -200,7 +231,7 @@ function drawSelectorResult(ctx, badgeY) {
   // Badge has radiusY of 72, so bottom of badge is at badgeY + 72
   const panelY = badgeY + 72 + 18;
   
-  // Create result panel
+  // Create result panel (transparent, no border)
   const panel = flexContainer()
     .position((W - 280) / 2, panelY)
     .size(280, null)
@@ -208,23 +239,20 @@ function drawSelectorResult(ctx, badgeY) {
     .justify('center')
     .align('center')
     .setGap(12)
-    .setPadding(20)
-    .background('rgba(255, 255, 255, 0.95)')
-    .border(4, def.color)
-    .cornerRadius(16);
+    .setPadding(20);
   
   // Powerup name
   panel.addChild(
     flexItem()
       .text(def.label, 24)
-      .textStyle(def.color, 24, 'Arial', 'bold')
+      .textStyle('#FFFFFF', 24, 'Arial', 'bold')
   );
   
   // Description
   panel.addChild(
     flexItem()
       .text(description, 14)
-      .textStyle('#333', 14, 'Arial', 'normal')
+      .textStyle('#FFFFFF', 14, 'Arial', 'normal')
   );
   
   // Button row
@@ -241,7 +269,7 @@ function drawSelectorResult(ctx, badgeY) {
       .text('立刻使用', 16)
       .textStyle('#FFFFFF', 16, 'Arial', 'bold')
       .background('#4CAF50')
-      .padding({ left: 25, right: 25, top: 10, bottom: 10 })
+      .size(110, 40)
       .cornerRadius(10)
   );
   
@@ -252,7 +280,7 @@ function drawSelectorResult(ctx, badgeY) {
       .text('暂存', 16)
       .textStyle('#FFFFFF', 16, 'Arial', 'bold')
       .background('#FF9800')
-      .padding({ left: 25, right: 25, top: 10, bottom: 10 })
+      .size(110, 40)
       .cornerRadius(10)
   );
   

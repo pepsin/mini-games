@@ -179,8 +179,8 @@ function drawSlotButton(ctx, x, y, type, slotIndex, frameCount) {
   ctx.arc(px + size/2, py + size/2, size * 0.8 * pulse, 0, Math.PI * 2);
   ctx.fill();
 
-  // 按钮背景（使用圆角矩形）
-  ctx.fillStyle = '#ffffff';
+  // 按钮背景（使用圆角矩形）- 主题橙色混60%白色
+  ctx.fillStyle = '#FFD799';
   drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.fill();
 
@@ -192,10 +192,20 @@ function drawSlotButton(ctx, x, y, type, slotIndex, frameCount) {
 
   // 绘制道具图标
   const img = pSystem.getPowerupImage(type);
-  if (img && img.width > 0) {
+  const isSpriteFrame = img && img.isSpriteFrame;
+  const actualImg = isSpriteFrame ? img.image : img;
+  
+  if (actualImg && actualImg.width > 0) {
     const iconX = px + (size - iconSize) / 2;
     const iconY = py + (size - iconSize) / 2;
-    ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+    
+    if (isSpriteFrame) {
+      // 精灵帧：使用裁剪坐标
+      ctx.drawImage(actualImg, img.sx, img.sy, img.sw, img.sh, iconX, iconY, iconSize, iconSize);
+    } else {
+      // 普通图片
+      ctx.drawImage(actualImg, iconX, iconY, iconSize, iconSize);
+    }
   } else {
     // 备用：绘制文字
     ctx.textAlign = 'center';
@@ -277,8 +287,17 @@ function drawFlyingPowerups(ctx, frameCount = 0) {
 
     // 绘制道具图标
     const img = pSystem.getPowerupImage(fp.type);
-    if (img && img.width > 0) {
-      ctx.drawImage(img, px - size/2, py - size/2, size, size);
+    const isSpriteFrame2 = img && img.isSpriteFrame;
+    const actualImg2 = isSpriteFrame2 ? img.image : img;
+    
+    if (actualImg2 && actualImg2.width > 0) {
+      if (isSpriteFrame2) {
+        // 精灵帧：使用裁剪坐标
+        ctx.drawImage(actualImg2, img.sx, img.sy, img.sw, img.sh, px - size/2, py - size/2, size, size);
+      } else {
+        // 普通图片
+        ctx.drawImage(actualImg2, px - size/2, py - size/2, size, size);
+      }
     } else {
       ctx.fillStyle = def.color;
       ctx.beginPath();
