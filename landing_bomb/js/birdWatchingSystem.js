@@ -86,8 +86,15 @@ function getBirdSpawnCount() {
 }
 
 // Spawn birds for the wave
-function spawnWaveBirds(birdRes) {
-  const variants = birdRes?.variants ? Object.keys(birdRes.variants) : ['common_1', 'common_2'];
+// displayWave: the current display wave number (what player sees)
+function spawnWaveBirds(birdRes, displayWave = 1) {
+  let variants = birdRes?.variants ? Object.keys(birdRes.variants) : ['common_1', 'common_2'];
+  
+  // Filter out rare_1 if display wave is less than 30
+  if (displayWave < 30) {
+    variants = variants.filter(v => v !== 'rare_1');
+  }
+  
   const spawnCount = getBirdSpawnCount();
   const newBirds = [];
   

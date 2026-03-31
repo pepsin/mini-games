@@ -140,7 +140,8 @@ function startWave(waveNum) {
   let waveBirds = [];
   if (shouldSpawnBirds()) {
     const birdRes = getResource('birds');
-    waveBirds = spawnWaveBirds(birdRes);
+    const displayWave = getDisplayWave(waveNum);
+    waveBirds = spawnWaveBirds(birdRes, displayWave);
   } else {
     clearWaveBirds();
   }
