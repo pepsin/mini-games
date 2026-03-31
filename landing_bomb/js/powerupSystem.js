@@ -124,32 +124,38 @@ function drawWasteFlash(ctx, waste, frameCount) {
   }
 }
 
+// Frame mapping for sprite sheet (6x1 layout)
+const POWERUP_FRAME_MAP = {
+  explosive: 0,
+  heal: 1,
+  multi_shot: 2,
+  shield: 3,
+  time_slow: 4,
+  dragon_bullet: 5
+};
+
 // Get loaded image for a powerup type (or null if not loaded)
-// Returns: Image object for static images, or frame data { image, sx, sy, sw, sh, isSpriteFrame } for sprite frames
+// Returns: frame data { image, sx, sy, sw, sh, isSpriteFrame } for sprite frames
 function getPowerupImage(type) {
-  // Dragon bullet uses first frame of fireball animation as icon
-  if (type === 'dragon_bullet') {
-    const fireballRes = getResource('fireball');
-    if (fireballRes && fireballRes.frames && fireballRes.frames.length > 0) {
-      // Return the first frame with cropping info
-      const frame = fireballRes.frames[0];
-      return {
-        image: frame.image,
-        sx: frame.sx,
-        sy: frame.sy,
-        sw: frame.sw,
-        sh: frame.sh,
-        isSpriteFrame: true
-      };
-    }
+  const res = getResource('powerup');
+  if (!res || !res.frames || res.frames.length === 0) {
     return null;
   }
   
-  const res = getResource('powerup');
-  if (res && res.variants && res.variants[type]) {
-    return res.variants[type].image;
+  const frameIndex = POWERUP_FRAME_MAP[type];
+  if (frameIndex === undefined || frameIndex >= res.frames.length) {
+    return null;
   }
-  return null;
+  
+  const frame = res.frames[frameIndex];
+  return {
+    image: frame.image,
+    sx: frame.sx,
+    sy: frame.sy,
+    sw: frame.sw,
+    sh: frame.sh,
+    isSpriteFrame: true
+  };
 }
 
 // Weighted random selection

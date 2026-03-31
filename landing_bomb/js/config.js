@@ -119,7 +119,7 @@ const WAVE_DISPLAY_OFFSET = 28;
 const INVENTORY_CONFIG = {
   maxSlots: 2,
   buttonSize: 42,  // 56 * 0.7 ≈ 40
-  iconSize: 28,    // 40 * 0.7 ≈ 28
+  iconSize: 32,    // 40 * 0.8 ≈ 32
   margin: 16,
   gap: 12,          // 8 * 0.75 ≈ 6
   // Position: below topbar left side

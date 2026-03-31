@@ -262,6 +262,43 @@ class AnimationLoader {
         resource.currentVariant = variantIds[0];
         resource.image = resource.variants[variantIds[0]].image;
       }
+    } else if (config.spriteSheet) {
+      // 单张精灵图（多帧静态图）
+      try {
+        const sheetConfig = config.spriteSheet;
+        const path = `${this.basePath}${folder}/${sheetConfig.file}`;
+        console.log(`加载静态精灵图: ${path}`);
+        const img = await this.loadImage(path);
+        
+        const frameWidth = sheetConfig.frameWidth || config.size?.width || 64;
+        const frameHeight = sheetConfig.frameHeight || config.size?.height || 64;
+        const framesPerRow = Math.floor(img.width / frameWidth);
+        const totalRows = Math.floor(img.height / frameHeight);
+        const frameCount = framesPerRow * totalRows;
+        
+        console.log(`静态精灵图: ${img.width}x${img.height}, 每帧: ${frameWidth}x${frameHeight}, 共 ${frameCount} 帧 (${framesPerRow}列 x ${totalRows}行)`);
+        
+        resource.frames = [];
+        for (let i = 0; i < frameCount; i++) {
+          const row = Math.floor(i / framesPerRow);
+          const col = i % framesPerRow;
+          
+          resource.frames.push({
+            image: img,
+            sx: col * frameWidth,
+            sy: row * frameHeight,
+            sw: frameWidth,
+            sh: frameHeight,
+            isSpriteFrame: true
+          });
+        }
+        
+        resource.image = img;
+        resource.isSpriteSheet = true;
+        console.log(`静态精灵图加载完成: ${frameCount} 帧`);
+      } catch (e) {
+        console.error(`加载静态精灵图失败: ${config.spriteSheet?.file}`, e);
+      }
     } else {
       // 单张静态图
       try {

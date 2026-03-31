@@ -185,7 +185,10 @@ class ElectricBadge {
       const isSpriteFrame = this.image.isSpriteFrame;
       const actualImage = isSpriteFrame ? this.image.image : this.image;
       
-      if (actualImage && actualImage.complete) {
+      // Check if image is loaded (support both standard HTML and WeChat Mini Game images)
+      const isLoaded = actualImage && (actualImage.complete !== false) && actualImage.width > 0;
+      
+      if (isLoaded) {
         const destX = this.x - this.imageWidth / 2;
         const destY = this.y - this.imageHeight / 2;
         

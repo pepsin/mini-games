@@ -1,13 +1,11 @@
 {
   "name": "powerup",
   "type": "static",
-  "variants": [
-    { "id": "time_slow", "file": "time_slow.png" },
-    { "id": "multi_shot", "file": "multi_shot.png" },
-    { "id": "explosive", "file": "explosive.png" },
-    { "id": "heal", "file": "heal.png" },
-    { "id": "shield", "file": "shield.png" }
-  ],
-  "size": { "width": 22, "height": 22 },
+  "spriteSheet": {
+    "file": "powerups.png",
+    "frameWidth": 128,
+    "frameHeight": 128
+  },
+  "size": { "width": 64, "height": 64 },
   "anchor": { "x": 0.5, "y": 0.5 }
 }
