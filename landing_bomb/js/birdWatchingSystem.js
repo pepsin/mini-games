@@ -5,9 +5,10 @@ const { W } = require('./config.js');
 const { getBirdName, recordBirdCapture } = require('./birdAlbum.js');
 
 // Constants
-const BIRD_SPAWN_CHANCE = 0.06; // 10% chance per wave
+const BIRD_SPAWN_CHANCE = 0.06; // 6% chance per wave
 const FLASH_DURATION_MS = 20; // 20ms flash duration
 const STORAGE_KEY = 'bowaste_watched_birds';
+const BIRD_FORCE_SPAWN_WAVE_GAP = 10; // 超过10波必出鸟
 
 // State
 let currentWaveBirds = []; // Birds spawned in current wave
@@ -15,6 +16,9 @@ let showCameraButton = false;
 let flashActive = false;
 let flashEndTime = 0;
 let cameraButtonBounds = null;
+
+// Track last wave that spawned birds for forced spawn logic (in-memory only)
+let lastBirdSpawnWave = 1; // Default to wave 1
 
 // Polaroid photo state
 let polaroidPhoto = null; // Current displayed polaroid
@@ -32,6 +36,12 @@ function loadWatchedBirds() {
     console.log('Failed to load watched birds:', e);
   }
   return {};
+}
+
+// Update last bird spawn wave (in-memory only)
+function recordBirdSpawnWave(wave) {
+  lastBirdSpawnWave = wave;
+  console.log(`Recorded bird spawn at wave ${wave}`);
 }
 
 // Save watched birds to storage
@@ -74,8 +84,17 @@ function generateBirdId(variant, frameIndex, timestamp) {
   return `${variant}_${frameIndex}_${timestamp}`;
 }
 
-// Check if birds should spawn this wave (10% chance)
-function shouldSpawnBirds() {
+// Check if birds should spawn this wave
+// Returns true if should spawn (6% random chance OR forced if gap > 10 waves)
+function shouldSpawnBirds(displayWave) {
+  // Check if forced spawn needed (gap > 10 waves)
+  const waveGap = displayWave - lastBirdSpawnWave;
+  if (waveGap > BIRD_FORCE_SPAWN_WAVE_GAP) {
+    console.log(`Forced bird spawn: wave gap ${waveGap} > ${BIRD_FORCE_SPAWN_WAVE_GAP}`);
+    return true;
+  }
+  
+  // Normal random chance
   return Math.random() < BIRD_SPAWN_CHANCE;
 }
 
@@ -134,7 +153,12 @@ function spawnWaveBirds(birdRes, displayWave = 1) {
   // Show camera button if there are any birds visible on screen
   showCameraButton = hasVisibleBirds();
   
-  console.log(`Spawned ${newBirds.length} birds for this wave`);
+  // Record this wave as bird spawn wave
+  if (newBirds.length > 0) {
+    recordBirdSpawnWave(displayWave);
+  }
+  
+  console.log(`Spawned ${newBirds.length} birds for this wave at wave ${displayWave}`);
   return newBirds;
 }
 

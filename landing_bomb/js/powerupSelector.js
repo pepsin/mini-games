@@ -32,7 +32,7 @@ const POWERUP_DESCRIPTIONS = {
   time_slow: '垃圾下落速度减半，持续5秒',
   multi_shot: '下次发射散射3发子弹',
   explosive: '立即清除屏幕所有垃圾',
-  heal: '复活一朵死亡的花',
+  heal: '复活一朵枯萎的花',
   shield: '无敌护盾，持续8秒',
   dragon_bullet: '火龙弹，超大范围攻击'
 };

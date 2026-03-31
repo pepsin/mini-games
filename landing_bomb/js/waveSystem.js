@@ -136,11 +136,10 @@ function startWave(waveNum) {
   const displayWave = getDisplayWave(waveNum);
   analytics.trackWaveStart(displayWave, waveType);
 
-  // Check if birds should spawn this wave (10% chance)
+  // Check if birds should spawn this wave (6% chance, or forced if gap > 10 waves)
   let waveBirds = [];
-  if (shouldSpawnBirds()) {
+  if (shouldSpawnBirds(displayWave)) {
     const birdRes = getResource('birds');
-    const displayWave = getDisplayWave(waveNum);
     waveBirds = spawnWaveBirds(birdRes, displayWave);
   } else {
     clearWaveBirds();
