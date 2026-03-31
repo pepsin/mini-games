@@ -180,13 +180,13 @@ function drawSlotButton(ctx, x, y, type, slotIndex, frameCount) {
   ctx.fill();
 
   // 按钮背景（使用圆角矩形）- 主题橙色混60%白色
-  ctx.fillStyle = '#FFD799';
+  ctx.fillStyle = '#ffe421';
   drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.fill();
 
   // 边框
   ctx.strokeStyle = def.color;
-  ctx.lineWidth = ss(3);
+  ctx.lineWidth = ss(2);
   drawRoundedRect(ctx, px, py, size, size, ss(12));
   ctx.stroke();
 
@@ -214,6 +214,18 @@ function drawSlotButton(ctx, x, y, type, slotIndex, frameCount) {
     ctx.fillStyle = def.color;
     ctx.fillText(def.label, px + size/2, py + size/2);
   }
+
+  // 白色反光椭圆（左上角大）
+  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+  ctx.beginPath();
+  ctx.ellipse(px + size * 0.25, py + size * 0.25, size * 0.15, size * 0.1, -Math.PI / 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 白色反光椭圆（右下角小）
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  ctx.beginPath();
+  ctx.ellipse(px + size * 0.8, py + size * 0.8, size * 0.08, size * 0.05, -Math.PI / 4, 0, Math.PI * 2);
+  ctx.fill();
   
 }
 
