@@ -6,6 +6,7 @@ const { ElectricBadge } = require('./components/ElectricBadge.js');
 const { POWERUP_TYPES } = require('./powerupSystem.js');
 const { flexContainer, flexItem } = require('./flexLayout.js');
 const { setButtonBounds, clearButtonBounds } = require('./uiState.js');
+const { isInventoryFull } = require('./powerupInventory.js');
 
 // Selection state
 let isSelecting = false;
@@ -273,13 +274,16 @@ function drawSelectorResult(ctx, badgeY) {
       .cornerRadius(10)
   );
   
-  // Store button
+  // Check if inventory is full
+  const inventoryFull = isInventoryFull();
+  
+  // Store button - disabled if inventory is full
   buttonRow.addChild(
     flexItem()
       .tag('storeButton')
-      .text('暂存', 16)
+      .text(inventoryFull ? '暂存已满' : '暂存', 16)
       .textStyle('#FFFFFF', 16, 'Arial', 'bold')
-      .background('#FF9800')
+      .background(inventoryFull ? '#9E9E9E' : '#FF9800')
       .size(110, 40)
       .cornerRadius(10)
   );
@@ -319,6 +323,10 @@ function handleSelectorTouch(x, y) {
   }
   
   if (hitTest('storeButton', x, y)) {
+    // Don't allow storing if inventory is full
+    if (isInventoryFull()) {
+      return false;
+    }
     const result = {
       type: selectorState.finalType,
       action: 'store'

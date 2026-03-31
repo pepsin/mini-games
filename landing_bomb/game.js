@@ -924,6 +924,10 @@ function draw() {
   // Powerup selector overlay (drawn on top of everything when active)
   if (isPowerupSelecting()) {
     drawPowerupSelector(ctx, canvas);
+    
+    // Draw inventory on top of selector so users can click to free up space
+    const frameCount = 0; // Frame count not needed for static rendering
+    drawInventorySlots(ctx, frameCount);
   }
 }
 

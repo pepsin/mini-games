@@ -128,9 +128,19 @@ function handleTouchStart(e) {
     return;
   }
 
-  // Check if powerup selector is active - handle selector button clicks
+  // Check if powerup selector is active
   if (isPowerupSelecting()) {
-    handleSelectorTouch(gp.x, gp.y);
+    // First check inventory click (so users can free up space when full)
+    const inventorySlot = hitTestInventory(gp.x, gp.y);
+    if (inventorySlot >= 0) {
+      gameCallbacks.onInventoryClick && gameCallbacks.onInventoryClick(inventorySlot);
+      return;
+    }
+    
+    // Then handle selector button clicks
+    if (handleSelectorTouch(gp.x, gp.y)) {
+      return;
+    }
     return;
   }
 
