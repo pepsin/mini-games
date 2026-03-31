@@ -5,7 +5,7 @@ const { W } = require('./config.js');
 const { getBirdName, recordBirdCapture } = require('./birdAlbum.js');
 
 // Constants
-const BIRD_SPAWN_CHANCE = 0.04; // 10% chance per wave
+const BIRD_SPAWN_CHANCE = 0.06; // 10% chance per wave
 const FLASH_DURATION_MS = 20; // 20ms flash duration
 const STORAGE_KEY = 'bowaste_watched_birds';
 
@@ -20,7 +20,6 @@ let cameraButtonBounds = null;
 let polaroidPhoto = null; // Current displayed polaroid
 let birdsDimmed = false; // Whether birds are dimmed
 const POLAROID_DURATION_MS = 3000; // How long to show polaroid
-const DIM_OPACITY = 0.3; // Opacity for dimmed birds
 
 // Load watched birds from storage
 function loadWatchedBirds() {
