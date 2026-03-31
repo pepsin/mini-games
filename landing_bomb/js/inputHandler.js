@@ -9,7 +9,7 @@ const { hitTest } = require('./uiState.js');
 const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
 const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds, markBirdAsBeingWatched, getUnwatchedBirds } = require('./birdWatchingSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
-const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll } = require('./birdAlbum.js');
+const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll, handleAlbumSwipeStart, handleAlbumSwipeMove, handleAlbumSwipeEnd } = require('./birdAlbum.js');
 const { hitTestInventory } = require('./powerupInventory.js');
 const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
 const { handleSelectorTouch } = require('./powerupSelector.js');
@@ -22,12 +22,22 @@ function registerCallbacks(callbacks) {
 }
 
 // Handle touch start
+let albumSwipeInProgress = false;
+
 function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
-
+  
   // Handle bird album touch first
   if (isBirdAlbumVisible()) {
-    handleAlbumTouch(gp.x, gp.y);
+    // Start swipe tracking
+    handleAlbumSwipeStart(gp.x, gp.y);
+    albumSwipeInProgress = false;
+    
+    // Check for button clicks
+    const handled = handleAlbumTouch(gp.x, gp.y);
+    if (handled) {
+      return;
+    }
     return;
   }
 
@@ -187,9 +197,22 @@ function handleTouchStart(e) {
 function handleTouchMove(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
   
-  // Handle bird album scrolling
+  // Handle bird album swipe detection
   if (isBirdAlbumVisible()) {
-    // Calculate scroll delta
+    // Check if this is a horizontal swipe
+    if (!albumSwipeInProgress) {
+      const isHorizontalSwipe = handleAlbumSwipeMove(gp.x, gp.y);
+      if (isHorizontalSwipe) {
+        albumSwipeInProgress = true;
+      }
+    }
+    
+    // If swipe is in progress, don't handle scroll
+    if (albumSwipeInProgress) {
+      return;
+    }
+    
+    // Otherwise, handle scroll
     const touch = e.touches[0];
     if (touch.lastY !== undefined) {
       const dy = touch.clientY - touch.lastY;
@@ -205,6 +228,15 @@ function handleTouchMove(e) {
 
 // Handle touch end
 function handleTouchEnd(e) {
+  // Handle album swipe end
+  if (isBirdAlbumVisible()) {
+    const lastTouch = e.changedTouches[0];
+    const gp = toGame(lastTouch.clientX, lastTouch.clientY);
+    handleAlbumSwipeEnd(gp.x, gp.y);
+    albumSwipeInProgress = false;
+    return;
+  }
+  
   if (!isDragging()) return;
 
   const sling = getSlingshot();

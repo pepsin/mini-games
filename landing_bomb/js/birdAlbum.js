@@ -16,6 +16,22 @@ let totalPages = 1;
 let prevButtonBounds = null;
 let nextButtonBounds = null;
 
+// Swipe and animation state
+let swipeStartX = null;
+let swipeStartY = null;
+let swipeStartTime = null;
+let isSwiping = false;
+let slideAnimation = {
+  isAnimating: false,
+  direction: null, // 'left' (next page) or 'right' (prev page)
+  startTime: null,
+  duration: 300, // ms
+  fromPage: 0,
+  toPage: 0
+};
+const SWIPE_THRESHOLD = 50; // minimum pixels to trigger page change
+const SWIPE_VELOCITY_THRESHOLD = 0.5; // pixels per ms
+
 // Load captured birds from storage
 function loadCapturedBirds() {
   try {
@@ -147,6 +163,9 @@ function handleAlbumScroll(dy) {
 }
 
 function handleAlbumTouch(x, y) {
+  // Ignore if animation is in progress
+  if (slideAnimation.isAnimating) return false;
+  
   // Check close button
   if (albumCloseBounds) {
     const padding = 10;
@@ -162,7 +181,7 @@ function handleAlbumTouch(x, y) {
     const padding = 10;
     if (x >= prevButtonBounds.x - padding && x <= prevButtonBounds.x + prevButtonBounds.width + padding &&
         y >= prevButtonBounds.y - padding && y <= prevButtonBounds.y + prevButtonBounds.height + padding) {
-      currentPage--;
+      goToPrevPage();
       return true;
     }
   }
@@ -172,7 +191,7 @@ function handleAlbumTouch(x, y) {
     const padding = 10;
     if (x >= nextButtonBounds.x - padding && x <= nextButtonBounds.x + nextButtonBounds.width + padding &&
         y >= nextButtonBounds.y - padding && y <= nextButtonBounds.y + nextButtonBounds.height + padding) {
-      currentPage++;
+      goToNextPage();
       return true;
     }
   }
@@ -180,70 +199,112 @@ function handleAlbumTouch(x, y) {
   return false;
 }
 
-// Draw the bird album
-function drawBirdAlbum(ctx, canvas) {
-  if (!isAlbumVisible) return;
+// Start swipe tracking
+function handleAlbumSwipeStart(x, y) {
+  if (!isAlbumVisible || slideAnimation.isAnimating) return;
+  
+  swipeStartX = x;
+  swipeStartY = y;
+  swipeStartTime = Date.now();
+  isSwiping = true;
+}
 
-  const { W, H, sx, sy, ss } = require('./config.js');
+// Handle swipe move (returns true if swipe is horizontal)
+function handleAlbumSwipeMove(x, y) {
+  if (!isSwiping || !isAlbumVisible) return false;
   
-  // Theme color
-  const themeColor = '#FF6B35';
-  const themeLight = '#FF8C5A';
+  const dx = x - swipeStartX;
+  const dy = y - swipeStartY;
   
-  // Semi-transparent background overlay
-  ctx.save();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Check if swipe is more horizontal than vertical
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+    return true; // Indicate this is a horizontal swipe
+  }
   
-  // Title
-  const stats = getAlbumStats();
-  ctx.fillStyle = themeColor;
-  ctx.font = `bold ${ss(24)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.fillText('观鸟图鉴', sx(W / 2), sy(50));
+  return false;
+}
+
+// End swipe and determine if page should change
+function handleAlbumSwipeEnd(x, y) {
+  if (!isSwiping || !isAlbumVisible) {
+    isSwiping = false;
+    return false;
+  }
   
-  // Progress
-  ctx.fillStyle = '#FFF';
-  ctx.font = `${ss(14)}px Arial`;
-  ctx.fillText(`已收集: ${stats.captured}/${stats.total}`, sx(W / 2), sy(80));
+  isSwiping = false;
   
-  // Close button
-  const closeSize = 40;
-  const closeX = 20;
-  const closeY = 20;
+  const dx = x - swipeStartX;
+  const dy = y - swipeStartY;
+  const dt = Date.now() - swipeStartTime;
   
-  ctx.fillStyle = '#AAAAAA';
-  ctx.beginPath();
-  ctx.arc(sx(closeX + closeSize/2), sy(closeY + closeSize/2), ss(closeSize/2), 0, Math.PI * 2);
-  ctx.fill();
+  // Only process horizontal swipes
+  if (Math.abs(dx) <= Math.abs(dy)) return false;
   
-  ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(24)}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('×', sx(closeX + closeSize/2), sy(closeY + closeSize/2) + ss(2));
+  // Calculate velocity (pixels per ms)
+  const velocity = Math.abs(dx) / Math.max(dt, 1);
   
-  albumCloseBounds = { x: closeX, y: closeY, width: closeSize, height: closeSize };
+  // Check if swipe should trigger page change
+  const shouldChangePage = Math.abs(dx) > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY_THRESHOLD;
   
-  // Draw bird grid with pagination - 9 cells per page (3x3)
+  if (shouldChangePage) {
+    if (dx > 0 && currentPage > 0) {
+      // Swiped right - go to previous page
+      goToPrevPage();
+      return true;
+    } else if (dx < 0 && currentPage < totalPages - 1) {
+      // Swiped left - go to next page
+      goToNextPage();
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Navigate to next page with animation
+function goToNextPage() {
+  if (currentPage < totalPages - 1 && !slideAnimation.isAnimating) {
+    slideAnimation.isAnimating = true;
+    slideAnimation.direction = 'left';
+    slideAnimation.startTime = Date.now();
+    slideAnimation.fromPage = currentPage;
+    slideAnimation.toPage = currentPage + 1;
+    currentPage++;
+  }
+}
+
+// Navigate to previous page with animation
+function goToPrevPage() {
+  if (currentPage > 0 && !slideAnimation.isAnimating) {
+    slideAnimation.isAnimating = true;
+    slideAnimation.direction = 'right';
+    slideAnimation.startTime = Date.now();
+    slideAnimation.fromPage = currentPage;
+    slideAnimation.toPage = currentPage - 1;
+    currentPage--;
+  }
+}
+
+// Ease-out cubic function for smooth animation
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// Helper function to draw a single page of birds at given offset
+function drawBirdPage(ctx, pageIndex, offsetX, ss, sx, sy, W, H, themeColor, themeLight, availableWidth, cardWidth, cardHeight, startY, gap, gridPadding) {
   const allBirds = getAllBirdsData();
   const itemsPerPage = 9;
-  totalPages = Math.ceil(allBirds.length / itemsPerPage);
-  if (currentPage >= totalPages) currentPage = totalPages - 1;
-  if (currentPage < 0) currentPage = 0;
   
-  // Get birds for current page
-  const startIndex = currentPage * itemsPerPage;
+  if (pageIndex < 0 || pageIndex >= totalPages) return;
+  
+  // Get birds for this page
+  const startIndex = pageIndex * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, allBirds.length);
   const pageBirds = allBirds.slice(startIndex, endIndex);
   
-  // Calculate grid dimensions
-  const gridPadding = 30;
-  const availableWidth = W - gridPadding * 2;
-  const gap = 10;
-  const cardWidth = (availableWidth - gap * 2) / 3; // Subtract 2 gaps for 3 columns
-  const cardHeight = cardWidth * 1; // 2:3 width to height ratio
-  const startY = 100;
+  ctx.save();
+  // Apply horizontal offset for slide animation
+  ctx.translate(sx(offsetX), 0);
   
   // Create 3 rows manually to ensure proper 3x3 grid layout
   for (let row = 0; row < 3; row++) {
@@ -325,13 +386,121 @@ function drawBirdAlbum(ctx, canvas) {
     rowContainer.draw(ctx);
   }
   
+  ctx.restore();
+}
+
+// Draw the bird album
+function drawBirdAlbum(ctx, canvas) {
+  if (!isAlbumVisible) return;
+
+  const { W, H, sx, sy, ss } = require('./config.js');
+  
+  // Theme color
+  const themeColor = '#FF6B35';
+  const themeLight = '#FF8C5A';
+  
+  // Semi-transparent background overlay
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Title
+  const stats = getAlbumStats();
+  ctx.fillStyle = themeColor;
+  ctx.font = `bold ${ss(24)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.fillText('观鸟图鉴', sx(W / 2), sy(50));
+  
+  // Progress
+  ctx.fillStyle = '#FFF';
+  ctx.font = `${ss(14)}px Arial`;
+  ctx.fillText(`已收集: ${stats.captured}/${stats.total}`, sx(W / 2), sy(80));
+  
+  // Close button
+  const closeSize = 40;
+  const closeX = 20;
+  const closeY = 20;
+  
+  ctx.fillStyle = '#AAAAAA';
+  ctx.beginPath();
+  ctx.arc(sx(closeX + closeSize/2), sy(closeY + closeSize/2), ss(closeSize/2), 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = '#FFF';
+  ctx.font = `bold ${ss(24)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('×', sx(closeX + closeSize/2), sy(closeY + closeSize/2) + ss(2));
+  
+  albumCloseBounds = { x: closeX, y: closeY, width: closeSize, height: closeSize };
+  
+  // Calculate grid dimensions
+  const allBirds = getAllBirdsData();
+  const itemsPerPage = 9;
+  totalPages = Math.ceil(allBirds.length / itemsPerPage);
+  if (currentPage >= totalPages) currentPage = totalPages - 1;
+  if (currentPage < 0) currentPage = 0;
+  
+  const gridPadding = 30;
+  const availableWidth = W - gridPadding * 2;
+  const gap = 10;
+  const cardWidth = (availableWidth - gap * 2) / 3; // Subtract 2 gaps for 3 columns
+  const cardHeight = cardWidth * 1; // 2:3 width to height ratio
+  const startY = 100;
+  
+  // Calculate animation offset if animating
+  let fromOffsetX = 0;
+  let toOffsetX = 0;
+  
+  if (slideAnimation.isAnimating) {
+    const elapsed = Date.now() - slideAnimation.startTime;
+    const progress = Math.min(elapsed / slideAnimation.duration, 1);
+    const eased = easeOutCubic(progress);
+    
+    if (slideAnimation.direction === 'left') {
+      // Going to next page: current page slides left, new page slides in from right
+      fromOffsetX = -W * eased;
+      toOffsetX = W * (1 - eased);
+    } else {
+      // Going to prev page: current page slides right, new page slides in from left
+      fromOffsetX = W * eased;
+      toOffsetX = -W * (1 - eased);
+    }
+    
+    // Animation complete
+    if (progress >= 1) {
+      slideAnimation.isAnimating = false;
+      slideAnimation.direction = null;
+      fromOffsetX = 0;
+      toOffsetX = 0;
+    }
+  }
+  
+  // Draw bird grid with pagination
+  if (slideAnimation.isAnimating) {
+    // Draw both pages during animation
+    drawBirdPage(ctx, slideAnimation.fromPage, fromOffsetX, ss, sx, sy, W, H, themeColor, themeLight, availableWidth, cardWidth, cardHeight, startY, gap, gridPadding);
+    drawBirdPage(ctx, slideAnimation.toPage, toOffsetX, ss, sx, sy, W, H, themeColor, themeLight, availableWidth, cardWidth, cardHeight, startY, gap, gridPadding);
+  } else {
+    // Draw current page only
+    drawBirdPage(ctx, currentPage, 0, ss, sx, sy, W, H, themeColor, themeLight, availableWidth, cardWidth, cardHeight, startY, gap, gridPadding);
+  }
+  
   // Calculate button position
   const buttonRadius = 24;
   const buttonY = startY + cardHeight * 3 + gap * 2 + buttonRadius + 30;
   
-  // Previous button enabled state
-  const prevEnabled = currentPage > 0;
-  const nextEnabled = currentPage < totalPages - 1;
+  // During animation, show buttons if they're available on either the from or to page
+  // This prevents any buttons from appearing/disappearing during the slide
+  let prevEnabled, nextEnabled;
+  if (slideAnimation.isAnimating) {
+    prevEnabled = slideAnimation.fromPage > 0 || slideAnimation.toPage > 0;
+    nextEnabled = slideAnimation.fromPage < totalPages - 1 || slideAnimation.toPage < totalPages - 1;
+  } else {
+    prevEnabled = currentPage > 0;
+    nextEnabled = currentPage < totalPages - 1;
+  }
+  const buttonsDisabled = slideAnimation.isAnimating;
   
   // Create button container using flex layout
   const buttonContainer = new FlexContainer()
@@ -342,7 +511,7 @@ function drawBirdAlbum(ctx, canvas) {
     .setGap(60)
     .setPadding(0);
   
-  // Previous button - only add if enabled
+  // Previous button - show based on the page being viewed during animation
   if (prevEnabled) {
     const prevButton = new FlexItem()
       .size(buttonRadius * 2, buttonRadius * 2)
@@ -353,21 +522,26 @@ function drawBirdAlbum(ctx, canvas) {
       const centerY = y + height / 2;
       const radius = buttonRadius * scale;
       
+      // Use dimmed colors when disabled (during animation)
+      const bgColor = buttonsDisabled ? '#888' : themeColor;
+      const borderColor = buttonsDisabled ? '#AAA' : themeLight;
+      const arrowColor = buttonsDisabled ? '#CCC' : '#FFF';
+      
       // Draw circular button background
-      ctx.fillStyle = themeColor;
+      ctx.fillStyle = bgColor;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.fill();
       
       // Button border
-      ctx.strokeStyle = themeLight;
+      ctx.strokeStyle = borderColor;
       ctx.lineWidth = ss(2);
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.stroke();
       
       // Left-pointing triangle (centered)
-      ctx.fillStyle = '#FFF';
+      ctx.fillStyle = arrowColor;
       ctx.beginPath();
       ctx.moveTo(centerX + 6 * scale, centerY - 10 * scale);
       ctx.lineTo(centerX - 8 * scale, centerY);
@@ -379,7 +553,7 @@ function drawBirdAlbum(ctx, canvas) {
     buttonContainer.addChild(prevButton);
   }
   
-  // Next button - only add if enabled
+  // Next button - show based on the page being viewed during animation
   if (nextEnabled) {
     const nextButton = new FlexItem()
       .size(buttonRadius * 2, buttonRadius * 2)
@@ -390,21 +564,26 @@ function drawBirdAlbum(ctx, canvas) {
       const centerY = y + height / 2;
       const radius = buttonRadius * scale;
       
+      // Use dimmed colors when disabled (during animation)
+      const bgColor = buttonsDisabled ? '#888' : themeColor;
+      const borderColor = buttonsDisabled ? '#AAA' : themeLight;
+      const arrowColor = buttonsDisabled ? '#CCC' : '#FFF';
+      
       // Draw circular button background
-      ctx.fillStyle = themeColor;
+      ctx.fillStyle = bgColor;
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.fill();
       
       // Button border
-      ctx.strokeStyle = themeLight;
+      ctx.strokeStyle = borderColor;
       ctx.lineWidth = ss(2);
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.stroke();
       
       // Right-pointing triangle (centered)
-      ctx.fillStyle = '#FFF';
+      ctx.fillStyle = arrowColor;
       ctx.beginPath();
       ctx.moveTo(centerX - 6 * scale, centerY - 10 * scale);
       ctx.lineTo(centerX + 8 * scale, centerY);
@@ -419,9 +598,9 @@ function drawBirdAlbum(ctx, canvas) {
   // Draw the button container
   buttonContainer.draw(ctx);
   
-  // Get button bounds from flex layout
-  const prevBounds = prevEnabled ? buttonContainer.getTaggedBounds('prevButton') : null;
-  const nextBounds = nextEnabled ? buttonContainer.getTaggedBounds('nextButton') : null;
+  // Get button bounds from flex layout - only allow interaction when not animating
+  const prevBounds = (prevEnabled && !buttonsDisabled) ? buttonContainer.getTaggedBounds('prevButton') : null;
+  const nextBounds = (nextEnabled && !buttonsDisabled) ? buttonContainer.getTaggedBounds('nextButton') : null;
   
   if (prevBounds) {
     prevButtonBounds = prevBounds;
@@ -455,5 +634,8 @@ module.exports = {
   isBirdAlbumVisible,
   handleAlbumScroll,
   handleAlbumTouch,
+  handleAlbumSwipeStart,
+  handleAlbumSwipeMove,
+  handleAlbumSwipeEnd,
   drawBirdAlbum
 };
