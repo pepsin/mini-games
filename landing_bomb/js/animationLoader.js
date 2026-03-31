@@ -4,6 +4,7 @@
 const fs = wx.getFileSystemManager();
 
 // 检查文件是否存在
+// Note: fs.accessSync may not work on bundled assets in Android
 function fileExists(path) {
   try {
     fs.accessSync(path);
@@ -340,38 +341,45 @@ class AnimationLoader {
     return new Promise((resolve, reject) => {
       console.log(`尝试加载图片: ${originalPath}`);
       
-      // 尝试多种路径格式
+      // WeChat 小游戏使用相对路径加载图片
+      // 移除 ./ 前缀，确保使用相对路径格式
+      const imagePath = originalPath.replace(/^\.\//, '');
+      
+      // 检查文件是否存在（用于调试）
       const pathsToTry = [
         originalPath,
-        originalPath.replace('./', ''),
-        '/' + originalPath.replace('./', ''),
-        wx.env.USER_DATA_PATH + '/' + originalPath.replace('./', '')
+        imagePath,
+        '/' + imagePath
       ];
       
-      // 找到第一个存在的路径
-      let actualPath = originalPath;
+      let foundPath = null;
       for (const path of pathsToTry) {
         if (fileExists(path)) {
-          actualPath = path;
-          console.log(`  使用存在的路径: ${path}`);
+          foundPath = path;
+          console.log(`  文件存在: ${path}`);
           break;
         }
       }
       
+      if (!foundPath) {
+        console.warn(`  警告: 未找到文件 ${originalPath}`);
+      }
+      
       // WeChat 小游戏使用 wx.createImage()
+      // Android 和 iOS 都使用相对路径格式（不带 / 前缀）
       const img = wx.createImage();
       
       img.onload = () => {
-        console.log(`图片加载成功: ${actualPath} (${img.width}x${img.height})`);
+        console.log(`图片加载成功: ${imagePath} (${img.width}x${img.height})`);
         resolve(img);
       };
       
       img.onerror = (e) => {
-        console.error(`图片加载失败: ${actualPath}`, e);
-        reject(new Error(`加载图片失败: ${actualPath}`));
+        console.error(`图片加载失败: ${imagePath}`, e);
+        reject(new Error(`加载图片失败: ${imagePath}`));
       };
       
-      img.src = actualPath;
+      img.src = imagePath;
     });
   }
 

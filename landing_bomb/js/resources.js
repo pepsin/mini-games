@@ -14,13 +14,41 @@ function onResourcesLoaded(callback) {
 }
 
 /**
+ * Static asset manifest for cross-platform compatibility
+ * Android WeChat mini-games cannot reliably use fs.readdirSync() on bundled assets
+ */
+const STATIC_ASSET_MANIFEST = [
+  // Simple static assets
+  { folder: 'background', key: 'background' },
+  { folder: 'birds', key: 'birds' },
+  { folder: 'cloud', key: 'cloud' },
+  { folder: 'fireball', key: 'fireball' },
+  { folder: 'flower', key: 'flower' },
+  { folder: 'flower_covered', key: 'flower_covered' },
+  { folder: 'iced_box', key: 'iced_box' },
+  { folder: 'powerup', key: 'powerup' },
+  { folder: 'rainbow', key: 'rainbow' },
+  { folder: 'slingshot', key: 'slingshot' },
+  { folder: 'wastes', key: 'wastes' },
+  // Sun with parts (loaded separately)
+  { folder: 'sun', key: 'sun_inner', part: 'inner' },
+  { folder: 'sun', key: 'sun_outer', part: 'outer' },
+  // Parachutes with parts
+  { folder: 'parachute/normal', key: 'parachute_normal', part: 'normal' },
+  { folder: 'parachute/shield', key: 'parachute_shield', part: 'shield' },
+  { folder: 'parachute/twin', key: 'parachute_twin', part: 'twin' },
+];
+
+/**
  * Scan a directory recursively for info.json files
  * Returns array of { folder, key, hasParts } objects
+ * Note: This uses dynamic scanning on iOS/DevTools, but falls back to static manifest on Android
  */
 async function scanForAssets(fs, path, prefix = '') {
   const assets = [];
   
   try {
+    // Try dynamic scanning first (works on iOS and DevTools)
     const entries = fs.readdirSync(path);
     
     for (const entry of entries) {
@@ -73,11 +101,24 @@ async function scanForAssets(fs, path, prefix = '') {
         console.warn(`Cannot stat ${fullPath}:`, statErr.message);
       }
     }
+    
+    // If we found assets dynamically, return them
+    if (assets.length > 0) {
+      console.log(`[Resources] Dynamic scanning found ${assets.length} assets`);
+      return assets;
+    }
   } catch (e) {
-    console.error('Scan error for path:', path, e.message);
+    console.warn('[Resources] Dynamic scanning failed:', e.message);
   }
   
-  return assets;
+  // Fall back to static manifest (for Android)
+  console.log('[Resources] Using static asset manifest for Android compatibility');
+  return STATIC_ASSET_MANIFEST.map(asset => ({
+    folder: asset.folder,
+    key: asset.key,
+    part: asset.part || null,
+    hasParts: asset.parts || false
+  }));
 }
 
 /**
