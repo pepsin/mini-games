@@ -200,7 +200,7 @@ function drawBirdAlbum(ctx, canvas) {
   ctx.fillStyle = themeColor;
   ctx.font = `bold ${ss(24)}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('鸟类图鉴', sx(W / 2), sy(50));
+  ctx.fillText('观鸟图鉴', sx(W / 2), sy(50));
   
   // Progress
   ctx.fillStyle = '#FFF';
@@ -209,19 +209,19 @@ function drawBirdAlbum(ctx, canvas) {
   
   // Close button
   const closeSize = 40;
-  const closeX = W - closeSize - 20;
+  const closeX = 20;
   const closeY = 20;
   
-  ctx.fillStyle = '#FF6B6B';
+  ctx.fillStyle = '#AAAAAA';
   ctx.beginPath();
   ctx.arc(sx(closeX + closeSize/2), sy(closeY + closeSize/2), ss(closeSize/2), 0, Math.PI * 2);
   ctx.fill();
   
   ctx.fillStyle = '#FFF';
-  ctx.font = `bold ${ss(20)}px Arial`;
+  ctx.font = `bold ${ss(24)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('×', sx(closeX + closeSize/2), sy(closeY + closeSize/2));
+  ctx.fillText('×', sx(closeX + closeSize/2), sy(closeY + closeSize/2) + ss(2));
   
   albumCloseBounds = { x: closeX, y: closeY, width: closeSize, height: closeSize };
   
@@ -296,7 +296,7 @@ function drawBirdAlbum(ctx, canvas) {
             
             // Question mark for unknown - lighter color for visibility
             ctx.fillStyle = '#999';
-            ctx.font = `bold ${ss(20)}px`;
+            ctx.font = `bold ${ss(20)}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('?', imageX + imageSize/2, imageY + imageSize/2);
@@ -342,92 +342,96 @@ function drawBirdAlbum(ctx, canvas) {
     .setGap(60)
     .setPadding(0);
   
-  // Previous button - circle shape with custom rendering
-  const prevButton = new FlexItem()
-    .size(buttonRadius * 2, buttonRadius * 2)
-    .tag('prevButton');
-  
-  prevButton.render((ctx, x, y, width, height, scale) => {
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-    const radius = buttonRadius * scale;
+  // Previous button - only add if enabled
+  if (prevEnabled) {
+    const prevButton = new FlexItem()
+      .size(buttonRadius * 2, buttonRadius * 2)
+      .tag('prevButton');
     
-    // Draw circular button background
-    ctx.fillStyle = prevEnabled ? themeColor : '#444';
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Button border
-    ctx.strokeStyle = prevEnabled ? themeLight : '#666';
-    ctx.lineWidth = ss(2);
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Left-pointing triangle
-    if (prevEnabled) {
+    prevButton.render((ctx, x, y, width, height, scale) => {
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
+      const radius = buttonRadius * scale;
+      
+      // Draw circular button background
+      ctx.fillStyle = themeColor;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Button border
+      ctx.strokeStyle = themeLight;
+      ctx.lineWidth = ss(2);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Left-pointing triangle (centered)
       ctx.fillStyle = '#FFF';
       ctx.beginPath();
-      ctx.moveTo(centerX + 8 * scale, centerY - 10 * scale);
-      ctx.lineTo(centerX - 6 * scale, centerY);
-      ctx.lineTo(centerX + 8 * scale, centerY + 10 * scale);
+      ctx.moveTo(centerX + 6 * scale, centerY - 10 * scale);
+      ctx.lineTo(centerX - 8 * scale, centerY);
+      ctx.lineTo(centerX + 6 * scale, centerY + 10 * scale);
       ctx.closePath();
       ctx.fill();
-    }
-  });
-  
-  buttonContainer.addChild(prevButton);
-  
-  // Next button - circle shape with custom rendering
-  const nextButton = new FlexItem()
-    .size(buttonRadius * 2, buttonRadius * 2)
-    .tag('nextButton');
-  
-  nextButton.render((ctx, x, y, width, height, scale) => {
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-    const radius = buttonRadius * scale;
+    });
     
-    // Draw circular button background
-    ctx.fillStyle = nextEnabled ? themeColor : '#444';
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fill();
+    buttonContainer.addChild(prevButton);
+  }
+  
+  // Next button - only add if enabled
+  if (nextEnabled) {
+    const nextButton = new FlexItem()
+      .size(buttonRadius * 2, buttonRadius * 2)
+      .tag('nextButton');
     
-    // Button border
-    ctx.strokeStyle = nextEnabled ? themeLight : '#666';
-    ctx.lineWidth = ss(2);
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Right-pointing triangle
-    if (nextEnabled) {
+    nextButton.render((ctx, x, y, width, height, scale) => {
+      const centerX = x + width / 2;
+      const centerY = y + height / 2;
+      const radius = buttonRadius * scale;
+      
+      // Draw circular button background
+      ctx.fillStyle = themeColor;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Button border
+      ctx.strokeStyle = themeLight;
+      ctx.lineWidth = ss(2);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Right-pointing triangle (centered)
       ctx.fillStyle = '#FFF';
       ctx.beginPath();
-      ctx.moveTo(centerX - 8 * scale, centerY - 10 * scale);
-      ctx.lineTo(centerX + 6 * scale, centerY);
-      ctx.lineTo(centerX - 8 * scale, centerY + 10 * scale);
+      ctx.moveTo(centerX - 6 * scale, centerY - 10 * scale);
+      ctx.lineTo(centerX + 8 * scale, centerY);
+      ctx.lineTo(centerX - 6 * scale, centerY + 10 * scale);
       ctx.closePath();
       ctx.fill();
-    }
-  });
-  
-  buttonContainer.addChild(nextButton);
+    });
+    
+    buttonContainer.addChild(nextButton);
+  }
   
   // Draw the button container
   buttonContainer.draw(ctx);
   
   // Get button bounds from flex layout
-  const prevBounds = buttonContainer.getTaggedBounds('prevButton');
-  const nextBounds = buttonContainer.getTaggedBounds('nextButton');
+  const prevBounds = prevEnabled ? buttonContainer.getTaggedBounds('prevButton') : null;
+  const nextBounds = nextEnabled ? buttonContainer.getTaggedBounds('nextButton') : null;
   
   if (prevBounds) {
     prevButtonBounds = prevBounds;
+  } else {
+    prevButtonBounds = null;
   }
   if (nextBounds) {
     nextButtonBounds = nextBounds;
+  } else {
+    nextButtonBounds = null;
   }
   
   // Page indicator between cells and buttons

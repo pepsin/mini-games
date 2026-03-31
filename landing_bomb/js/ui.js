@@ -411,7 +411,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           // Start/Resume button - 主按钮风格
           flexItem()
             .tag('startButton')
-            .text(isPaused ? '继续游戏' : '开始游戏', 18)
+            .text(isPaused ? '继续游戏' : '▶︎ 开始游戏', 18)
             .textStyle('#FFFFFF', 18, 'Arial', 'bold')
             .background('#FF6B35')
             .linearGradient(['#FF6B35', '#FF4500'], 90)
