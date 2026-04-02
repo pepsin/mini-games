@@ -62,7 +62,29 @@
         
         // Image API
         createImage: function() {
-            return new Image();
+            const img = new Image();
+            const BASE = 'game://localhost/';
+            
+            // Override src setter to prefix with game:// scheme
+            const originalSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+            Object.defineProperty(img, 'src', {
+                get: function() {
+                    return originalSrc.get.call(this);
+                },
+                set: function(value) {
+                    let newSrc = value;
+                    // If it's a relative path (not starting with http, https, data, or game://)
+                    if (value && !value.match(/^(https?:|data:|game:\/\/)/i)) {
+                        // Remove leading ./ or /
+                        const cleanPath = value.replace(/^\.\//, '').replace(/^\//, '');
+                        newSrc = BASE + cleanPath;
+                        console.log('[wx.createImage] Rewriting src:', value, '->', newSrc);
+                    }
+                    originalSrc.set.call(this, newSrc);
+                }
+            });
+            
+            return img;
         },
         
         // System Info API
@@ -290,9 +312,18 @@
                 readdirSync: function(path) {
                     try {
                         const rel = normPath(path);
-                        const res = syncXHR('GET', BASE + '_ls?path=' + encodeURIComponent(rel));
-                        if (res.status === 200 || res.status === 0) return JSON.parse(res.text);
-                    } catch(e) { console.warn('[FSM.readdirSync] error:', path, e); }
+                        const url = BASE + '_ls?path=' + encodeURIComponent(rel);
+                        console.log('[FSM.readdirSync] path:', path, '-> rel:', rel, '-> url:', url);
+                        const res = syncXHR('GET', url);
+                        console.log('[FSM.readdirSync] response - status:', res.status, 'text:', res.text.substring(0, 200));
+                        if (res.status === 200 || res.status === 0) {
+                            const result = JSON.parse(res.text);
+                            console.log('[FSM.readdirSync] parsed:', result);
+                            return result;
+                        }
+                    } catch(e) { 
+                        console.error('[FSM.readdirSync] error:', path, e); 
+                    }
                     return [];
                 },
                 accessSync: function(path) {
@@ -303,7 +334,15 @@
                     }
                 },
                 statSync: function(path) {
-                    return { isDirectory: function() { return false; }, isFile: function() { return true; } };
+                    const rel = normPath(path);
+                    // Check if it's a directory by trying to list it
+                    const res = syncXHR('GET', BASE + '_ls?path=' + encodeURIComponent(rel));
+                    const isDir = (res.status === 200 || res.status === 0) && res.text.startsWith('[');
+                    console.log('[FSM.statSync]', path, '-> isDirectory:', isDir);
+                    return { 
+                        isDirectory: function() { return isDir; }, 
+                        isFile: function() { return !isDir; } 
+                    };
                 },
                 readFileSync: function(path, enc) {
                     const rel = normPath(path);

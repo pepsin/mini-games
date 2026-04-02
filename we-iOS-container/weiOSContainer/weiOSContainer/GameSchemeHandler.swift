@@ -115,12 +115,22 @@ class GameSchemeHandler: NSObject, WKURLSchemeHandler {
     // MARK: - Helpers
 
     private func respond(_ task: WKURLSchemeTask, url: URL, data: Data, mimeType: String) {
-        let response = URLResponse(
+        // WKWebView requires HTTPURLResponse (with a 200 status) for media resources
+        // such as images and audio. A plain URLResponse causes WKWebView to silently
+        // discard the body for those resource types, so images never decode and
+        // img.width / img.height stay 0.
+        let headers: [String: String] = [
+            "Content-Type":   mimeType,
+            "Content-Length": String(data.count),
+            "Cache-Control":  "no-cache",
+            "Access-Control-Allow-Origin": "*"
+        ]
+        let response = HTTPURLResponse(
             url: url,
-            mimeType: mimeType,
-            expectedContentLength: data.count,
-            textEncodingName: "utf-8"
-        )
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: headers
+        )!
         task.didReceive(response)
         task.didReceive(data)
         task.didFinish()
