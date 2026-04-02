@@ -267,34 +267,75 @@
             }
         },
         
-        // File System API (simplified)
+        // File System API
         getFileSystemManager: function() {
+            const BASE = 'game://localhost/';
+
+            function syncXHR(method, url) {
+                const xhr = new XMLHttpRequest();
+                xhr.open(method, url, false);
+                try { xhr.send(); } catch(e) { return { status: -1, text: '' }; }
+                return { status: xhr.status, text: xhr.responseText };
+            }
+
+            function normPath(path) {
+                // Strip WeChat virtual path prefixes like wxfile://usr
+                return String(path)
+                    .replace(/^wxfile:\/\/[^/]*/, '')
+                    .replace(/^\.\//, '')
+                    .replace(/^\//, '');
+            }
+
             return {
+                readdirSync: function(path) {
+                    try {
+                        const rel = normPath(path);
+                        const res = syncXHR('GET', BASE + '_ls?path=' + encodeURIComponent(rel));
+                        if (res.status === 200 || res.status === 0) return JSON.parse(res.text);
+                    } catch(e) { console.warn('[FSM.readdirSync] error:', path, e); }
+                    return [];
+                },
+                accessSync: function(path) {
+                    const rel = normPath(path);
+                    const res = syncXHR('HEAD', BASE + rel);
+                    if (res.status !== 200 && res.status !== 0) {
+                        throw new Error('no such file: ' + path);
+                    }
+                },
+                statSync: function(path) {
+                    return { isDirectory: function() { return false; }, isFile: function() { return true; } };
+                },
+                readFileSync: function(path, enc) {
+                    const rel = normPath(path);
+                    const res = syncXHR('GET', BASE + rel);
+                    if (res.status === 200 || res.status === 0) return res.text;
+                    throw new Error('File not found: ' + path);
+                },
                 readFile: function(options) {
-                    // Simplified file reading
-                    console.log('FileSystem readFile:', options);
-                    if (options.success) {
-                        options.success('');
+                    try {
+                        const data = this.readFileSync(options.filePath, options.encoding);
+                        if (options.success) options.success({ data: data });
+                    } catch(e) {
+                        if (options.fail) options.fail({ errMsg: e.message });
                     }
                 },
                 writeFile: function(options) {
-                    console.log('FileSystem writeFile:', options);
-                    if (options.success) {
-                        options.success();
-                    }
+                    console.log('FileSystem writeFile:', options.filePath);
+                    if (options.success) options.success();
                 },
+                writeFileSync: function() {},
                 access: function(options) {
-                    console.log('FileSystem access:', options);
-                    if (options.fail) {
-                        options.fail();
+                    try {
+                        this.accessSync(options.path);
+                        if (options.success) options.success();
+                    } catch(e) {
+                        if (options.fail) options.fail({ errMsg: e.message });
                     }
                 },
                 mkdir: function(options) {
-                    console.log('FileSystem mkdir:', options);
-                    if (options.success) {
-                        options.success();
-                    }
-                }
+                    if (options.success) options.success();
+                },
+                mkdirSync: function() {}
             };
         },
         
