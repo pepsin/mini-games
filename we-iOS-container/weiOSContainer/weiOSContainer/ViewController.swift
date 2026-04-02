@@ -32,7 +32,7 @@ class ViewController: UIViewController {
     func setupUI() {
         toolbar = UIView()
         toolbar.translatesAutoresizingMaskIntoConstraints = false
-        toolbar.backgroundColor = UIColor(white: 0.1, alpha: 0.9)
+        toolbar.backgroundColor = UIColor(white: 0.1, alpha: 0.2)
         toolbar.layer.cornerRadius = 8
         toolbar.layer.masksToBounds = true
         view.addSubview(toolbar)
@@ -65,10 +65,10 @@ class ViewController: UIViewController {
         toolbar.addSubview(reloadButton)
 
         NSLayoutConstraint.activate([
-            toolbar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            toolbar.heightAnchor.constraint(equalToConstant: 44),
+toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+toolbar.heightAnchor.constraint(equalToConstant: 44),
 
             projectNameLabel.leadingAnchor.constraint(equalTo: toolbar.leadingAnchor, constant: 12),
             projectNameLabel.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
@@ -108,10 +108,10 @@ class ViewController: UIViewController {
         view.addSubview(webView)
 
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: toolbar.bottomAnchor, constant: 8),
+            webView.topAnchor.constraint(equalTo: view.topAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            webView.bottomAnchor.constraint(equalTo: toolbar.topAnchor)
         ])
     }
 
