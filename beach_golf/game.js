@@ -1,20 +1,21 @@
-import { Ball } from './Ball.js';
-import { Hole } from './Hole.js';
-import { HoleInAnimation } from './HoleInAnimation.js';
-import { Physics } from './Physics.js';
-import { InputHandler } from './InputHandler.js';
+import { Ball } from './js/Ball.js';
+import { Hole } from './js/Hole.js';
+import { HoleInAnimation } from './js/HoleInAnimation.js';
+import { Physics } from './js/Physics.js';
+import { InputHandler } from './js/InputHandler.js';
 
-const canvas = document.getElementById('gameCanvas');
+const { windowWidth, windowHeight, pixelRatio } = wx.getSystemInfoSync();
+
+const canvas = wx.createCanvas();
 const ctx = canvas.getContext('2d');
 
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+canvas.width = windowWidth * pixelRatio;
+canvas.height = windowHeight * pixelRatio;
+ctx.scale(pixelRatio, pixelRatio);
 
-// Entities
+const screenWidth = windowWidth;
+const screenHeight = windowHeight;
+
 const ball = new Ball();
 const hole = new Hole();
 const animation = new HoleInAnimation();
@@ -23,17 +24,17 @@ const physics = new Physics();
 let stopped = true;
 
 function resetBall() {
-    ball.reset(canvas.width, canvas.height);
+    ball.reset(screenWidth, screenHeight);
     stopped = true;
 }
 
 function resetHole() {
-    hole.placeRandomly(canvas.width, canvas.height);
+    hole.placeRandomly(screenWidth, screenHeight);
 }
 
 const input = new InputHandler(
-    canvas,
-    // onShoot
+    screenWidth,
+    screenHeight,
     (vx, vy, vz) => {
         if (animation.active) return;
         ball.vx = vx;
@@ -41,7 +42,6 @@ const input = new InputHandler(
         ball.vz = vz;
         stopped = false;
     },
-    // onReset
     () => {
         if (animation.active) return;
         resetBall();
@@ -49,16 +49,15 @@ const input = new InputHandler(
     }
 );
 
-// Game loop
 function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f5e6c8';
+    ctx.fillRect(0, 0, screenWidth, screenHeight);
 
     if (!stopped && !animation.active) {
-        stopped = physics.update(ball, canvas.width, canvas.height);
+        stopped = physics.update(ball, screenWidth, screenHeight);
     }
 
     if (!animation.active) {
-        // Check hole collision
         if (!stopped && hole.isInside(ball.x, ball.y, ball.z)) {
             animation.start(hole.x, hole.y, ball.x, ball.y, () => {
                 ball.stop();
@@ -78,7 +77,6 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Init
 resetBall();
 resetHole();
 gameLoop();
