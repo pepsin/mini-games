@@ -5,6 +5,9 @@ const { roundedRect } = require('./roundedRect.js');
 const { CountdownTimer } = require('./countdownTimer.js');
 const analytics = require('./analytics.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 // Reusable countdown timer instance for HUD
 const hudTimer = new CountdownTimer({ radius: 10, lineWidth: 3, showText: true });
 
@@ -17,7 +20,7 @@ const CHALLENGE_TYPES = {
       const timeSeconds = Math.round(timeLimit / 60);
       return {
         type: 'kill_n_in_time',
-        description: `${timeSeconds}秒内消灭${target}只!`,
+        description: t('challenge.types.kill_n_in_time.description', { time: timeSeconds, target: target }),
         target: target,
         progress: 0,
         timeLimit: timeLimit,
@@ -30,7 +33,7 @@ const CHALLENGE_TYPES = {
   no_flower_loss: {
     generate: (wave) => ({
       type: 'no_flower_loss',
-      description: '本波零伤亡!',
+      description: t('challenge.types.no_flower_loss.description'),
       target: 1,
       progress: 0,
       timeLimit: 0,
@@ -44,7 +47,7 @@ const CHALLENGE_TYPES = {
       const target = 3;
       return {
         type: 'kill_streak',
-        description: `连续命中${target}只!`,
+        description: t('challenge.types.kill_streak.description', { target: target }),
         target: target,
         progress: 0,
         timeLimit: 0,
@@ -243,7 +246,7 @@ function drawChallengeHUD(ctx, frameCount, topbarHeight = 66) {
   ctx.textBaseline = 'top';
   ctx.font = `bold ${ss(11)}px Arial`;
   ctx.fillStyle = ch.failed ? '#FF9999' : '#FFD700';
-  ctx.fillText(ch.failed ? '挑战失败' : '挑战', sx(W / 2), sy(by + 4));
+  ctx.fillText(ch.failed ? t('challenge.failed') : t('challenge.active'), sx(W / 2), sy(by + 4));
 
   ctx.font = `${ss(12)}px Arial`;
   ctx.fillStyle = '#FFFFFF';
@@ -337,7 +340,7 @@ function drawChallengeResult(ctx) {
   ctx.font = `bold ${ss(18)}px Arial`;
   ctx.fillStyle = '#FFFFFF';
   ctx.fillText(
-    cr.success ? '挑战成功!' : '挑战失败',
+    cr.success ? t('challenge.success') : t('challenge.failed'),
     sx(W / 2), sy(by + 20)
   );
 
@@ -345,9 +348,9 @@ function drawChallengeResult(ctx) {
     ctx.font = `${ss(13)}px Arial`;
     ctx.fillStyle = '#FFD700';
     let rewardText = '';
-    if (cr.reward.type === 'heal') rewardText = '奖励: 修复一朵花';
-    else if (cr.reward.type === 'score') rewardText = `奖励: +${cr.reward.value}分`;
-    else if (cr.reward.type === 'powerup') rewardText = '奖励: 随机道具';
+    if (cr.reward.type === 'heal') rewardText = t('challenge.rewards.heal');
+    else if (cr.reward.type === 'score') rewardText = t('challenge.rewards.score', { score: cr.reward.value });
+    else if (cr.reward.type === 'powerup') rewardText = t('challenge.rewards.powerup');
     ctx.fillText(rewardText, sx(W / 2), sy(by + 42));
   }
 
@@ -376,7 +379,7 @@ function drawChallengeAnnounce(ctx, challenge, options) {
 
   ctx.font = `bold ${ss(18)}px Arial`;
   ctx.fillStyle = '#FFD700';
-  ctx.fillText('挑战任务!', sx(W / 2), sy(by + 20));
+  ctx.fillText(t('challenge.title'), sx(W / 2), sy(by + 20));
 
   ctx.font = `${ss(15)}px Arial`;
   ctx.fillStyle = '#FFFFFF';
@@ -387,11 +390,11 @@ function drawChallengeAnnounce(ctx, challenge, options) {
   if (challenge.reward.type === 'heal') {
     // Heal reward gives score if no dead flowers, heal otherwise
     const scoreReward = 10000 * (options.wave || 1);
-    rewardHint = `奖励: 修复一朵花 (+${scoreReward}分备用)`;
+    rewardHint = t('challenge.rewards.heal', { score: scoreReward });
   } else if (challenge.reward.type === 'score') {
-    rewardHint = `奖励: +${challenge.reward.value}分`;
+    rewardHint = t('challenge.rewards.score', { score: challenge.reward.value });
   } else if (challenge.reward.type === 'powerup') {
-    rewardHint = '奖励: 随机道具';
+    rewardHint = t('challenge.rewards.powerup');
   }
   ctx.font = `${ss(12)}px Arial`;
   ctx.fillStyle = '#FFD700';

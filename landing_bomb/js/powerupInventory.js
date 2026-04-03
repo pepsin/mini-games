@@ -5,6 +5,9 @@ const { W, H, sx, sy, ss, INVENTORY_CONFIG } = require('./config.js');
 const { getResource } = require('./resources.js');
 const analytics = require('./analytics.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 // 避免循环依赖：延迟加载 powerupSystem 的导出
 let powerupSystem = null;
 function getPowerupSystem() {
@@ -212,7 +215,7 @@ function drawSlotButton(ctx, x, y, type, slotIndex, frameCount) {
     ctx.textBaseline = 'middle';
     ctx.font = `bold ${ss(12)}px Arial`;
     ctx.fillStyle = def.color;
-    ctx.fillText(def.label, px + size/2, py + size/2);
+    ctx.fillText(t(`powerup.types.${type}`), px + size/2, py + size/2);
   }
 
   // 白色反光椭圆（左上角大）
@@ -320,7 +323,7 @@ function drawFlyingPowerups(ctx, frameCount = 0) {
       ctx.textBaseline = 'middle';
       ctx.font = `bold ${ss(10)}px Arial`;
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(def.label, px, py);
+      ctx.fillText(t(`powerup.types.${fp.type}`), px, py);
     }
     
     // 绘制拖尾粒子

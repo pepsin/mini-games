@@ -8,6 +8,9 @@ const { flexContainer, flexItem } = require('./flexLayout.js');
 const { setButtonBounds, clearButtonBounds } = require('./uiState.js');
 const { isInventoryFull } = require('./powerupInventory.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 // Selection state
 let isSelecting = false;
 let selectorState = {
@@ -27,14 +30,14 @@ let selectorState = {
   resultShown: false
 };
 
-// Powerup descriptions
+// Powerup descriptions (used for backwards compatibility, prefer using t() directly)
 const POWERUP_DESCRIPTIONS = {
-  time_slow: '垃圾下落速度减半，持续5秒',
-  multi_shot: '下次发射散射3发子弹',
-  explosive: '立即清除屏幕所有垃圾',
-  heal: '复活一朵枯萎的花',
-  shield: '无敌护盾，持续8秒',
-  dragon_bullet: '火龙弹，超大范围攻击'
+  time_slow: 'time_slow',
+  multi_shot: 'multi_shot',
+  explosive: 'explosive',
+  heal: 'heal',
+  shield: 'shield',
+  dragon_bullet: 'dragon_bullet'
 };
 
 // Initialize powerup selector
@@ -232,7 +235,8 @@ function drawPowerupSelector(ctx, canvas) {
 // Draw the result with buttons
 function drawSelectorResult(ctx, badgeY) {
   const def = POWERUP_TYPES[selectorState.finalType];
-  const description = POWERUP_DESCRIPTIONS[selectorState.finalType];
+  // Use i18n for description
+  const description = t(`powerup.descriptions.${selectorState.finalType}`);
   
   // Position panel 18px below the badge icon
   // Badge has radiusY of 72, so bottom of badge is at badgeY + 72
@@ -248,10 +252,10 @@ function drawSelectorResult(ctx, badgeY) {
     .setGap(12)
     .setPadding(20);
   
-  // Powerup name
+  // Powerup name - use i18n
   panel.addChild(
     flexItem()
-      .text(def.label, 24)
+      .text(t(`powerup.types.${selectorState.finalType}`), 24)
       .textStyle('#FFFFFF', 24, 'Arial', 'bold')
   );
   
@@ -269,11 +273,11 @@ function drawSelectorResult(ctx, badgeY) {
     .align('center')
     .setGap(15);
   
-  // Use now button
+  // Use now button - i18n
   buttonRow.addChild(
     flexItem()
       .tag('useNowButton')
-      .text('立刻使用', 16)
+      .text(t('powerup.useNow'), 16)
       .textStyle('#FFFFFF', 16, 'Arial', 'bold')
       .background('#4CAF50')
       .size(110, 40)
@@ -283,11 +287,11 @@ function drawSelectorResult(ctx, badgeY) {
   // Check if inventory is full
   const inventoryFull = isInventoryFull();
   
-  // Store button - disabled if inventory is full
+  // Store button - disabled if inventory is full - i18n
   buttonRow.addChild(
     flexItem()
       .tag('storeButton')
-      .text(inventoryFull ? '暂存已满' : '暂存', 16)
+      .text(inventoryFull ? t('powerup.inventoryFull') : t('powerup.store'), 16)
       .textStyle('#FFFFFF', 16, 'Arial', 'bold')
       .background(inventoryFull ? '#9E9E9E' : '#FF9800')
       .size(110, 40)

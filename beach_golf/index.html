@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>沙滩高尔夫</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #f5e6c8 0%, #f0dca8 100%);
+            overflow: hidden;
+            user-select: none;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .hint {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #8b7355;
+            font-size: 14px;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="hint">按住并向后拖动来击球 | 大力度拖动可高飞</div>
+    <canvas id="gameCanvas"></canvas>
+    <script type="module" src="js/game.js"></script>
+</body>
+</html>

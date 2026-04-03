@@ -5,6 +5,7 @@ const { getResource } = require('./resources.js');
 const { ElectricBadge } = require('./components/ElectricBadge.js');
 const { addPowerupToInventory, isInventoryFull } = require('./powerupInventory.js');
 const analytics = require('./analytics.js');
+const { t } = require('./i18n.js');
 
 // Track time_slow state changes and flash animations
 let wasTimeSlowActive = false;
@@ -17,12 +18,12 @@ const FLASH_RADIUS_MULTIPLIER = 1.5;
 
 // Powerup definitions
 const POWERUP_TYPES = {
-  time_slow: { color: '#FF9800', glowColor: '#ffffff', label: '减速', weight: 22, duration: 300 },
-  multi_shot: { color: '#FF9800', glowColor: '#ffffff', label: '散射', weight: 22, duration: 3 },
-  explosive: { color: '#FF9800', glowColor: '#ffffff', label: '爆破', weight: 18, duration: 0 },
-  heal: { color: '#FF9800', glowColor: '#ffffff', label: '治愈', weight: 13, duration: 0 },
-  shield: { color: '#FF9800', glowColor: '#ffffff', label: '护盾', weight: 13, duration: 480 },
-  dragon_bullet: { color: '#FF9800', glowColor: '#FFD700', label: '火龙', weight: 12, duration: 3 }
+  time_slow: { color: '#FF9800', glowColor: '#ffffff', get label() { return t('powerup.types.time_slow'); }, weight: 22, duration: 300 },
+  multi_shot: { color: '#FF9800', glowColor: '#ffffff', get label() { return t('powerup.types.multi_shot'); }, weight: 22, duration: 3 },
+  explosive: { color: '#FF9800', glowColor: '#ffffff', get label() { return t('powerup.types.explosive'); }, weight: 18, duration: 0 },
+  heal: { color: '#FF9800', glowColor: '#ffffff', get label() { return t('powerup.types.heal'); }, weight: 13, duration: 0 },
+  shield: { color: '#FF9800', glowColor: '#ffffff', get label() { return t('powerup.types.shield'); }, weight: 13, duration: 480 },
+  dragon_bullet: { color: '#FF9800', glowColor: '#FFD700', get label() { return t('powerup.types.dragon_bullet'); }, weight: 12, duration: 3 }
 };
 
 const SPAWN_CHANCE = 0.15;

@@ -3,6 +3,9 @@ const { W, H, sx, sy, ss } = require('./config.js');
 const { getAllSkins, getCurrentSkinId, setCurrentSkin, isSkinUnlocked } = require('./slingshotSkinSystem.js');
 const analytics = require('./analytics.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 // Gallery state
 let isGalleryOpen = false;
 let selectedSkin = null;
@@ -85,7 +88,7 @@ function drawGallery(ctx) {
   ctx.font = `bold ${ss(28)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText(sx(W / 2), sy(40), '弹弓图鉴');
+  ctx.fillText(sx(W / 2), sy(40), t('skin.title'));
 
   // Close button
   const closeBtnX = sx(W - 60);
@@ -172,7 +175,7 @@ function drawGallery(ctx) {
     ctx.font = `${ss(10)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    const desc = skin.unlocked ? skin.description : '未解锁';
+    const desc = skin.unlocked ? skin.description : t('skin.locked');
     ctx.fillText(cellX + cellW / 2, cellY + ss(115), desc);
   }
 
@@ -181,7 +184,7 @@ function drawGallery(ctx) {
   ctx.font = `${ss(12)}px Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText(sx(W / 2), sy(H - 40), '点击选择已解锁的弹弓皮肤');
+  ctx.fillText(sx(W / 2), sy(H - 40), t('skin.selectSkin'));
 }
 
 module.exports = {

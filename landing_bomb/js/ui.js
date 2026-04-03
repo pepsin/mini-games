@@ -10,6 +10,9 @@ const { flexContainer, flexItem } = require('./flexLayout.js');
 const { setButtonBounds } = require('./uiState.js');
 const { getGameOverSocialData, getDailyHighScore } = require('./socialSystem.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 // Draw score panel using flex layout
 function drawUI(ctx) {
   const score = getScore();
@@ -81,7 +84,7 @@ function drawUI(ctx) {
   ctx.textBaseline = 'middle';
   ctx.font = `bold ${20}px Arial`;
   ctx.fillStyle = '#444';
-  ctx.fillText(`分数: ${score}`, spx + 12 * sps / pauseButtonSize, spy + sps / 2);
+  ctx.fillText(`${t('common.score')}: ${score}`, spx + 12 * sps / pauseButtonSize, spy + sps / 2);
 
   // Draw wave text on the right side (maps wave 1->1, wave 30->2, etc. to hide the jump)
   const displayWave = currentWave <= 1 ? 1 : (currentWave - WAVE_DISPLAY_OFFSET);
@@ -109,7 +112,7 @@ function drawUI(ctx) {
   const textY = spy + sps / 2;
   
   // Measure parts of the wave text
-  const suffixAfterSlash = ` ${targetWave} 关`;
+  const suffixAfterSlash = ` ${targetWave} ${t('common.wave')}`;
   const suffixAfterSlashWidth = ctx.measureText(suffixAfterSlash).width;
   
   // The "/" is positioned at: textX - suffixAfterSlashWidth
@@ -231,13 +234,13 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   let rating = '';
   let ratingColor = '#333';
   if (currentWave >= 100) {
-    rating = '⭐ 传说! 前1%! ⭐';
+    rating = t('stats.rating.legendary');
     ratingColor = '#FFD700';
   } else if (currentWave >= 50) {
-    rating = '🔥 高手! 前10%! 🔥';
+    rating = t('stats.rating.expert');
     ratingColor = '#FF6B6B';
   } else if (currentWave >= 30) {
-    rating = '🌻 干得漂亮! 🌻';
+    rating = t('stats.rating.good');
     ratingColor = '#4ECDC4';
   }
 
@@ -266,7 +269,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   // Title
   gameOverPanel.addChild(
     flexItem()
-      .text('游戏结束', 28)
+      .text(t('game.gameOver'), 28)
       .textStyle('#FF6B35', 28, 'Arial', 'bold')
   );
 
@@ -278,13 +281,13 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
     .setGap(8)
     .addChildren(
       flexItem()
-        .text(`分数: ${score}`, 18)
+        .text(`${t('stats.score')}: ${score}`, 18)
         .textStyle('#333', 18, 'Arial', 'bold'),
       flexItem()
-        .text(`今日最高: ${dailyHigh}`, 15)
+        .text(`${t('stats.dailyHigh')}: ${dailyHigh}`, 15)
         .textStyle('#666', 15, 'Arial', 'normal'),
       flexItem()
-        .text(`历史最高: ${highScore}`, 14)
+        .text(`${t('stats.highScore')}: ${highScore}`, 14)
         .textStyle('#999', 14, 'Arial', 'normal')
     );
 
@@ -310,7 +313,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
     buttonContainer.addChild(
       flexItem()
         .tag('shareButton')
-        .text('分享战绩', 16)
+        .text(t('social.share'), 16)
         .textStyle('#FFFFFF', 16, 'Arial', 'bold')
         .background('#4ECDC4')
         .size(200, 45)
@@ -335,7 +338,7 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   buttonContainer.addChild(
     flexItem()
       .tag('restartButton')
-      .text('再来一次', 18)
+      .text(t('game.playAgain'), 18)
       .textStyle('#FFFFFF', 18, 'Arial', 'bold')
       .background('#FF6B35')
       .linearGradient(['#FF6B35', '#FF4500'], 90)
@@ -380,7 +383,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
     .addChildren(
       // Title
       flexItem()
-        .text(isPaused ? '游戏暂停' : '一起来护花', 28)
+        .text(isPaused ? t('game.pause') : t('game.title'), 28)
         .textStyle('#FF6B35', 28, 'Arial', 'bold'),
       
       // Instructions container (only show when not paused)
@@ -391,13 +394,13 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
         .setGap(7)
         .addChildren(
           flexItem()
-            .text('拖动弹弓瞄准,松开发射!', 15)
+            .text(t('instructions.dragAim'), 15)
             .textStyle('#666', 15),
           flexItem()
-            .text('在垃圾落地前打爆它们,', 15)
+            .text(t('instructions.protectFlowers'), 15)
             .textStyle('#666', 15),
           flexItem()
-            .text('保护四朵小花!', 15)
+            .text(t('instructions.protectFlowers2'), 15)
             .textStyle('#666', 15)
         ) : flexItem().size(0, 0),
       
@@ -411,7 +414,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           // Start/Resume button - 主按钮风格
           flexItem()
             .tag('startButton')
-            .text(isPaused ? '继续游戏' : '< 开始游戏 >', 18)
+            .text(isPaused ? t('game.resumeGame') : t('game.startGame'), 18)
             .textStyle('#FFFFFF', 18, 'Arial', 'bold')
             .background('#FF6B35')
             .linearGradient(['#FF6B35', '#FF4500'], 90)
@@ -421,7 +424,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           // Restart button - 只在暂停菜单显示
           isPaused ? flexItem()
             .tag('restartFromPauseButton')
-            .text('重新开始', 16)
+            .text(t('game.restart'), 16)
             .textStyle('#FFFFFF', 16, 'Arial', 'bold')
             .background('#FF6B6B')
             .size(200, 45)
@@ -430,7 +433,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           // Leaderboard button
           !isPaused ? flexItem()
             .tag('leaderboardButton')
-            .text('排行榜', 16)
+            .text(t('social.leaderboard'), 16)
             .textStyle('#FFFFFF', 16, 'Arial', 'bold')
             .background('#CCAC00')
             .size(200, 45)
@@ -439,7 +442,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           // Share button
           !isPaused ? flexItem()
             .tag('menuShareButton')
-            .text('邀请好友', 16)
+            .text(t('social.invite'), 16)
             .textStyle('#FFFFFF', 16, 'Arial', 'bold')
             .background('#3EA49D')
             .size(200, 45)
@@ -448,7 +451,7 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
           // Bird album button
           flexItem()
             .tag('birdAlbumButton')
-            .text('观鸟图鉴', 16)
+            .text(t('bird.album'), 16)
             .textStyle('#FFFFFF', 16, 'Arial', 'bold')
             .background('#8B4513')
             .size(200, 45)

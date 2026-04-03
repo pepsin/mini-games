@@ -7,6 +7,9 @@ const ctx = canvas.getContext('2d');
 // Module-level deltaTime for use in render
 let lastDeltaTime = 16;
 
+// i18n
+const { t } = require('./js/i18n.js');
+
 // Camera button animation state
 const CAMERA_BUTTON_SLIDE_DURATION = 500; // 500ms to slide in/out
 let cameraButtonSlideStartTime = null;
@@ -220,7 +223,7 @@ function init() {
       setGamePaused(true);
       // Track flower revival
       analytics.trackFlowerRevived(1);
-      console.log('Player revived with one flower! Wastes cleared. Next wave ready when player continues.');
+      console.log(t('messages.playerRevived'));
     },
     onResume: () => {
       // Check if we need to advance to next wave after revive
@@ -230,7 +233,7 @@ function init() {
         const nextWave = getCurrentWave() + 1;
         startWave(nextWave);
         // Note: startWave() already calls analytics.trackWaveStart() with correct display wave
-        console.log(`Advanced to wave ${nextWave} after revive!`);
+        console.log(t('messages.waveAdvanced', { wave: nextWave }));
       }
     }
   });
@@ -476,7 +479,7 @@ function drawPolaroidPhoto(ctx) {
   ctx.font = `bold ${ss(11)}px Arial`;
   ctx.textAlign = 'center';
   const textY = posY + photoHeight - 10 * scale;
-  const displayName = polaroid.birdName || 'Unknown Bird';
+  const displayName = polaroid.birdName || t('bird.unknownBird');
   ctx.fillText(displayName, sx(x), textY);
 
   ctx.restore();
@@ -771,7 +774,7 @@ function update() {
         unlockSkin(droppedSkin);
         // Track skin unlock
         analytics.trackSkinUnlocked(droppedSkin, 'drop');
-        console.log(`Unlocked skin: ${droppedSkin}`);
+        console.log(t('messages.skinUnlocked', { skin: droppedSkin }));
       }
     }
   });

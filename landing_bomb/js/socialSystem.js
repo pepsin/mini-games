@@ -4,6 +4,9 @@
 const { getScore, getHighScore, setScore } = require('./gameState.js');
 const analytics = require('./analytics.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 // Wave getter - will be set dynamically
 let getCurrentWaveFn = null;
 function setGetCurrentWaveFn(fn) {
@@ -92,7 +95,7 @@ function canRevive() {
   if (hasRevivedInCurrentGame) {
     return {
       canRevive: false,
-      reason: '每局游戏只能复活一次',
+      reason: t('social.reviveLimit'),
       remainingRevives: 0,
       maxRevives: 1
     };
@@ -127,7 +130,7 @@ function triggerShareToRevive(onSuccess, onCancel) {
   }
   
   wx.shareAppMessage({
-    title: `我在一起来护花中坚持了${getCurrentWave ? getCurrentWave() : 0}关，快来挑战我吧！`,
+    title: t('social.shareReviveTitle', { wave: getCurrentWave ? getCurrentWave() : 0 }),
     imageUrl: '', // Will use default share image
     query: `from=revive&score=${getScore()}&wave=${getCurrentWave ? getCurrentWave() : 0}`
   });
@@ -222,14 +225,14 @@ function shareGame(from = 'menu') {
   const highScore = getHighScore();
   const dailyHigh = getDailyHighScore();
   
-  let title = '一起来护花 - 保护花朵，消灭垃圾！';
+  let title = t('social.shareDefaultTitle');
   
   if (score > 0) {
-    title = `我在一起来护花中获得了${score}分，你能超过我吗？`;
+    title = t('social.shareScoreTitle', { score: score });
   } else if (dailyHigh > 0) {
-    title = `我今天最高分${dailyHigh}，一起来挑战！`;
+    title = t('social.shareDailyHighTitle', { score: dailyHigh });
   } else if (highScore > 0) {
-    title = `我的最高分是${highScore}，来比比看！`;
+    title = t('social.shareHighScoreTitle', { score: highScore });
   }
   
   // Track share event
@@ -264,7 +267,7 @@ function getGameOverSocialData() {
     dailyHigh,
     isNewDailyHigh,
     canRevive: reviveStatus.canRevive,
-    reviveMessage: '分享复活',
+    reviveMessage: t('social.shareToRevive'),
     canShare: true
   };
 }

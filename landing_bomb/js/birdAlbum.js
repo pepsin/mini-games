@@ -5,6 +5,9 @@ const { getResource, isResourcesLoaded } = require('./resources.js');
 const { W, H } = require('./config.js');
 const { FlexContainer, FlexItem, flexContainer, flexItem } = require('./flexLayout.js');
 
+// i18n
+const { t } = require('./i18n.js');
+
 const ALBUM_STORAGE_KEY = 'bowaste_bird_album';
 
 // Album state
@@ -127,10 +130,10 @@ function getAlbumStats() {
 // Get bird name by variant and frame index
 function getBirdName(variant, frameIndex) {
   const birdRes = getResource('birds');
-  if (!birdRes?.variants?.[variant]?.names) return 'Unknown Bird';
+  if (!birdRes?.variants?.[variant]?.names) return t('bird.unknownBird');
   
   const names = birdRes.variants[variant].names;
-  return names[frameIndex] || 'Unknown Bird';
+  return names[frameIndex] || t('bird.unknownBird');
 }
 
 // Album UI functions
@@ -374,7 +377,7 @@ function drawBirdPage(ctx, pageIndex, offsetX, ss, sx, sy, W, H, themeColor, the
             let displayName = bird.name;
             ctx.fillText(displayName, x + width/2, imageY + imageSize + ss(4));
           } else {
-            ctx.fillText("???", x + width/2, imageY + imageSize + ss(4));
+            ctx.fillText(t('bird.unknown'), x + width/2, imageY + imageSize + ss(4));
           }
         });
         
@@ -409,12 +412,12 @@ function drawBirdAlbum(ctx, canvas) {
   ctx.fillStyle = themeColor;
   ctx.font = `bold ${ss(24)}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('观鸟图鉴', sx(W / 2), sy(50));
+  ctx.fillText(t('bird.albumTitle'), sx(W / 2), sy(50));
   
   // Progress
   ctx.fillStyle = '#FFF';
   ctx.font = `${ss(14)}px Arial`;
-  ctx.fillText(`已收集: ${stats.captured}/${stats.total}`, sx(W / 2), sy(80));
+  ctx.fillText(t('bird.progress', { captured: stats.captured, total: stats.total }), sx(W / 2), sy(80));
   
   // Close button
   const closeSize = 40;
