@@ -1,14 +1,16 @@
-export class Hole {
+class Hole {
     constructor() {
         this.x = 0;
         this.y = 0;
         this.radius = 22;
     }
 
-    placeRandomly(canvasWidth, canvasHeight) {
-        const margin = 100;
+    placeRandomly(canvasWidth, canvasHeight, ballY) {
+        const margin = 80;
         this.x = margin + Math.random() * (canvasWidth - margin * 2);
-        this.y = margin + Math.random() * (canvasHeight - margin * 2);
+        const minDist = canvasHeight * 0.25;
+        const maxDist = canvasHeight * 0.65;
+        this.y = ballY - (minDist + Math.random() * (maxDist - minDist));
     }
 
     draw(ctx, overrideX, overrideY, overrideScale) {
@@ -42,3 +44,5 @@ export class Hole {
         return dist < this.radius && ballZ < 15;
     }
 }
+
+module.exports = { Hole };

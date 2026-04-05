@@ -1,4 +1,4 @@
-export class Physics {
+class Physics {
     constructor() {
         this.friction = 0.96;
         this.frictionAir = 0.98;
@@ -7,7 +7,7 @@ export class Physics {
         this.stopThreshold = 0.05;
     }
 
-    update(ball, canvasWidth, canvasHeight) {
+    update(ball, canvasWidth) {
         const onGround = ball.z <= 0 && ball.vz <= 0;
 
         if (!onGround) {
@@ -38,7 +38,7 @@ export class Physics {
             ball.vy *= this.friction;
         }
 
-        // Wall collisions
+        // Wall collisions (x axis only)
         if (ball.x - ball.radius < 0) {
             ball.x = ball.radius;
             ball.vx *= -0.7;
@@ -46,14 +46,6 @@ export class Physics {
         if (ball.x + ball.radius > canvasWidth) {
             ball.x = canvasWidth - ball.radius;
             ball.vx *= -0.7;
-        }
-        if (ball.y - ball.radius < 0) {
-            ball.y = ball.radius;
-            ball.vy *= -0.7;
-        }
-        if (ball.y + ball.radius > canvasHeight) {
-            ball.y = canvasHeight - ball.radius;
-            ball.vy *= -0.7;
         }
 
         // Check if stopped
@@ -71,3 +63,5 @@ export class Physics {
         return stopped;
     }
 }
+
+module.exports = { Physics };

@@ -9,9 +9,9 @@ export class Ball {
         this.radius = 15;
     }
 
-    reset(canvasWidth, canvasHeight) {
+    reset(canvasWidth, canvasHeight, worldOffsetY = 0) {
         this.x = canvasWidth / 2;
-        this.y = canvasHeight * 0.8;
+        this.y = worldOffsetY + canvasHeight * 0.95;
         this.z = 0;
         this.vx = 0;
         this.vy = 0;

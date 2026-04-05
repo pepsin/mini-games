@@ -60,7 +60,7 @@ export class InputHandler {
         });
     }
 
-    drawGuideLine(ctx, ball) {
+    drawGuideLine(ctx, ball, camera) {
         if (!this.isDragging) return;
 
         const dx = this.dragStartX - this.dragCurrentX;
@@ -83,8 +83,10 @@ export class InputHandler {
         ctx.stroke();
         ctx.restore();
 
+        const dragWorldX = this.dragCurrentX + camera.x;
+        const dragWorldY = this.dragCurrentY + camera.y;
         ctx.beginPath();
-        ctx.arc(this.dragCurrentX, this.dragCurrentY, 8, 0, Math.PI * 2);
+        ctx.arc(dragWorldX, dragWorldY, 8, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.fill();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
