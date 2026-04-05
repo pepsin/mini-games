@@ -45,4 +45,4 @@ class Hole {
     }
 }
 
-module.exports = { Hole };
+export { Hole };

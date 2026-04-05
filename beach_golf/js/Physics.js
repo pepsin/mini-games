@@ -64,4 +64,4 @@ class Physics {
     }
 }
 
-module.exports = { Physics };
+export { Physics };
