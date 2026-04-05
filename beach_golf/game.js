@@ -43,8 +43,26 @@ function resetBall() {
     ballWasHit = false;
 }
 
-function resetHole() {
-    hole.placeRandomly(screenWidth, screenHeight, ball.y);
+// 基于累计进洞数使用正弦函数计算新洞位置
+function resetHole(useSineCalculation = false, currentHoleY = null) {
+    if (useSineCalculation && currentHoleY !== null) {
+        // 使用正弦函数基于进洞数计算偏移值 (0 到 1 之间)
+        const sineValue = (Math.sin(holeNumber * 1.5) + 1) / 2;
+        
+        // 一屏范围
+        const margin = 80;
+        
+        // x 位置：在屏幕宽度范围内基于正弦值偏移
+        const xOffset = sineValue * (screenWidth - margin * 2);
+        hole.x = margin + xOffset;
+        
+        // y 位置：在离当前洞一屏的位置，基于正弦值在向上一屏范围内设置
+        // 新洞在当前洞上方一屏距离的基础上，根据正弦值在 0 到一屏范围内偏移
+        const yOffset = sineValue * screenHeight * 0.8;
+        hole.y = currentHoleY - screenHeight * 0.8 + yOffset * 0.4;
+    } else {
+        hole.placeRandomly(screenWidth, screenHeight, ball.y);
+    }
 }
 
 function advanceLevel() {
@@ -81,19 +99,34 @@ function gameLoop() {
         stopped = physics.update(ball, screenWidth);
     }
 
-    camera.update(ball, screenWidth, screenHeight);
+    // 球是否在移动（有速度或正在飞行）
+    const isBallMoving = !stopped || ball.z > 0;
+    camera.update(ball, screenWidth, screenHeight, isBallMoving);
 
     ctx.save();
     ctx.translate(-camera.x, -camera.y);
 
     if (!animation.active) {
         if (!stopped && hole.isInside(ball.x, ball.y, ball.z)) {
+            const currentHoleX = hole.x;
+            const currentHoleY = hole.y;
+            
             animation.start(hole.x, hole.y, ball.x, ball.y, () => {
                 ball.stop();
                 stopped = true;
                 advanceLevel();
+                
+                // 基于正弦函数设置新洞位置
+                resetHole(true, currentHoleY);
+                
+                // 重置球到新位置
                 resetBall();
-                resetHole();
+                
+                // 进洞数加 1
+                holeNumber++;
+                
+                // 设置镜头位置使球和新洞都可见
+                camera.setPositionToShowBallAndHole(ball.y, hole.y, screenHeight);
             });
         }
 
