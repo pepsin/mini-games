@@ -204,14 +204,33 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
     /// CommonJS require() polyfill and serves it through the custom scheme.
     func loadGameWithWrapper() {
         let fileManager = FileManager.default
-        let gameJSExists = currentProjectURL.map {
-            fileManager.fileExists(atPath: $0.appendingPathComponent("game.js").path)
-        } ?? false
+        let gameJSPath = currentProjectURL?.appendingPathComponent("game.js").path ?? ""
+        let gameJSExists = fileManager.fileExists(atPath: gameJSPath)
+        
+        // Check if game.js uses ES6 module syntax (import statements)
+        let isES6Module: Bool
+        if gameJSExists,
+           let gameJSContent = try? String(contentsOfFile: gameJSPath, encoding: .utf8) {
+            // Simple check for ES6 import statements: import ... from '...'
+            // This pattern matches: import { foo } from './bar' or import foo from './bar'
+            let importPattern = #"^\s*import\s+.*\s+from\s+['"]"#
+            isES6Module = gameJSContent.range(of: importPattern, options: .regularExpression) != nil
+        } else {
+            isES6Module = false
+        }
 
         let scriptTag: String
         if gameJSExists {
-            scriptTag = """
-                <script>
+            if isES6Module {
+                // Load as ES6 module - no CommonJS polyfill needed
+                print("Detected ES6 module in game.js, loading with type=module")
+                scriptTag = """
+                    <script type="module" src="game://localhost/game.js"></script>
+                """
+            } else {
+                // Load with CommonJS require() polyfill for WeChat-style modules
+                print("Using CommonJS polyfill for game.js")
+                let polyfillScript = """
                     // CommonJS require() polyfill for WeChat Mini Games
                     //
                     // Key behaviours that match WeChat's runtime:
@@ -234,7 +253,7 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
                         const fsMock = {
                             readdirSync: function(path) {
                                 try {
-                                    const rel = String(path).replace(/^(\\.\\/?)+/, '');
+                                    const rel = String(path).replace(/^(\\.?\\/)+/, '');
                                     const xhr = new XMLHttpRequest();
                                     xhr.open('GET', BASE + '_ls?path=' + encodeURIComponent(rel), false);
                                     xhr.send();
@@ -244,7 +263,7 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
                             },
                             existsSync: function(path) {
                                 try {
-                                    const rel = String(path).replace(/^(\\.\\/?)+/, '');
+                                    const rel = String(path).replace(/^(\\.?\\/)+/, '');
                                     const xhr = new XMLHttpRequest();
                                     xhr.open('HEAD', BASE + rel, false);
                                     xhr.send();
@@ -252,7 +271,7 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
                                 } catch(e) { return false; }
                             },
                             readFileSync: function(path, enc) {
-                                const rel = String(path).replace(/^(\\.\\/?)+/, '');
+                                const rel = String(path).replace(/^(\\.?\\/)+/, '');
                                 const xhr = new XMLHttpRequest();
                                 xhr.open('GET', BASE + rel, false);
                                 xhr.send();
@@ -344,9 +363,9 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
                         window.module  = { exports: {} };
                         window.exports = window.module.exports;
                     })();
-                </script>
-                <script src="game://localhost/game.js"></script>
-            """
+                """
+                scriptTag = "<script>" + polyfillScript + "</script>\n<script src=\"game://localhost/game.js\"></script>"
+            }
         } else {
             scriptTag = "<h1 style='color:white;text-align:center;padding-top:50%'>No game.js found</h1>"
         }

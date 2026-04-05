@@ -18,6 +18,7 @@
     const touchStartHandlers = [];
     const touchMoveHandlers = [];
     const touchEndHandlers = [];
+    const touchCancelHandlers = [];
     
     // Create the wx object
     window.wx = {
@@ -275,6 +276,30 @@
             }
         },
         
+        onTouchCancel: function(callback) {
+            if (typeof callback !== 'function') return;
+            touchCancelHandlers.push(callback);
+            
+            if (touchCancelHandlers.length === 1) {
+                document.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+            }
+        },
+        
+        offTouchCancel: function(callback) {
+            if (callback) {
+                const index = touchCancelHandlers.indexOf(callback);
+                if (index > -1) {
+                    touchCancelHandlers.splice(index, 1);
+                }
+            } else {
+                touchCancelHandlers.length = 0;
+            }
+            
+            if (touchCancelHandlers.length === 0) {
+                document.removeEventListener('touchcancel', handleTouchCancel);
+            }
+        },
+        
         // Vibration API
         vibrateShort: function(options) {
             if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.wechatBridge) {
@@ -446,6 +471,7 @@
                 'onTouchStart',
                 'onTouchMove',
                 'onTouchEnd',
+                'onTouchCancel',
                 'vibrateShort',
                 'shareAppMessage',
                 'reportEvent',
@@ -489,6 +515,19 @@
                 handler({ touches: touches, changedTouches: changedTouches, timeStamp: Date.now() });
             } catch (err) {
                 console.error('TouchEnd handler error:', err);
+            }
+        });
+    }
+    
+    function handleTouchCancel(e) {
+        e.preventDefault();
+        const touches = convertTouches(e.touches);
+        const changedTouches = convertTouches(e.changedTouches);
+        touchCancelHandlers.forEach(handler => {
+            try {
+                handler({ touches: touches, changedTouches: changedTouches, timeStamp: Date.now() });
+            } catch (err) {
+                console.error('TouchCancel handler error:', err);
             }
         });
     }
