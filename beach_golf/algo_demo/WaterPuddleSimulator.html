@@ -1,0 +1,651 @@
+
+	      <!DOCTYPE html>
+<html>
+  <head>
+    <title>CodeSandbox</title>
+
+    <script type="importmap">
+      {"imports":{"react":"https://esm.sh/react@18.3.1","lucide-react":"https://esm.sh/lucide-react?external=react,react-dom","react-dom":"https://esm.sh/react-dom@18.3.1","react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime","react-dom/client":"https://esm.sh/react-dom@18.3.1/client","tailwindcss/defaultTheme":"https://esm.sh/tailwindcss/defaultTheme","tailwindcss-animate":"https://esm.sh/tailwindcss-animate"}}
+    </script>
+
+    <script>
+      window.addEventListener("error", function (event) {
+        const errorObj = {
+          message: event.message,
+          source: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          stack: event.error ? event.error.stack : null
+        };
+        window.parent.postMessage(
+          { action: "error", error: JSON.stringify(errorObj) },
+          "*"
+        );
+        event.preventDefault();
+      });
+
+  function handleImportError(error) {
+    throw new Error('Import module failed: ' + error.target.src);
+  }
+
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.tagName === 'SCRIPT' && node.type === 'module') {
+          node.onerror = handleImportError;
+        }
+      });
+    });
+  });
+
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  document.querySelectorAll('script[type="module"]').forEach(script => {
+    script.onerror = handleImportError;
+  });
+
+  
+window.console = new Proxy(console, {
+  get(target, prop) {
+    if (['log', 'warn', 'error'].includes(prop)) {
+      return new Proxy(target[prop], {
+        apply(fn, thisArg, args) {
+          fn.apply(thisArg, args);
+          window.parent.postMessage({ action: 'console', 
+            type: prop, 
+            args: args.map((arg) => {
+              try {
+                return JSON.stringify(arg).replace(/^["']|["']$/g, '');
+              } catch (e) {
+                return arg;
+              }
+            }) 
+          }, '*');
+        }
+      });
+    }
+    return target[prop];
+  }
+});
+
+
+    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,container-queries"></script>
+    <style type="text/tailwindcss">
+      @layer base {
+        :root {
+          --background: 0 0% 100%;
+          --foreground: 222.2 47.4% 11.2%;
+
+          --muted: 210 40% 96.1%;
+          --muted-foreground: 215.4 16.3% 46.9%;
+
+          --popover: 0 0% 100%;
+          --popover-foreground: 222.2 47.4% 11.2%;
+
+          --border: 214.3 31.8% 91.4%;
+          --input: 214.3 31.8% 91.4%;
+
+          --card: 0 0% 100%;
+          --card-foreground: 222.2 47.4% 11.2%;
+
+          --primary: 222.2 47.4% 11.2%;
+          --primary-foreground: 210 40% 98%;
+
+          --secondary: 210 40% 96.1%;
+          --secondary-foreground: 222.2 47.4% 11.2%;
+
+          --accent: 210 40% 96.1%;
+          --accent-foreground: 222.2 47.4% 11.2%;
+
+          --destructive: 0 100% 50%;
+          --destructive-foreground: 210 40% 98%;
+
+          --ring: 215 20.2% 65.1%;
+
+          --radius: 0.5rem;
+        }
+
+        .dark {
+          --background: 224 71% 4%;
+          --foreground: 213 31% 91%;
+
+          --muted: 223 47% 11%;
+          --muted-foreground: 215.4 16.3% 56.9%;
+
+          --accent: 216 34% 17%;
+          --accent-foreground: 210 40% 98%;
+
+          --popover: 224 71% 4%;
+          --popover-foreground: 215 20.2% 65.1%;
+
+          --border: 216 34% 17%;
+          --input: 216 34% 17%;
+
+          --card: 224 71% 4%;
+          --card-foreground: 213 31% 91%;
+
+          --primary: 210 40% 98%;
+          --primary-foreground: 222.2 47.4% 1.2%;
+
+          --secondary: 222.2 47.4% 11.2%;
+          --secondary-foreground: 210 40% 98%;
+
+          --destructive: 0 63% 31%;
+          --destructive-foreground: 210 40% 98%;
+
+          --ring: 216 34% 17%;
+
+          --radius: 0.5rem;
+        }
+      }
+    </style>
+    <script type="module">
+          import defaultTheme from "tailwindcss/defaultTheme"
+          import tailwindcssAnimate from "tailwindcss-animate"
+
+          const fontFamily = defaultTheme.fontFamily;
+
+          tailwind.config = {
+            darkMode: ["class"],
+        content: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+        theme: {
+          container: {
+            center: true,
+            padding: "2rem",
+            screens: {
+              "2xl": "1400px",
+            },
+          },
+          extend: {
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              destructive: {
+                DEFAULT: "hsl(var(--destructive))",
+                foreground: "hsl(var(--destructive-foreground))",
+              },
+              muted: {
+                DEFAULT: "hsl(var(--muted))",
+                foreground: "hsl(var(--muted-foreground))",
+              },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              popover: {
+                DEFAULT: "hsl(var(--popover))",
+                foreground: "hsl(var(--popover-foreground))",
+              },
+              card: {
+                DEFAULT: "hsl(var(--card))",
+                foreground: "hsl(var(--card-foreground))",
+              },
+            },
+            borderRadius: {
+              lg: `var(--radius)`,
+              md: `calc(var(--radius) - 2px)`,
+              sm: "calc(var(--radius) - 4px)",
+            },
+            fontFamily: {
+              sans: [...fontFamily.sans],
+            },
+
+            keyframes: {
+              "accordion-down": {
+                from: { height: "0" },
+                to: { height: "var(--radix-accordion-content-height)" },
+              },
+              "accordion-up": {
+                from: { height: "var(--radix-accordion-content-height)" },
+                to: { height: "0" },
+              },
+            },
+            animation: {
+              "accordion-down": "accordion-down 0.2s ease-out",
+              "accordion-up": "accordion-up 0.2s ease-out",
+            },
+          },
+        },
+        plugins: [tailwindcssAnimate]
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.27.0/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel" data-type="module">
+      		  import {createRoot} from "react-dom/client";
+            
+      		  import React, { useRef, useEffect, useState } from 'react';
+import { RefreshCw, LayoutTemplate, Layers, Monitor, Droplet, Coffee, Beaker, Wine } from 'lucide-react';
+
+const LIQUID_PROFILES = {
+  water: {
+    id: 'water',
+    name: '清水',
+    shadow: 'rgba(150, 180, 210, 0.25)',
+    base: 'rgba(140, 210, 255, 0.2)',
+    deep: 'rgba(100, 200, 255, 0.4)',
+    colorClass: 'bg-blue-400',
+    icon: Droplet
+  },
+  urine: {
+    id: 'urine',
+    name: '尿渍',
+    shadow: 'rgba(210, 200, 120, 0.25)',
+    base: 'rgba(255, 240, 100, 0.3)',
+    deep: 'rgba(240, 200, 40, 0.4)',
+    colorClass: 'bg-yellow-400',
+    icon: Beaker
+  },
+  tea: {
+    id: 'tea',
+    name: '茶渍',
+    shadow: 'rgba(150, 100, 50, 0.25)',
+    base: 'rgba(210, 140, 50, 0.4)',
+    deep: 'rgba(180, 90, 20, 0.6)',
+    colorClass: 'bg-amber-600',
+    icon: Wine
+  },
+  coffee: {
+    id: 'coffee',
+    name: '咖啡',
+    shadow: 'rgba(60, 40, 30, 0.3)',
+    base: 'rgba(90, 50, 30, 0.7)',
+    deep: 'rgba(50, 25, 10, 0.85)',
+    colorClass: 'bg-amber-900',
+    icon: Coffee
+  }
+};
+
+const WaterPuddleSimulator = () => {
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isPouring, setIsPouring] = useState(false);
+  const [waterPerspective, setWaterPerspective] = useState('top-down'); // 'top-down', 'isometric', 'front'
+  const [liquidType, setLiquidType] = useState('water');
+  
+  const liquidRef = useRef('water');
+  const particlesRef = useRef([]);
+  const renderStateRef = useRef({ firstRenderDone: false, currentPerspective: 'top-down', currentLiquid: 'water' });
+
+  const handleLiquidChange = (type) => {
+    setLiquidType(type);
+    liquidRef.current = type;
+    renderStateRef.current.firstRenderDone = false; // Force re-render to apply new colors
+  };
+
+  // Perspective helper
+  const getScaleY = (perspective) => {
+    if (perspective === 'isometric') return 0.55;
+    if (perspective === 'front') return 0.25;
+    return 1;
+  };
+
+  const generateRandomPuddles = (canvasWidth, canvasHeight) => {
+    const newDrops = [];
+    const numPuddles = 2 + Math.floor(Math.random() * 3); 
+
+    for (let i = 0; i < numPuddles; i++) {
+      const centerX = canvasWidth * 0.2 + Math.random() * (canvasWidth * 0.6);
+      const centerY = canvasHeight * 0.2 + Math.random() * (canvasHeight * 0.6);
+      
+      const numDropsInPuddle = 20 + Math.floor(Math.random() * 30);
+      
+      for (let j = 0; j < numDropsInPuddle; j++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * (Math.random() * 120); 
+        
+        newDrops.push({
+          x: centerX + Math.cos(angle) * dist,
+          y: centerY + Math.sin(angle) * dist,
+          r: 2,
+          targetR: 15 + Math.random() * 30
+        });
+      }
+
+      for (let k = 0; k < 10; k++) {
+        newDrops.push({
+          x: centerX + (Math.random() - 0.5) * 250,
+          y: centerY + (Math.random() - 0.5) * 250,
+          r: 1,
+          targetR: 3 + Math.random() * 6
+        });
+      }
+    }
+    
+    renderStateRef.current.firstRenderDone = false;
+    particlesRef.current = newDrops;
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    generateRandomPuddles(width, height);
+    
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = width;
+    maskCanvas.height = height;
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+    const woodCanvas = document.createElement('canvas');
+    woodCanvas.width = width;
+    woodCanvas.height = height;
+    const woodCtx = woodCanvas.getContext('2d');
+
+    const generateWood = () => {
+      woodCtx.fillStyle = '#ffffff';
+      woodCtx.fillRect(0, 0, width, height);
+    };
+    generateWood();
+
+    let animationFrameId;
+
+    const render = () => {
+      const currentParticles = particlesRef.current;
+      const perspectiveChanged = renderStateRef.current.currentPerspective !== waterPerspective;
+      const liquidChanged = renderStateRef.current.currentLiquid !== liquidRef.current;
+      
+      if (perspectiveChanged || liquidChanged) {
+        renderStateRef.current.currentPerspective = waterPerspective;
+        renderStateRef.current.currentLiquid = liquidRef.current;
+        renderStateRef.current.firstRenderDone = false;
+      }
+
+      if (currentParticles.length === 0) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
+      let isMoving = false;
+      currentParticles.forEach(p => {
+        if (Math.abs(p.targetR - p.r) > 0.1) {
+          p.r += (p.targetR - p.r) * 0.15;
+          isMoving = true;
+        }
+      });
+
+      if (!isMoving && !perspectiveChanged && !liquidChanged && renderStateRef.current.firstRenderDone) {
+         animationFrameId = requestAnimationFrame(render);
+         return;
+      }
+      
+      if (!isMoving) {
+        renderStateRef.current.firstRenderDone = true;
+      }
+
+      const scaleY = getScaleY(waterPerspective);
+      const profile = LIQUID_PROFILES[liquidRef.current];
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(woodCanvas, 0, 0);
+
+      maskCtx.clearRect(0, 0, width, height);
+      
+      currentParticles.forEach(p => {
+        const safeR = Math.max(0.1, p.r);
+        
+        maskCtx.save();
+        maskCtx.scale(1, scaleY);
+        
+        const scaledY = p.y / scaleY;
+        
+        const radGrad = maskCtx.createRadialGradient(p.x, scaledY, 0, p.x, scaledY, safeR);
+        radGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        radGrad.addColorStop(0.6, 'rgba(255, 255, 255, 0.8)');
+        radGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        maskCtx.fillStyle = radGrad;
+        maskCtx.beginPath();
+        maskCtx.arc(p.x, scaledY, safeR, 0, Math.PI * 2);
+        maskCtx.fill();
+        
+        maskCtx.restore();
+      });
+
+      const imgData = maskCtx.getImageData(0, 0, width, height);
+      const data = imgData.data;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 140) {
+          data[i] = 255;   
+          data[i-1] = 255; 
+          data[i-2] = 255; 
+          data[i-3] = 255; 
+        } else {
+          data[i] = 0;     
+        }
+      }
+      maskCtx.putImageData(imgData, 0, 0);
+
+      // Environment Shadow
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowColor = profile.shadow;
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 6;
+      ctx.shadowOffsetY = 10 * scaleY; // Adjust shadow perspective
+      ctx.drawImage(maskCanvas, 0, 0);
+      ctx.shadowColor = 'transparent'; 
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Base Refraction Color
+      tempCtx.clearRect(0, 0, width, height);
+      tempCtx.globalCompositeOperation = 'source-over';
+      tempCtx.drawImage(maskCanvas, 0, 0);
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.fillStyle = profile.base; 
+      tempCtx.fillRect(0, 0, width, height);
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // Deep Body Color
+      tempCtx.clearRect(0, 0, width, height);
+      tempCtx.globalCompositeOperation = 'source-over';
+      tempCtx.drawImage(maskCanvas, 0, 0);
+      tempCtx.globalCompositeOperation = 'destination-out';
+      tempCtx.drawImage(maskCanvas, -4, -4 * scaleY); // Adjust refraction offset
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.fillStyle = profile.deep; 
+      tempCtx.fillRect(0, 0, width, height);
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // Crisp Highlights
+      tempCtx.clearRect(0, 0, width, height);
+      tempCtx.globalCompositeOperation = 'source-over';
+      tempCtx.drawImage(maskCanvas, 0, 0);
+      tempCtx.globalCompositeOperation = 'destination-out';
+      tempCtx.drawImage(maskCanvas, 3, 5 * scaleY); // Adjust highlight offset
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
+      tempCtx.fillRect(0, 0, width, height);
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // Surface Gloss
+      tempCtx.clearRect(0, 0, width, height);
+      tempCtx.globalCompositeOperation = 'source-over';
+      tempCtx.drawImage(maskCanvas, 0, 0);
+      tempCtx.globalCompositeOperation = 'source-in';
+      const glossGrad = tempCtx.createLinearGradient(0, 0, width * 0.4, height * 0.4 * scaleY);
+      glossGrad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+      glossGrad.addColorStop(0.2, 'rgba(255, 255, 255, 0)');
+      glossGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      tempCtx.fillStyle = glossGrad;
+      tempCtx.fillRect(0, 0, width, height);
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [waterPerspective]); 
+
+  const addWater = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+
+    const logicalX = (x / rect.width) * canvas.width;
+    const logicalY = (y / rect.height) * canvas.height;
+
+    const newDrops = [];
+    
+    newDrops.push({
+      x: logicalX + (Math.random() - 0.5) * 5,
+      y: logicalY + (Math.random() - 0.5) * 5,
+      r: 2,
+      targetR: 20 + Math.random() * 15
+    });
+    
+    if (Math.random() > 0.4) {
+      newDrops.push({
+        x: logicalX + (Math.random() - 0.5) * 45,
+        y: logicalY + (Math.random() - 0.5) * 45,
+        r: 1,
+        targetR: 4 + Math.random() * 6
+      });
+    }
+
+    renderStateRef.current.firstRenderDone = false;
+    particlesRef.current = [...particlesRef.current, ...newDrops];
+  };
+
+  const handlePointerDown = (e) => {
+    setIsPouring(true);
+    addWater(e);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isPouring) return;
+    if (Math.random() > 0.3) {
+      addWater(e);
+    }
+  };
+
+  const handlePointerUp = () => {
+    setIsPouring(false);
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="relative w-full h-screen bg-neutral-900 flex items-center justify-center overflow-hidden font-sans"
+      style={{ touchAction: 'none' }}
+    >
+      <div className="relative rounded shadow-2xl bg-white transition-all duration-500">
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={600}
+          className="cursor-crosshair w-full h-full block"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        />
+      </div>
+      
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 pointer-events-none text-center select-none">
+        <h1 className="text-white/70 text-xl font-light tracking-[0.2em] mb-1">LIQUID PUDDLE</h1>
+        <p className="text-white/40 text-xs tracking-wider uppercase">Current: {LIQUID_PROFILES[liquidType].name}</p>
+      </div>
+
+      <div className="absolute bottom-8 right-8 flex items-center gap-4 flex-wrap justify-end">
+        {/* Liquid Type Controls */}
+        <div className="flex bg-white/10 rounded-full p-1 backdrop-blur shadow-lg">
+          {Object.values(LIQUID_PROFILES).map((profile) => {
+            const Icon = profile.icon;
+            const isActive = liquidType === profile.id;
+            return (
+              <button
+                key={profile.id}
+                onClick={() => handleLiquidChange(profile.id)}
+                className={`group relative p-2 rounded-full transition-all flex items-center justify-center ${isActive ? 'bg-white/30 text-white' : 'text-white/50 hover:text-white'}`}
+                title={profile.name}
+              >
+                <div className={`absolute top-0 right-0 w-2 h-2 rounded-full ${profile.colorClass} border border-black/20`} />
+                <Icon size={18} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Perspective Controls */}
+        <div className="flex bg-white/10 rounded-full p-1 backdrop-blur shadow-lg">
+          <button
+            onClick={() => setWaterPerspective('top-down')}
+            className={`p-2 rounded-full transition-all ${waterPerspective === 'top-down' ? 'bg-white/30 text-white' : 'text-white/50 hover:text-white'}`}
+            title="Top-Down View"
+          >
+            <LayoutTemplate size={18} />
+          </button>
+          <button
+            onClick={() => setWaterPerspective('isometric')}
+            className={`p-2 rounded-full transition-all ${waterPerspective === 'isometric' ? 'bg-white/30 text-white' : 'text-white/50 hover:text-white'}`}
+            title="Isometric View"
+          >
+            <Layers size={18} />
+          </button>
+          <button
+            onClick={() => setWaterPerspective('front')}
+            className={`p-2 rounded-full transition-all ${waterPerspective === 'front' ? 'bg-white/30 text-white' : 'text-white/50 hover:text-white'}`}
+            title="Front View"
+          >
+            <Monitor size={18} />
+          </button>
+        </div>
+
+        <button
+          onClick={() => {
+            if (canvasRef.current) {
+               generateRandomPuddles(canvasRef.current.width, canvasRef.current.height);
+            }
+          }}
+          className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur transition-all active:scale-95 shadow-lg"
+        >
+          <RefreshCw size={18} />
+          <span>Generate Random</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
+      		  createRoot(document.getElementById("root")).render(
+             <>
+      		    <WaterPuddleSimulator />
+              </>
+      		    );
+              window.parent.postMessage({ action: "ready" }, "*");
+    </script>
+  </body>
+</html>
