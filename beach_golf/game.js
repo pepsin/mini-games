@@ -29,6 +29,7 @@ let stopped = true;
 let levelY = 0;
 let holeNumber = 1;
 let ballPositionBeforeHit = null;
+let hitCount = 0;
 
 function resetBall(x, y) {
     if (x !== undefined && y !== undefined) {
@@ -104,8 +105,9 @@ const input = new InputHandler(
     screenHeight,
     (vx, vy, vz) => {
         if (animation.active) return;
-        // Save position before hit
+        // Save position before hit and increment counter
         ballPositionBeforeHit = { x: ball.x, y: ball.y };
+        hitCount++;
         ball.vx = vx;
         ball.vy = vy;
         ball.vz = vz;
@@ -114,6 +116,8 @@ const input = new InputHandler(
     () => {
         if (animation.active) return;
         levelY = 0;
+        hitCount = 0;
+        holeNumber = 1;
         camera.reset();
         resetBall();
         resetHole();
@@ -171,6 +175,15 @@ function gameLoop() {
         animation.draw(ctx, ball.radius, hole);
     }
 
+    ctx.restore();
+
+    // Draw hit counter in top left corner
+    ctx.save();
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${hitCount}/${holeNumber}`, 20, 20);
     ctx.restore();
 
     requestAnimationFrame(gameLoop);
