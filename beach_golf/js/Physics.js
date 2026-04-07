@@ -7,7 +7,7 @@ class Physics {
         this.stopThreshold = 0.05;
     }
 
-    update(ball, canvasWidth) {
+    update(ball) {
         const onGround = ball.z <= 0 && ball.vz <= 0;
 
         if (!onGround) {
@@ -36,16 +36,6 @@ class Physics {
             ball.y += ball.vy;
             ball.vx *= this.friction;
             ball.vy *= this.friction;
-        }
-
-        // Wall collisions (x axis only)
-        if (ball.x - ball.radius < 0) {
-            ball.x = ball.radius;
-            ball.vx *= -0.7;
-        }
-        if (ball.x + ball.radius > canvasWidth) {
-            ball.x = canvasWidth - ball.radius;
-            ball.vx *= -0.7;
         }
 
         // Check if stopped

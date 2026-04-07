@@ -75,7 +75,7 @@ export class InputHandler {
 
         ctx.save();
         ctx.setLineDash([6, 6]);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.strokeStyle = 'rgba(135, 206, 250, 0.8)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(ball.x, ball.y);

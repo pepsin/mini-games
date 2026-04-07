@@ -28,6 +28,7 @@ const wave = new Wave();
 let stopped = true;
 let levelY = 0;
 let holeNumber = 1;
+let ballPositionBeforeHit = null;
 
 function resetBall(x, y) {
     if (x !== undefined && y !== undefined) {
@@ -41,6 +42,32 @@ function resetBall(x, y) {
         ball.reset(screenWidth, screenHeight, levelY);
     }
     stopped = true;
+    ballPositionBeforeHit = null;
+}
+
+function isBallOutOfScreen() {
+    // Check if ball is completely outside the visible screen area
+    const screenTop = camera.y;
+    const screenBottom = camera.y + screenHeight;
+    const screenLeft = 0;
+    const screenRight = screenWidth;
+    
+    return ball.y + ball.radius < screenTop || 
+           ball.y - ball.radius > screenBottom || 
+           ball.x + ball.radius < screenLeft || 
+           ball.x - ball.radius > screenRight;
+}
+
+function respawnBallAtPreviousPosition() {
+    if (ballPositionBeforeHit) {
+        ball.x = ballPositionBeforeHit.x;
+        ball.y = ballPositionBeforeHit.y;
+        ball.z = 0;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vz = 0;
+        stopped = true;
+    }
 }
 
 // 基于累计进洞数使用正弦函数计算新洞位置
@@ -77,6 +104,8 @@ const input = new InputHandler(
     screenHeight,
     (vx, vy, vz) => {
         if (animation.active) return;
+        // Save position before hit
+        ballPositionBeforeHit = { x: ball.x, y: ball.y };
         ball.vx = vx;
         ball.vy = vy;
         ball.vz = vz;
@@ -96,10 +125,15 @@ function gameLoop() {
     ctx.fillRect(0, 0, screenWidth, screenHeight);
 
     wave.update();
-    wave.draw(ctx, screenWidth, screenHeight);
+    // wave.draw(ctx, screenWidth, screenHeight);
 
     if (!stopped && !animation.active) {
-        stopped = physics.update(ball, screenWidth);
+        stopped = physics.update(ball);
+        
+        // Check if ball is out of screen and respawn
+        if (!stopped && isBallOutOfScreen()) {
+            respawnBallAtPreviousPosition();
+        }
     }
 
     ctx.save();
