@@ -45,24 +45,20 @@ function resetBall() {
 
 // 基于累计进洞数使用正弦函数计算新洞位置
 function resetHole(useSineCalculation = false, currentHoleY = null) {
-    if (useSineCalculation && currentHoleY !== null) {
-        // 使用正弦函数基于进洞数计算偏移值 (0 到 1 之间)
-        const sineValue = (Math.sin(holeNumber * 1.5) + 1) / 2;
-        
-        // 一屏范围
-        const margin = 80;
-        
-        // x 位置：在屏幕宽度范围内基于正弦值偏移
-        const xOffset = sineValue * (screenWidth - margin * 2);
-        hole.x = margin + xOffset;
-        
-        // y 位置：在离当前洞一屏的位置，基于正弦值在向上一屏范围内设置
-        // 新洞在当前洞上方一屏距离的基础上，根据正弦值在 0 到一屏范围内偏移
-        const yOffset = sineValue * screenHeight * 0.8;
-        hole.y = currentHoleY - screenHeight * 0.8 + yOffset * 0.4;
-    } else {
-        hole.placeRandomly(screenWidth, screenHeight, ball.y);
-    }
+    // 使用正弦函数基于进洞数计算偏移值 (0 到 1 之间)
+    const sineValue = (Math.sin(holeNumber * 1.5) + 1) / 2;
+    
+    // 一屏范围
+    const margin = 80;
+    
+    // x 位置：在屏幕宽度范围内基于正弦值偏移
+    const xOffset = sineValue * (screenWidth - margin * 2);
+    hole.x = margin + xOffset;
+    
+    // y 位置：在离当前洞一屏的位置，基于正弦值在向上一屏范围内设置
+    // 新洞在当前洞上方一屏距离的基础上，根据正弦值在 0 到一屏范围内偏移
+    const yOffset = sineValue * screenHeight * 0.8;
+    hole.y = currentHoleY - screenHeight * 0.8 + yOffset * 0.4;
 }
 
 function advanceLevel() {
@@ -98,10 +94,6 @@ function gameLoop() {
     if (!stopped && !animation.active) {
         stopped = physics.update(ball, screenWidth);
     }
-
-    // 球是否在移动（有速度或正在飞行）
-    const isBallMoving = !stopped || ball.z > 0;
-    camera.update(ball, screenWidth, screenHeight, isBallMoving);
 
     ctx.save();
     ctx.translate(-camera.x, -camera.y);
