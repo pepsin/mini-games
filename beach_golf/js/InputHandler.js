@@ -35,7 +35,7 @@ export class InputHandler {
             this.dragCurrentY = touch.clientY;
         });
 
-        wx.onTouchEnd((e) => {
+        wx.onTouchEnd(() => {
             if (!this.isDragging) return;
             this.isDragging = false;
 
@@ -55,7 +55,7 @@ export class InputHandler {
             }
         });
 
-        wx.onTouchCancel((e) => {
+        wx.onTouchCancel(() => {
             this.isDragging = false;
         });
     }

@@ -1,0 +1,13 @@
+{
+  "name": "beach-golf",
+  "version": "1.0.0",
+  "description": "沙滩高尔夫小游戏",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

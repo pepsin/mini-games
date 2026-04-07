@@ -28,23 +28,23 @@ const wave = new Wave();
 let stopped = true;
 let levelY = 0;
 let holeNumber = 1;
-let trialCount = 0;
-let ballLastPosition = { x: 0, y: 0, z: 0 };
-let ballWasHit = false;
-let holeInCompleted = false;
 
-function saveBallPosition() {
-    ballLastPosition = { x: ball.x, y: ball.y, z: ball.z };
-}
-
-function resetBall() {
-    ball.reset(screenWidth, screenHeight, levelY);
+function resetBall(x, y) {
+    if (x !== undefined && y !== undefined) {
+        ball.x = x;
+        ball.y = y;
+        ball.z = 0;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vz = 0;
+    } else {
+        ball.reset(screenWidth, screenHeight, levelY);
+    }
     stopped = true;
-    ballWasHit = false;
 }
 
 // 基于累计进洞数使用正弦函数计算新洞位置
-function resetHole(useSineCalculation = false, currentHoleY = null) {
+function resetHole(_useSineCalculation = false, currentHoleY = 0) {
     // 使用正弦函数基于进洞数计算偏移值 (0 到 1 之间)
     const sineValue = (Math.sin(holeNumber * 1.5) + 1) / 2;
     
@@ -58,7 +58,14 @@ function resetHole(useSineCalculation = false, currentHoleY = null) {
     // y 位置：在离当前洞一屏的位置，基于正弦值在向上一屏范围内设置
     // 新洞在当前洞上方一屏距离的基础上，根据正弦值在 0 到一屏范围内偏移
     const yOffset = sineValue * screenHeight * 0.8;
-    hole.y = currentHoleY - screenHeight * 0.8 + yOffset * 0.4;
+    
+    // 如果是第一关（currentHoleY === 0），将洞放在球的上方
+    // 否则，将洞放在当前洞的上方
+    if (currentHoleY === 0 && holeNumber === 1) {
+        hole.y = ball.y - screenHeight * 0.4 - yOffset * 0.3;
+    } else {
+        hole.y = currentHoleY - screenHeight * 0.8 + yOffset * 0.4;
+    }
 }
 
 function advanceLevel() {
@@ -111,8 +118,8 @@ function gameLoop() {
                 // 基于正弦函数设置新洞位置
                 resetHole(true, currentHoleY);
                 
-                // 重置球到新位置
-                resetBall();
+                // 重置球到前一洞位置
+                resetBall(currentHoleX, currentHoleY);
                 
                 // 进洞数加 1
                 holeNumber++;
