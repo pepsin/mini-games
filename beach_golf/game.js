@@ -96,10 +96,6 @@ function resetHole(_useSineCalculation = false, currentHoleY = 0) {
     }
 }
 
-function advanceLevel() {
-    levelY -= screenHeight * 0.8;
-}
-
 const input = new InputHandler(
     screenWidth,
     screenHeight,
@@ -140,6 +136,9 @@ function gameLoop() {
         }
     }
 
+    // Update camera (handles animation after hole-in only)
+    camera.update();
+
     ctx.save();
     ctx.translate(-camera.x, -camera.y);
 
@@ -151,19 +150,18 @@ function gameLoop() {
             animation.start(hole.x, hole.y, ball.x, ball.y, () => {
                 ball.stop();
                 stopped = true;
-                advanceLevel();
-                
-                // 基于正弦函数设置新洞位置
-                resetHole(true, currentHoleY);
                 
                 // 重置球到前一洞位置
                 resetBall(currentHoleX, currentHoleY);
                 
-                // 进洞数加 1
+                // 进洞数加 1，然后基于新的洞号设置新洞位置
                 holeNumber++;
                 
-                // 设置镜头位置使球和新洞都可见
-                camera.setPositionToShowBallAndHole(ball.y, hole.y, screenHeight);
+                // 基于正弦函数设置新洞位置（使用更新后的holeNumber）
+                resetHole(true, currentHoleY);
+                
+                // 移动镜头使球距离镜头底部20px
+                camera.animateTo(ball.y - screenHeight + 20);
             });
         }
 
