@@ -338,7 +338,7 @@ export class AnimationLoader {
                         reject(new Error(`JSON parse: ${e.message}`));
                     }
                 },
-                fail: (err) => {
+                fail: (_err) => {
                     reject(new Error(`File not found: ${originalPath}`));
                 }
             });

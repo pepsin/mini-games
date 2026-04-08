@@ -8,6 +8,8 @@
     "lint:fix": "eslint . --ext .js --fix"
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^8.57.0",
+    "globals": "^17.4.0"
   }
 }
