@@ -125,7 +125,7 @@ function gameLoop() {
     ctx.fillRect(0, 0, screenWidth, screenHeight);
 
     wave.update();
-    // wave.draw(ctx, screenWidth, screenHeight);
+    wave.draw(ctx, screenWidth, screenHeight);
 
     if (!stopped && !animation.active) {
         stopped = physics.update(ball);
