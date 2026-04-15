@@ -2,9 +2,6 @@ import UIKit
 import WebKit
 import UniformTypeIdentifiers
 import MobileCoreServices
-#if targetEnvironment(macCatalyst)
-import AppKit
-#endif
 
 class ViewController: UIViewController {
 
@@ -138,7 +135,29 @@ class ViewController: UIViewController {
         webView.scrollView.bounces = false
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.allowsLinkPreview = false
+        webView.backgroundColor = .black
+        if #available(iOS 15.0, *) {
+            webView.configuration.preferences.isTextInteractionEnabled = false
+        }
         webView.navigationDelegate = self
+
+        // Disable tap highlight / text selection on all platforms (especially Mac Catalyst)
+        let cssScript = WKUserScript(
+            source: """
+                (function() {
+                    var style = document.createElement('style');
+                    style.innerHTML = '* { -webkit-tap-highlight-color: transparent !important; user-select: none !important; -webkit-user-select: none !important; outline: none !important; }';
+                    if (document.head) { document.head.appendChild(style); }
+                    else { document.addEventListener('DOMContentLoaded', function() { document.head.appendChild(style); }); }
+                })();
+            """,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        config.userContentController.addUserScript(cssScript)
+
+
 
         // Enable Safari Web Inspector in debug builds; disable it only for release standalone builds
         if #available(iOS 16.4, *) {
@@ -171,8 +190,8 @@ class ViewController: UIViewController {
     @objc func showAddProjectOptions() {
         let alert = UIAlertController(title: "Open Project", message: "Choose how to load a game project", preferredStyle: .actionSheet)
 
-        if #available(iOS 14.0, *), ProcessInfo.processInfo.isiOSAppOnMac {
-            // On Apple Silicon Mac (Designed for iPad), mixing .folder with file types
+        if #available(iOS 14.0, *), ProcessInfo.processInfo.isiOSAppOnMac || ProcessInfo.processInfo.isMacCatalystApp {
+            // On macOS (Designed for iPad or Mac Catalyst), mixing .folder with file types
             // in UIDocumentPickerViewController breaks folder selection.
             alert.addAction(UIAlertAction(title: "Open Folder", style: .default) { [weak self] _ in
                 self?.presentFolderPicker()
@@ -199,18 +218,6 @@ class ViewController: UIViewController {
     }
 
     func presentFolderPicker() {
-        #if targetEnvironment(macCatalyst)
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.begin { [weak self] result in
-            guard result == .OK, let url = panel.urls.first else { return }
-            DispatchQueue.main.async {
-                self?.importProject(from: url)
-            }
-        }
-        #else
         let picker: UIDocumentPickerViewController
         if #available(iOS 14.0, *) {
             picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
@@ -220,46 +227,18 @@ class ViewController: UIViewController {
         picker.delegate = self
         picker.allowsMultipleSelection = false
         present(picker, animated: true)
-        #endif
     }
 
     func presentZipPicker() {
-        #if targetEnvironment(macCatalyst)
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.zip, UTType(filenameExtension: "zip") ?? .data]
-        panel.begin { [weak self] result in
-            guard result == .OK, let url = panel.urls.first else { return }
-            DispatchQueue.main.async {
-                self?.importProject(from: url)
-            }
-        }
-        #else
         let contentTypes: [UTType] = [.zip, UTType(filenameExtension: "zip") ?? .data]
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
         present(picker, animated: true)
-        #endif
     }
 
     func presentFilePicker() {
-        #if targetEnvironment(macCatalyst)
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = [.folder, .zip, UTType(filenameExtension: "zip") ?? .data]
-        panel.begin { [weak self] result in
-            guard result == .OK, let url = panel.urls.first else { return }
-            DispatchQueue.main.async {
-                self?.importProject(from: url)
-            }
-        }
-        #else
         let contentTypes: [UTType] = [
             .folder,
             .zip,
@@ -270,7 +249,6 @@ class ViewController: UIViewController {
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
         present(picker, animated: true)
-        #endif
     }
 
     func importProject(from selectedURL: URL) {

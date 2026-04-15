@@ -19,6 +19,90 @@
     const touchMoveHandlers = [];
     const touchEndHandlers = [];
     const touchCancelHandlers = [];
+
+    // Pointer event support (Mac Catalyst sends pointer events instead of touch)
+    const pointerState = new Map(); // track active pointers
+
+    function convertPointerToTouch(pointerEvent) {
+        return {
+            identifier: pointerEvent.pointerId,
+            clientX: pointerEvent.clientX,
+            clientY: pointerEvent.clientY,
+            pageX: pointerEvent.pageX,
+            pageY: pointerEvent.pageY,
+            screenX: pointerEvent.screenX,
+            screenY: pointerEvent.screenY
+        };
+    }
+
+    function buildTouchListFromPointers(excludeId) {
+        const list = [];
+        pointerState.forEach((pt, id) => {
+            if (id !== excludeId) list.push(pt);
+        });
+        return list;
+    }
+
+    function handlePointerDown(e) {
+        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen' && e.pointerType !== 'touch') return;
+        e.preventDefault();
+        pointerState.set(e.pointerId, convertPointerToTouch(e));
+        const touches = buildTouchListFromPointers();
+        const changed = [convertPointerToTouch(e)];
+        touchStartHandlers.forEach(handler => {
+            try {
+                handler({ touches: touches, changedTouches: changed, timeStamp: Date.now() });
+            } catch (err) {
+                console.error('TouchStart handler error:', err);
+            }
+        });
+    }
+
+    function handlePointerMove(e) {
+        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen' && e.pointerType !== 'touch') return;
+        if (!pointerState.has(e.pointerId) && e.pointerType === 'mouse' && touchStartHandlers.length === 0) return;
+        e.preventDefault();
+        pointerState.set(e.pointerId, convertPointerToTouch(e));
+        const touches = buildTouchListFromPointers();
+        const changed = [convertPointerToTouch(e)];
+        touchMoveHandlers.forEach(handler => {
+            try {
+                handler({ touches: touches, changedTouches: changed, timeStamp: Date.now() });
+            } catch (err) {
+                console.error('TouchMove handler error:', err);
+            }
+        });
+    }
+
+    function handlePointerUp(e) {
+        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen' && e.pointerType !== 'touch') return;
+        e.preventDefault();
+        pointerState.delete(e.pointerId);
+        const touches = buildTouchListFromPointers();
+        const changed = [convertPointerToTouch(e)];
+        touchEndHandlers.forEach(handler => {
+            try {
+                handler({ touches: touches, changedTouches: changed, timeStamp: Date.now() });
+            } catch (err) {
+                console.error('TouchEnd handler error:', err);
+            }
+        });
+    }
+
+    function handlePointerCancel(e) {
+        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen' && e.pointerType !== 'touch') return;
+        e.preventDefault();
+        pointerState.delete(e.pointerId);
+        const touches = buildTouchListFromPointers();
+        const changed = [convertPointerToTouch(e)];
+        touchCancelHandlers.forEach(handler => {
+            try {
+                handler({ touches: touches, changedTouches: changed, timeStamp: Date.now() });
+            } catch (err) {
+                console.error('TouchCancel handler error:', err);
+            }
+        });
+    }
     
     // Create the wx object
     window.wx = {
@@ -240,7 +324,11 @@
             touchStartHandlers.push(callback);
             
             if (touchStartHandlers.length === 1) {
-                document.addEventListener('touchstart', handleTouchStart, { passive: false });
+                if (window.PointerEvent) {
+                    document.addEventListener('pointerdown', handlePointerDown, { passive: false });
+                } else {
+                    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+                }
             }
         },
         
@@ -255,7 +343,11 @@
             }
             
             if (touchStartHandlers.length === 0) {
-                document.removeEventListener('touchstart', handleTouchStart);
+                if (window.PointerEvent) {
+                    document.removeEventListener('pointerdown', handlePointerDown);
+                } else {
+                    document.removeEventListener('touchstart', handleTouchStart);
+                }
             }
         },
         
@@ -264,7 +356,11 @@
             touchMoveHandlers.push(callback);
             
             if (touchMoveHandlers.length === 1) {
-                document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                if (window.PointerEvent) {
+                    document.addEventListener('pointermove', handlePointerMove, { passive: false });
+                } else {
+                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                }
             }
         },
         
@@ -279,7 +375,11 @@
             }
             
             if (touchMoveHandlers.length === 0) {
-                document.removeEventListener('touchmove', handleTouchMove);
+                if (window.PointerEvent) {
+                    document.removeEventListener('pointermove', handlePointerMove);
+                } else {
+                    document.removeEventListener('touchmove', handleTouchMove);
+                }
             }
         },
         
@@ -288,8 +388,13 @@
             touchEndHandlers.push(callback);
             
             if (touchEndHandlers.length === 1) {
-                document.addEventListener('touchend', handleTouchEnd, { passive: false });
-                document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+                if (window.PointerEvent) {
+                    document.addEventListener('pointerup', handlePointerUp, { passive: false });
+                    document.addEventListener('pointercancel', handlePointerUp, { passive: false });
+                } else {
+                    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+                    document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+                }
             }
         },
         
@@ -304,8 +409,13 @@
             }
             
             if (touchEndHandlers.length === 0) {
-                document.removeEventListener('touchend', handleTouchEnd);
-                document.removeEventListener('touchcancel', handleTouchEnd);
+                if (window.PointerEvent) {
+                    document.removeEventListener('pointerup', handlePointerUp);
+                    document.removeEventListener('pointercancel', handlePointerUp);
+                } else {
+                    document.removeEventListener('touchend', handleTouchEnd);
+                    document.removeEventListener('touchcancel', handleTouchEnd);
+                }
             }
         },
         
@@ -314,7 +424,11 @@
             touchCancelHandlers.push(callback);
             
             if (touchCancelHandlers.length === 1) {
-                document.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+                if (window.PointerEvent) {
+                    document.addEventListener('pointercancel', handlePointerCancel, { passive: false });
+                } else {
+                    document.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+                }
             }
         },
         
@@ -329,7 +443,11 @@
             }
             
             if (touchCancelHandlers.length === 0) {
-                document.removeEventListener('touchcancel', handleTouchCancel);
+                if (window.PointerEvent) {
+                    document.removeEventListener('pointercancel', handlePointerCancel);
+                } else {
+                    document.removeEventListener('touchcancel', handleTouchCancel);
+                }
             }
         },
         
