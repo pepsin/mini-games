@@ -2,6 +2,9 @@ import UIKit
 import WebKit
 import UniformTypeIdentifiers
 import MobileCoreServices
+#if targetEnvironment(macCatalyst)
+import AppKit
+#endif
 
 class ViewController: UIViewController {
 
@@ -11,6 +14,10 @@ class ViewController: UIViewController {
     var toolbar: UIView!
     var projectNameLabel: UILabel!
     var currentProjectURL: URL?
+
+    // macOS resize debounce
+    private var resizeDebouncer: Timer?
+    private var lastViewSize: CGSize?
 
     /// Serves all project files under the `game://` custom scheme.
     /// Kept alive for the lifetime of the WKWebView configuration.
@@ -38,6 +45,22 @@ class ViewController: UIViewController {
         } else {
             loadLastProject()
         }
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        #if targetEnvironment(macCatalyst)
+        guard currentProjectURL != nil else { return }
+        let size = view.bounds.size
+        guard size != lastViewSize else { return }
+        lastViewSize = size
+
+        resizeDebouncer?.invalidate()
+        resizeDebouncer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            self?.reloadCurrentProject()
+        }
+        #endif
     }
 
     // MARK: - UI
@@ -148,9 +171,21 @@ class ViewController: UIViewController {
     @objc func showAddProjectOptions() {
         let alert = UIAlertController(title: "Open Project", message: "Choose how to load a game project", preferredStyle: .actionSheet)
 
-        alert.addAction(UIAlertAction(title: "Browse Files", style: .default) { [weak self] _ in
-            self?.presentFilePicker()
-        })
+        if #available(iOS 14.0, *), ProcessInfo.processInfo.isiOSAppOnMac {
+            // On Apple Silicon Mac (Designed for iPad), mixing .folder with file types
+            // in UIDocumentPickerViewController breaks folder selection.
+            alert.addAction(UIAlertAction(title: "Open Folder", style: .default) { [weak self] _ in
+                self?.presentFolderPicker()
+            })
+            alert.addAction(UIAlertAction(title: "Open Zip File", style: .default) { [weak self] _ in
+                self?.presentZipPicker()
+            })
+        } else {
+            alert.addAction(UIAlertAction(title: "Browse Files", style: .default) { [weak self] _ in
+                self?.presentFilePicker()
+            })
+        }
+
         alert.addAction(UIAlertAction(title: "Load Default", style: .default) { [weak self] _ in
             self?.loadDefaultGame()
         })
@@ -163,18 +198,119 @@ class ViewController: UIViewController {
         present(alert, animated: true)
     }
 
+    func presentFolderPicker() {
+        #if targetEnvironment(macCatalyst)
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.begin { [weak self] result in
+            guard result == .OK, let url = panel.urls.first else { return }
+            DispatchQueue.main.async {
+                self?.importProject(from: url)
+            }
+        }
+        #else
+        let picker: UIDocumentPickerViewController
+        if #available(iOS 14.0, *) {
+            picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+        } else {
+            picker = UIDocumentPickerViewController(documentTypes: [kUTTypeFolder as String], in: .open)
+        }
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        present(picker, animated: true)
+        #endif
+    }
+
+    func presentZipPicker() {
+        #if targetEnvironment(macCatalyst)
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.zip, UTType(filenameExtension: "zip") ?? .data]
+        panel.begin { [weak self] result in
+            guard result == .OK, let url = panel.urls.first else { return }
+            DispatchQueue.main.async {
+                self?.importProject(from: url)
+            }
+        }
+        #else
+        let contentTypes: [UTType] = [.zip, UTType(filenameExtension: "zip") ?? .data]
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        picker.shouldShowFileExtensions = true
+        present(picker, animated: true)
+        #endif
+    }
+
     func presentFilePicker() {
+        #if targetEnvironment(macCatalyst)
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.folder, .zip, UTType(filenameExtension: "zip") ?? .data]
+        panel.begin { [weak self] result in
+            guard result == .OK, let url = panel.urls.first else { return }
+            DispatchQueue.main.async {
+                self?.importProject(from: url)
+            }
+        }
+        #else
         let contentTypes: [UTType] = [
             .folder,
             .zip,
-            UTType(filenameExtension: "zip") ?? .data,
-            .item
+            UTType(filenameExtension: "zip") ?? .data
         ]
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
         present(picker, animated: true)
+        #endif
+    }
+
+    func importProject(from selectedURL: URL) {
+        let shouldStopAccessing = selectedURL.startAccessingSecurityScopedResource()
+        defer {
+            if shouldStopAccessing { selectedURL.stopAccessingSecurityScopedResource() }
+        }
+
+        do {
+            let isDirectory = (try? selectedURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+            let isZip = selectedURL.pathExtension == "zip"
+
+            guard isDirectory || isZip else {
+                showError("Please select a folder or zip file containing the game.")
+                return
+            }
+
+            let projectName = selectedURL.deletingPathExtension().lastPathComponent
+            let destinationURL = projectManager.projectsDirectory.appendingPathComponent(projectName)
+
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+
+            if isZip {
+                let zipCopy = projectManager.projectsDirectory.appendingPathComponent(selectedURL.lastPathComponent)
+                try FileManager.default.copyItem(at: selectedURL, to: zipCopy)
+                try projectManager.extractZip(at: zipCopy, to: destinationURL)
+                try? FileManager.default.removeItem(at: zipCopy)
+            } else {
+                try FileManager.default.copyItem(at: selectedURL, to: destinationURL)
+            }
+
+            loadProject(from: destinationURL)
+            print("Imported project to: \(destinationURL.path)")
+
+        } catch {
+            print("Import error: \(error)")
+            showError("Failed to import project: \(error.localizedDescription)")
+        }
     }
 
     @objc func reloadCurrentProject() {
@@ -488,44 +624,7 @@ extension ViewController: WKNavigationDelegate {
 extension ViewController: UIDocumentPickerDelegate {
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let selectedURL = urls.first else { return }
-
-        let shouldStopAccessing = selectedURL.startAccessingSecurityScopedResource()
-        defer {
-            if shouldStopAccessing { selectedURL.stopAccessingSecurityScopedResource() }
-        }
-
-        do {
-            let isDirectory = (try? selectedURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-            let isZip = selectedURL.pathExtension == "zip"
-
-            guard isDirectory || isZip else {
-                showError("Please select a folder or zip file containing the game.")
-                return
-            }
-
-            let projectName = selectedURL.deletingPathExtension().lastPathComponent
-            let destinationURL = projectManager.projectsDirectory.appendingPathComponent(projectName)
-
-            if FileManager.default.fileExists(atPath: destinationURL.path) {
-                try FileManager.default.removeItem(at: destinationURL)
-            }
-
-            if isZip {
-                let zipCopy = projectManager.projectsDirectory.appendingPathComponent(selectedURL.lastPathComponent)
-                try FileManager.default.copyItem(at: selectedURL, to: zipCopy)
-                try projectManager.extractZip(at: zipCopy, to: destinationURL)
-                try? FileManager.default.removeItem(at: zipCopy)
-            } else {
-                try FileManager.default.copyItem(at: selectedURL, to: destinationURL)
-            }
-
-            loadProject(from: destinationURL)
-            print("Imported project to: \(destinationURL.path)")
-
-        } catch {
-            print("Import error: \(error)")
-            showError("Failed to import project: \(error.localizedDescription)")
-        }
+        importProject(from: selectedURL)
     }
 
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
