@@ -145,6 +145,16 @@
             return sharedCanvas;
         },
         
+        createOffscreenCanvas: function(options) {
+            const canvas = document.createElement('canvas');
+            if (options) {
+                if (options.width) canvas.width = options.width;
+                if (options.height) canvas.height = options.height;
+            }
+            // Do not append to DOM — it's offscreen
+            return canvas;
+        },
+        
         // Image API
         createImage: function() {
             const img = new Image();
@@ -618,6 +628,7 @@
                 'getStorageSync',
                 'setStorageSync',
                 'createCanvas',
+                'createOffscreenCanvas',
                 'createImage',
                 'onTouchStart',
                 'onTouchMove',
