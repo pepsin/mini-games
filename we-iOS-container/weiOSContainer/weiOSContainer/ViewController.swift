@@ -12,6 +12,10 @@ class ViewController: UIViewController {
     var projectNameLabel: UILabel!
     var currentProjectURL: URL?
 
+    // Security-scoped resource access for external folders
+    private var accessedProjectURL: URL?
+    private var isAccessingProject: Bool = false
+
     // macOS resize debounce
     private var resizeDebouncer: Timer?
     private var lastViewSize: CGSize?
@@ -28,6 +32,10 @@ class ViewController: UIViewController {
         #else
         return false
         #endif
+    }
+
+    deinit {
+        stopAccessingProject()
     }
 
     override func viewDidLoad() {
@@ -251,12 +259,65 @@ class ViewController: UIViewController {
         present(picker, animated: true)
     }
 
-    func importProject(from selectedURL: URL) {
-        let shouldStopAccessing = selectedURL.startAccessingSecurityScopedResource()
-        defer {
-            if shouldStopAccessing { selectedURL.stopAccessingSecurityScopedResource() }
-        }
+    // MARK: - Security-scoped resource helpers
 
+    private func startAccessingProject(_ url: URL?) {
+        stopAccessingProject()
+        guard let url = url else { return }
+        accessedProjectURL = url
+        isAccessingProject = url.startAccessingSecurityScopedResource()
+    }
+
+    private func stopAccessingProject() {
+        guard isAccessingProject, let url = accessedProjectURL else { return }
+        url.stopAccessingSecurityScopedResource()
+        isAccessingProject = false
+        accessedProjectURL = nil
+    }
+
+    private func saveBookmark(for url: URL) -> Data? {
+        do {
+            #if os(macOS)
+            let bookmarkData = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+            #else
+            let bookmarkData = try url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
+            #endif
+            UserDefaults.standard.set(bookmarkData, forKey: "lastProjectBookmark")
+            UserDefaults.standard.removeObject(forKey: "lastProjectPath")
+            return bookmarkData
+        } catch {
+            print("Failed to create bookmark: \(error)")
+            return nil
+        }
+    }
+
+    private func resolveBookmark() -> URL? {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: "lastProjectBookmark") else { return nil }
+        do {
+            var isStale = false
+            #if os(macOS)
+            let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+            if isStale {
+                if let freshData = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+                    UserDefaults.standard.set(freshData, forKey: "lastProjectBookmark")
+                }
+            }
+            #else
+            let url = try URL(resolvingBookmarkData: bookmarkData, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+            if isStale {
+                if let freshData = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+                    UserDefaults.standard.set(freshData, forKey: "lastProjectBookmark")
+                }
+            }
+            #endif
+            return url
+        } catch {
+            print("Failed to resolve bookmark: \(error)")
+            return nil
+        }
+    }
+
+    func importProject(from selectedURL: URL) {
         do {
             let isDirectory = (try? selectedURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             let isZip = selectedURL.pathExtension == "zip"
@@ -266,25 +327,35 @@ class ViewController: UIViewController {
                 return
             }
 
-            let projectName = selectedURL.deletingPathExtension().lastPathComponent
-            let destinationURL = projectManager.projectsDirectory.appendingPathComponent(projectName)
+            if isDirectory {
+                // Load folder in-place: create a bookmark so we can reload it later
+                _ = saveBookmark(for: selectedURL)
+                startAccessingProject(selectedURL)
+                loadProject(from: selectedURL)
+            } else {
+                // Zip still needs to be copied/extracted into the app's sandbox
+                let shouldStopAccessing = selectedURL.startAccessingSecurityScopedResource()
+                defer {
+                    if shouldStopAccessing { selectedURL.stopAccessingSecurityScopedResource() }
+                }
 
-            if FileManager.default.fileExists(atPath: destinationURL.path) {
-                try FileManager.default.removeItem(at: destinationURL)
-            }
+                let projectName = selectedURL.deletingPathExtension().lastPathComponent
+                let destinationURL = projectManager.projectsDirectory.appendingPathComponent(projectName)
 
-            if isZip {
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    try FileManager.default.removeItem(at: destinationURL)
+                }
+
                 let zipCopy = projectManager.projectsDirectory.appendingPathComponent(selectedURL.lastPathComponent)
                 try FileManager.default.copyItem(at: selectedURL, to: zipCopy)
                 try projectManager.extractZip(at: zipCopy, to: destinationURL)
                 try? FileManager.default.removeItem(at: zipCopy)
-            } else {
-                try FileManager.default.copyItem(at: selectedURL, to: destinationURL)
+
+                UserDefaults.standard.removeObject(forKey: "lastProjectBookmark")
+                startAccessingProject(nil)
+                loadProject(from: destinationURL)
+                print("Imported zip project to: \(destinationURL.path)")
             }
-
-            loadProject(from: destinationURL)
-            print("Imported project to: \(destinationURL.path)")
-
         } catch {
             print("Import error: \(error)")
             showError("Failed to import project: \(error.localizedDescription)")
@@ -292,6 +363,12 @@ class ViewController: UIViewController {
     }
 
     @objc func reloadCurrentProject() {
+        // Aggressively clear caches so disk edits are reflected on reload
+        URLCache.shared.removeAllCachedResponses()
+        let dataStore = WKWebsiteDataStore.default()
+        let types = WKWebsiteDataStore.allWebsiteDataTypes()
+        dataStore.removeData(ofTypes: types, modifiedSince: Date.distantPast) { }
+
         if let projectURL = currentProjectURL {
             loadProject(from: projectURL)
         } else {
@@ -300,8 +377,10 @@ class ViewController: UIViewController {
     }
 
     func loadLastProject() {
-        if let lastProject = UserDefaults.standard.string(forKey: "lastProjectPath"),
-           let projectURL = URL(string: lastProject) {
+        if let bookmarkURL = resolveBookmark() {
+            loadProject(from: bookmarkURL)
+        } else if let lastProject = UserDefaults.standard.string(forKey: "lastProjectPath"),
+                  let projectURL = URL(string: lastProject) {
             loadProject(from: projectURL)
         } else {
             loadDefaultGame()
@@ -325,6 +404,7 @@ class ViewController: UIViewController {
     /// Looks for index.html → game.html → generates wrapper for game.js.
     /// All content is served through `game://localhost/` to avoid file:// restrictions.
     func loadProject(from url: URL) {
+        startAccessingProject(url)
         currentProjectURL = url
         UserDefaults.standard.set(url.absoluteString, forKey: "lastProjectPath")
         projectNameLabel.text = url.lastPathComponent
@@ -341,7 +421,9 @@ class ViewController: UIViewController {
         for candidate in ["index.html", "game.html"] {
             if fileManager.fileExists(atPath: url.appendingPathComponent(candidate).path) {
                 let gameURL = URL(string: "game://localhost/\(candidate)")!
-                webView.load(URLRequest(url: gameURL))
+                var request = URLRequest(url: gameURL)
+                request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                webView.load(request)
                 print("Loading project via game:// scheme: \(candidate)")
                 return
             }
@@ -543,7 +625,9 @@ class ViewController: UIViewController {
         // Store the wrapper in memory so the scheme handler can serve it
         schemeHandler.inMemoryFiles["/_wrapper.html"] = Data(html.utf8)
         let wrapperURL = URL(string: "game://localhost/_wrapper.html")!
-        webView.load(URLRequest(url: wrapperURL))
+        var request = URLRequest(url: wrapperURL)
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        webView.load(request)
         print("Loading in-memory wrapper via game:// scheme")
     }
 
@@ -552,6 +636,21 @@ class ViewController: UIViewController {
     func injectWeChatMock() {
         // Remove previously injected scripts to avoid duplicates on reload
         webView.configuration.userContentController.removeAllUserScripts()
+
+        // Re-add the CSS disable-tap-highlight script (it was wiped by removeAllUserScripts)
+        let cssScript = WKUserScript(
+            source: """
+                (function() {
+                    var style = document.createElement('style');
+                    style.innerHTML = '* { -webkit-tap-highlight-color: transparent !important; user-select: none !important; -webkit-user-select: none !important; outline: none !important; }';
+                    if (document.head) { document.head.appendChild(style); }
+                    else { document.addEventListener('DOMContentLoaded', function() { document.head.appendChild(style); }); }
+                })();
+            """,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        webView.configuration.userContentController.addUserScript(cssScript)
 
         guard let mockPath = Bundle.main.path(forResource: "WeChatMock", ofType: "js"),
               let mockScript = try? String(contentsOfFile: mockPath, encoding: .utf8) else {
