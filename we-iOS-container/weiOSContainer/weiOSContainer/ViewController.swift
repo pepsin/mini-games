@@ -18,13 +18,26 @@ class ViewController: UIViewController {
 
     // MARK: - Lifecycle
 
+    var isStandaloneGame: Bool {
+        #if STANDALONE_GAME
+        return true
+        #else
+        return false
+        #endif
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         projectManager = ProjectManager()
         setupUI()
         setupWebView()
-        loadLastProject()
+
+        if isStandaloneGame {
+            loadDefaultGame()
+        } else {
+            loadLastProject()
+        }
     }
 
     // MARK: - UI
@@ -35,6 +48,7 @@ class ViewController: UIViewController {
         toolbar.backgroundColor = UIColor(white: 0.1, alpha: 0.2)
         toolbar.layer.cornerRadius = 8
         toolbar.layer.masksToBounds = true
+        toolbar.isHidden = isStandaloneGame
         view.addSubview(toolbar)
 
         projectNameLabel = UILabel()
@@ -50,7 +64,7 @@ class ViewController: UIViewController {
         addButton.setTitleColor(.white, for: .normal)
         addButton.backgroundColor = UIColor.systemBlue
         addButton.layer.cornerRadius = 6
-        addButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        addButton.configuration?.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
         addButton.addTarget(self, action: #selector(showAddProjectOptions), for: .touchUpInside)
         toolbar.addSubview(addButton)
 
@@ -60,15 +74,15 @@ class ViewController: UIViewController {
         reloadButton.setTitleColor(.white, for: .normal)
         reloadButton.backgroundColor = UIColor.systemGray
         reloadButton.layer.cornerRadius = 6
-        reloadButton.contentEdgeInsets = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        reloadButton.configuration?.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
         reloadButton.addTarget(self, action: #selector(reloadCurrentProject), for: .touchUpInside)
         toolbar.addSubview(reloadButton)
 
         NSLayoutConstraint.activate([
-toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-toolbar.heightAnchor.constraint(equalToConstant: 44),
+            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: 44),
 
             projectNameLabel.leadingAnchor.constraint(equalTo: toolbar.leadingAnchor, constant: 12),
             projectNameLabel.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
@@ -83,7 +97,9 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
 
     func setupWebView() {
         let config = WKWebViewConfiguration()
-        config.preferences.javaScriptEnabled = true
+        let pagePrefs = WKWebpagePreferences()
+        pagePrefs.allowsContentJavaScript = true
+        config.defaultWebpagePreferences = pagePrefs
         config.allowsInlineMediaPlayback = true
 
         // Register the custom scheme handler.
@@ -100,18 +116,29 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
         webView.scrollView.isScrollEnabled = false
         webView.navigationDelegate = self
 
-        // Enable Safari Web Inspector (iOS 16.4+)
+        // Enable Safari Web Inspector in debug builds; disable it only for release standalone builds
         if #available(iOS 16.4, *) {
+            #if DEBUG
             webView.isInspectable = true
+            #else
+            webView.isInspectable = false
+            #endif
         }
 
         view.addSubview(webView)
+
+        let webViewBottomConstraint: NSLayoutConstraint
+        if isStandaloneGame {
+            webViewBottomConstraint = webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        } else {
+            webViewBottomConstraint = webView.bottomAnchor.constraint(equalTo: toolbar.topAnchor)
+        }
 
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: view.topAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: toolbar.topAnchor)
+            webViewBottomConstraint
         ])
     }
 
@@ -136,8 +163,13 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
     }
 
     func presentFilePicker() {
-        let documentTypes = ["public.folder", "public.zip-archive", "com.pkware.zip-archive", "public.item"]
-        let picker = UIDocumentPickerViewController(documentTypes: documentTypes, in: .open)
+        let contentTypes: [UTType] = [
+            .folder,
+            .zip,
+            UTType(filenameExtension: "zip") ?? .data,
+            .item
+        ]
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
@@ -165,7 +197,11 @@ toolbar.heightAnchor.constraint(equalToConstant: 44),
         if let gameURL = Bundle.main.url(forResource: "game/index", withExtension: "html") {
             currentProjectURL = gameURL.deletingLastPathComponent()
             loadProject(from: currentProjectURL!)
+        } else if let gameURL = Bundle.main.url(forResource: "game", withExtension: nil) {
+            currentProjectURL = gameURL
+            loadProject(from: gameURL)
         } else {
+            currentProjectURL = nil
             loadGameWithWrapper()
         }
     }

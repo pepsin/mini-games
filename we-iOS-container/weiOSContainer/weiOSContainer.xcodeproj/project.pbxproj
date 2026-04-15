@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1E121994AC4D8273563D7705 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 008A069B8966421B2572DFBE /* Foundation.framework */; };
+		2745420E06ADD2008B188D90 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA00000A1 /* LaunchScreen.storyboard */; };
+		54AF4EA40FC8C84410F98997 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000041 /* ViewController.swift */; };
+		5A5E9E5D1BDD285502016AC4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000021 /* AppDelegate.swift */; };
+		674899D89C30272423FB08B9 /* GameSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000063 /* GameSchemeHandler.swift */; };
 		AA0000011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000021 /* AppDelegate.swift */; };
 		AA0000031 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000041 /* ViewController.swift */; };
 		AA0000051 /* WebViewBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000061 /* WebViewBridge.swift */; };
@@ -15,9 +20,15 @@
 		AA0000071 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000081 /* Assets.xcassets */; };
 		AA0000091 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA00000A1 /* LaunchScreen.storyboard */; };
 		AA00000B1 /* WeChatMock.js in Resources */ = {isa = PBXBuildFile; fileRef = AA00000C1 /* WeChatMock.js */; };
+		B5E9E8ACA2D0DED92BD0871D /* WebViewBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000061 /* WebViewBridge.swift */; };
+		EFBF9E79DE2A4F338E30795B /* WeChatMock.js in Resources */ = {isa = PBXBuildFile; fileRef = AA00000C1 /* WeChatMock.js */; };
+		F7239AF902AB087F9480888C /* ProjectManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000062 /* ProjectManager.swift */; };
+		FCEE3AFCDC17B6551D2C9125 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000081 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		008A069B8966421B2572DFBE /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS14.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		08BFDD9D23A503B24B79AB53 /* LandingBomb.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LandingBomb.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000021 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AA0000041 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		AA0000061 /* WebViewBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewBridge.swift; sourceTree = "<group>"; };
@@ -38,14 +49,31 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E91BE906DD7A6F725803DE04 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1E121994AC4D8273563D7705 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		49F7D842C8F1137EDB4D4475 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				008A069B8966421B2572DFBE /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 		AA0000131 = {
 			isa = PBXGroup;
 			children = (
 				AA0000141 /* weiOSContainer */,
 				AA0000151 /* Products */,
+				D1B61E65D8F80EF47B1C9163 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -69,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000101 /* weiOSContainer.app */,
+				08BFDD9D23A503B24B79AB53 /* LandingBomb.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -89,6 +118,14 @@
 			path = "wechat-mock";
 			sourceTree = "<group>";
 		};
+		D1B61E65D8F80EF47B1C9163 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				49F7D842C8F1137EDB4D4475 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -107,6 +144,24 @@
 			name = weiOSContainer;
 			productName = weiOSContainer;
 			productReference = AA0000101 /* weiOSContainer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B5355D1597C75CFB0CE9A56C /* LandingBomb */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2F6C6DE929A6EBB372E610E6 /* Build configuration list for PBXNativeTarget "LandingBomb" */;
+			buildPhases = (
+				EE700E2FACBE59A987E05461 /* Sources */,
+				E91BE906DD7A6F725803DE04 /* Frameworks */,
+				1F952A30AF8FB1CAB87AB38B /* Embed Landing Bomb */,
+				77416898FC384AA5C3F095B0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LandingBomb;
+			productName = LandingBomb;
+			productReference = 08BFDD9D23A503B24B79AB53 /* LandingBomb.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -138,11 +193,22 @@
 			projectRoot = "";
 			targets = (
 				AA0000181 /* weiOSContainer */,
+				B5355D1597C75CFB0CE9A56C /* LandingBomb */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		77416898FC384AA5C3F095B0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FCEE3AFCDC17B6551D2C9125 /* Assets.xcassets in Resources */,
+				2745420E06ADD2008B188D90 /* LaunchScreen.storyboard in Resources */,
+				EFBF9E79DE2A4F338E30795B /* WeChatMock.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AA00001B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -154,6 +220,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		1F952A30AF8FB1CAB87AB38B /* Embed Landing Bomb */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Landing Bomb";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/game",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nLANDING_BOMB_SOURCE=\"${PROJECT_DIR}/../../landing_bomb\"\nDEST_DIR=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/game\"\n\nif [ -d \"$LANDING_BOMB_SOURCE\" ]; then\n  rm -rf \"$DEST_DIR\"\n  mkdir -p \"$DEST_DIR\"\n  cp -R \"$LANDING_BOMB_SOURCE/\" \"$DEST_DIR/\"\n  echo \"Embedded landing_bomb into $DEST_DIR\"\nelse\n  echo \"Warning: $LANDING_BOMB_SOURCE not found\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AA00001A1 /* Sources */ = {
@@ -168,9 +256,63 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EE700E2FACBE59A987E05461 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A5E9E5D1BDD285502016AC4 /* AppDelegate.swift in Sources */,
+				54AF4EA40FC8C84410F98997 /* ViewController.swift in Sources */,
+				B5E9E8ACA2D0DED92BD0871D /* WebViewBridge.swift in Sources */,
+				F7239AF902AB087F9480888C /* ProjectManager.swift in Sources */,
+				674899D89C30272423FB08B9 /* GameSchemeHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		7580B365C3932C18AB052516 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9H53GLDW6D;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"STANDALONE_GAME=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = weiOSContainer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Bob-omb Squad";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSDocumentsFolderUsageDescription = "This app needs access to documents to load game projects.";
+				INFOPLIST_KEY_NSFileProviderDomainUsageDescription = "This app needs access to files to load game projects.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = armv7;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pepsin.landingbomb;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = " STANDALONE_GAME";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		AA00001E1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -354,9 +496,59 @@
 			};
 			name = Release;
 		};
+		E4CC16B3778999298C47FB28 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9H53GLDW6D;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"STANDALONE_GAME=1",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = weiOSContainer/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Bob-omb Squad";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSDocumentsFolderUsageDescription = "This app needs access to documents to load game projects.";
+				INFOPLIST_KEY_NSFileProviderDomainUsageDescription = "This app needs access to files to load game projects.";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = armv7;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pepsin.landingbomb;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = " STANDALONE_GAME";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2F6C6DE929A6EBB372E610E6 /* Build configuration list for PBXNativeTarget "LandingBomb" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7580B365C3932C18AB052516 /* Release */,
+				E4CC16B3778999298C47FB28 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AA0000191 /* Build configuration list for PBXNativeTarget "weiOSContainer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

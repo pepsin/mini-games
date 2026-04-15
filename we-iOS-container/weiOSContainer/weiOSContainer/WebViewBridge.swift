@@ -71,15 +71,17 @@ class WebViewBridge: NSObject, WKScriptMessageHandler {
     }
     
     func handleGetSystemInfo(_ webView: WKWebView?) {
+        let bounds = webView?.bounds ?? webView?.window?.bounds ?? .zero
+        let scale = webView?.traitCollection.displayScale ?? webView?.window?.traitCollection.displayScale ?? 1.0
         let systemInfo: [String: Any] = [
             "brand": "Apple",
             "model": UIDevice.current.model,
             "system": UIDevice.current.systemName,
             "version": UIDevice.current.systemVersion,
             "platform": "ios",
-            "windowWidth": UIScreen.main.bounds.width,
-            "windowHeight": UIScreen.main.bounds.height,
-            "pixelRatio": UIScreen.main.scale
+            "windowWidth": bounds.width,
+            "windowHeight": bounds.height,
+            "pixelRatio": scale
         ]
         
         if let jsonData = try? JSONSerialization.data(withJSONObject: systemInfo),

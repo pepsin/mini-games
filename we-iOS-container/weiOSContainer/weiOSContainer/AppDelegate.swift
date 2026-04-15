@@ -6,7 +6,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        window = UIWindow(frame: UIScreen.main.bounds)
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            fatalError("No window scene available")
+        }
+        window = UIWindow(windowScene: windowScene)
         
         let viewController = ViewController()
         window?.rootViewController = viewController
