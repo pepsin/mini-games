@@ -4,7 +4,7 @@ import { HoleInAnimation } from './js/HoleInAnimation.js';
 import { Physics } from './js/Physics.js';
 import { InputHandler } from './js/InputHandler.js';
 import { Camera } from './js/Camera.js';
-import { Wave } from './js/Wave.js';
+import { WebGLWave } from './js/WebGLWave.js';
 
 const { windowWidth, windowHeight, pixelRatio } = wx.getSystemInfoSync();
 
@@ -23,7 +23,7 @@ const hole = new Hole();
 const animation = new HoleInAnimation();
 const physics = new Physics();
 const camera = new Camera();
-const wave = new Wave();
+const wave = new WebGLWave(screenWidth, screenHeight, pixelRatio);
 
 let stopped = true;
 let levelY = 0;
@@ -121,9 +121,6 @@ const input = new InputHandler(
 );
 
 function gameLoop() {
-    ctx.fillStyle = '#f5e6c8';
-    ctx.fillRect(0, 0, screenWidth, screenHeight);
-
     wave.update();
     wave.draw(ctx, screenWidth, screenHeight);
 
