@@ -88,20 +88,53 @@
             return img;
         },
         
+        // Safe area helper using CSS env() variables
+        _getSafeAreaInsets: function() {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.paddingTop = 'env(safe-area-inset-top)';
+            div.style.paddingBottom = 'env(safe-area-inset-bottom)';
+            div.style.paddingLeft = 'env(safe-area-inset-left)';
+            div.style.paddingRight = 'env(safe-area-inset-right)';
+            document.body.appendChild(div);
+            const computed = getComputedStyle(div);
+            const insets = {
+                top: parseFloat(computed.paddingTop) || 0,
+                bottom: parseFloat(computed.paddingBottom) || 0,
+                left: parseFloat(computed.paddingLeft) || 0,
+                right: parseFloat(computed.paddingRight) || 0
+            };
+            document.body.removeChild(div);
+            return insets;
+        },
+        
         // System Info API
         getSystemInfoSync: function() {
+            const insets = this._getSafeAreaInsets();
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
             return {
                 brand: 'Apple',
                 model: 'iPhone',
                 system: 'iOS',
                 version: navigator.userAgent.match(/OS (\d+)[_\d]* like/)?.[1] || '15',
                 platform: 'ios',
-                windowWidth: window.innerWidth,
-                windowHeight: window.innerHeight,
+                windowWidth: windowWidth,
+                windowHeight: windowHeight,
                 pixelRatio: window.devicePixelRatio || 1,
                 language: navigator.language,
                 screenWidth: window.screen.width,
-                screenHeight: window.screen.height
+                screenHeight: window.screen.height,
+                statusBarHeight: insets.top,
+                safeArea: {
+                    left: insets.left,
+                    right: windowWidth - insets.right,
+                    top: insets.top,
+                    bottom: windowHeight - insets.bottom,
+                    width: windowWidth - insets.left - insets.right,
+                    height: windowHeight - insets.top - insets.bottom
+                },
+                safeAreaInsets: insets
             };
         },
         

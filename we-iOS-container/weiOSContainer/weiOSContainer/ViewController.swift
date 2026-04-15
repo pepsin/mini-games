@@ -114,6 +114,7 @@ class ViewController: UIViewController {
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.scrollView.bounces = false
         webView.scrollView.isScrollEnabled = false
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.navigationDelegate = self
 
         // Enable Safari Web Inspector in debug builds; disable it only for release standalone builds

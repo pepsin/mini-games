@@ -13,6 +13,7 @@ const TOPBAR_CONFIG = {
 const systemInfo = wx.getSystemInfoSync();
 const screenWidth = systemInfo.windowWidth;
 const screenHeight = systemInfo.windowHeight;
+const safeArea = systemInfo.safeArea || { top: 0, bottom: 0, left: 0, right: screenWidth, width: screenWidth, height: screenHeight };
 
 // Device detection - check if running in developer tools
 const isDevTools = systemInfo.platform === 'devtools';
@@ -44,6 +45,10 @@ function updateScale() {
   }
 }
 updateScale();
+
+// Respect safe area for topbar layout
+const safeAreaTopGame = Math.ceil(Math.max(0, safeArea.top - offsetY) / scale);
+TOPBAR_CONFIG.marginY = Math.max(16, safeAreaTopGame + 8); // 8px padding below safe area
 
 // Coordinate transform functions
 function sx(x) { return x * scale + offsetX; }
