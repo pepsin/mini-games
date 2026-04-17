@@ -115,14 +115,21 @@ function drawLeaderboard() {
     ctx.textAlign = 'left';
     ctx.fillText(`${i + 1}`, 40, y + 15);
     
-    // Avatar placeholder (circle)
-    ctx.beginPath();
-    ctx.arc(90, y + 25, 15, 0, Math.PI * 2);
-    ctx.fillStyle = '#4ECDC4';
-    ctx.fill();
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // Avatar (emoji if provided, otherwise green circle placeholder)
+    if (user.avatarEmoji) {
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(user.avatarEmoji, 90, y + 25);
+    } else {
+      ctx.beginPath();
+      ctx.arc(90, y + 25, 15, 0, Math.PI * 2);
+      ctx.fillStyle = '#4ECDC4';
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
     
     // Nickname
     ctx.fillStyle = '#FFFFFF';

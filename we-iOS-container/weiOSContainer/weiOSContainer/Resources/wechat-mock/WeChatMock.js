@@ -13,6 +13,9 @@
     const storageCallbacks = {};
     let storageCallbackId = 0;
     let systemInfoCallback = null;
+    let openDataContextHandler = null;
+    let openDataContextLoaded = false;
+    const cloudStoragePrefix = 'wechat_cloud_';
     
     // Touch event handlers
     const touchStartHandlers = [];
@@ -570,15 +573,28 @@
         
         // Open Data Context (Social/Friends)
         getOpenDataContext: function() {
+            if (!openDataContextLoaded) {
+                openDataContextLoaded = true;
+                // Dynamically load the game's open data context script
+                const script = document.createElement('script');
+                script.src = 'js/openDataContext/index.js';
+                script.onerror = function() {
+                    console.warn('Failed to load open data context script: js/openDataContext/index.js');
+                };
+                document.head.appendChild(script);
+            }
             return {
                 postMessage: function(data) {
                     console.log('OpenDataContext postMessage:', data);
+                    if (openDataContextHandler) {
+                        setTimeout(() => openDataContextHandler(data), 0);
+                    }
                 }
             };
         },
         
         onMessage: function(callback) {
-            // For open data context
+            openDataContextHandler = callback;
             console.log('OpenDataContext onMessage registered');
         },
         
@@ -601,15 +617,70 @@
         // Cloud Storage (mocked)
         setUserCloudStorage: function(options) {
             console.log('Cloud storage set:', options);
+            try {
+                if (options.KVDataList) {
+                    options.KVDataList.forEach(kv => {
+                        localStorage.setItem(cloudStoragePrefix + kv.key, kv.value);
+                    });
+                }
+            } catch (e) {
+                console.error('Cloud storage set error:', e);
+            }
             if (options.success) {
                 setTimeout(options.success, 100);
             }
         },
         
+        getUserCloudStorage: function(options) {
+            console.log('Cloud storage get user:', options);
+            const keyList = options.keyList || [];
+            const kvDataList = [];
+            keyList.forEach(key => {
+                const value = localStorage.getItem(cloudStoragePrefix + key) || '';
+                kvDataList.push({ key: key, value: value });
+            });
+            if (options.success) {
+                setTimeout(() => options.success({ KVDataList: kvDataList }), 100);
+            }
+        },
+        
         getFriendCloudStorage: function(options) {
             console.log('Cloud storage get friends:', options);
+            
+            // Build dummy friend leaderboard data with deterministic emoji avatars
+            const EMOJI_AVATARS = [
+                "🦁", "🐯", "🐻", "🐨", "🐼", "🐸", "🐙", "🐵",
+                "🐔", "🦄", "🐝", "🦋", "🐞", "🦕", "🦖", "🐬"
+            ];
+            function getDummyAvatar(seed) {
+                const idx = seed.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % EMOJI_AVATARS.length;
+                return EMOJI_AVATARS[idx];
+            }
+            const dummyFriends = [
+                { nickname: 'Alice',   openid: 'mock_alice',   avatarEmoji: getDummyAvatar('mock_alice'),   KVDataList: [{ key: 'score', value: '9999' }] },
+                { nickname: 'Bob',     openid: 'mock_bob',     avatarEmoji: getDummyAvatar('mock_bob'),     KVDataList: [{ key: 'score', value: '8500' }] },
+                { nickname: 'Charlie', openid: 'mock_charlie', avatarEmoji: getDummyAvatar('mock_charlie'), KVDataList: [{ key: 'score', value: '7200' }] },
+                { nickname: 'Dave',    openid: 'mock_dave',    avatarEmoji: getDummyAvatar('mock_dave'),    KVDataList: [{ key: 'score', value: '6400' }] },
+                { nickname: 'Eve',     openid: 'mock_eve',     avatarEmoji: getDummyAvatar('mock_eve'),     KVDataList: [{ key: 'score', value: '5300' }] }
+            ];
+            
+            // Inject current user's saved scores so they see themselves in the list
+            const currentUser = {
+                nickname: '我 (You)',
+                openid: 'mock_self',
+                KVDataList: []
+            };
+            
+            const keyList = options.keyList || ['score'];
+            keyList.forEach(key => {
+                const value = localStorage.getItem(cloudStoragePrefix + key) || '0';
+                currentUser.KVDataList.push({ key: key, value: value });
+            });
+            
+            const data = [currentUser, ...dummyFriends];
+            
             if (options.success) {
-                setTimeout(() => options.success({ data: [] }), 100);
+                setTimeout(() => options.success({ data: data }), 100);
             }
         },
         
@@ -637,7 +708,13 @@
                 'vibrateShort',
                 'shareAppMessage',
                 'reportEvent',
-                'reportPerformance'
+                'reportPerformance',
+                'getOpenDataContext',
+                'onMessage',
+                'getSharedCanvas',
+                'setUserCloudStorage',
+                'getUserCloudStorage',
+                'getFriendCloudStorage'
             ];
             return supportedAPIs.some(supported => api.includes(supported));
         }
