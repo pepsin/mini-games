@@ -248,35 +248,6 @@ function getEmojiAvatarUrl(openid) {
 
 If you do not want to render images, you can simply return the emoji as a string field (`avatarEmoji`) and modify the open-data context drawing code to draw the emoji directly on the canvas instead of an image.
 
-### Option B: Ask the user to pick a photo (native iOS pickers)
-
-If you want real photos, you can extend the iOS container with a native image picker triggered via the JS bridge.
-
-**Flow:**
-1. First time the user opens the leaderboard (or after a score is submitted without an avatar), the main game context calls:
-   ```js
-   wx.chooseImage({
-     count: 1,
-     sizeType: ['compressed'],
-     sourceType: ['album', 'camera'],
-     success: (res) => {
-       const localPath = res.tempFilePaths[0];
-       // upload to your server / CDN
-     }
-   });
-   ```
-2. You add `wx.chooseImage` to `WeChatMock.js` so it posts a message to the native Swift bridge.
-3. Swift presents `UIImagePickerController`, gets the image, compresses it, and either:
-   - Returns a local `game://localhost/` path so the JS can upload it via `fetch`, or
-   - Uploads it directly to your CDN and returns the final URL.
-4. Server stores the `avatarUrl` permanently for that `openid`.
-
-**Trade-off:** Option B is richer but requires extra native work and privacy permissions. **Option A (emoji) gives you an instant, polished leaderboard with no native permissions.**
-
-### Recommended hybrid approach
-1. **Default:** Assign a deterministic emoji avatar on first score submission (zero friction).
-2. **Opt-in:** Add a small "Change avatar" button in the leaderboard or settings that triggers the native photo picker (Option B). If the user picks a photo, overwrite the emoji URL with the real photo URL on the server.
-
 ---
 
 ## Updating the mock to reflect avatar fallback
