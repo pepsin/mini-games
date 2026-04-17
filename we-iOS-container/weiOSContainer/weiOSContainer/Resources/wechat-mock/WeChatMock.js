@@ -216,7 +216,7 @@
                 windowWidth: windowWidth,
                 windowHeight: windowHeight,
                 pixelRatio: window.devicePixelRatio || 1,
-                language: navigator.language,
+                language: window.__appLanguage || navigator.language,
                 screenWidth: window.screen.width,
                 screenHeight: window.screen.height,
                 statusBarHeight: insets.top,
@@ -711,7 +711,9 @@
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.wechatBridge) {
             window.webkit.messageHandlers.wechatBridge.postMessage({
                 action: 'log',
-                message: args.map(arg => String(arg)).join(' ')
+                message: args.map(arg => {
+                    try { return String(arg); } catch(e) { return '[unstringable]'; }
+                }).join(' ')
             });
         }
     };

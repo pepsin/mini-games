@@ -1,7 +1,6 @@
 import UIKit
 import WebKit
 import UniformTypeIdentifiers
-import MobileCoreServices
 
 class ViewController: UIViewController {
 
@@ -106,6 +105,17 @@ class ViewController: UIViewController {
         reloadButton.addTarget(self, action: #selector(reloadCurrentProject), for: .touchUpInside)
         toolbar.addSubview(reloadButton)
 
+        let languageButton = UIButton(type: .system)
+        languageButton.translatesAutoresizingMaskIntoConstraints = false
+        languageButton.setTitle(LanguageManager.shared.currentOption.displayName, for: .normal)
+        languageButton.setTitleColor(.white, for: .normal)
+        languageButton.backgroundColor = UIColor.systemIndigo
+        languageButton.layer.cornerRadius = 6
+        languageButton.configuration?.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+        languageButton.addTarget(self, action: #selector(showLanguageOptions), for: .touchUpInside)
+        languageButton.accessibilityIdentifier = "languageButton"
+        toolbar.addSubview(languageButton)
+
         NSLayoutConstraint.activate([
             toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -119,8 +129,13 @@ class ViewController: UIViewController {
             reloadButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
 
             addButton.trailingAnchor.constraint(equalTo: reloadButton.leadingAnchor, constant: -8),
-            addButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor)
+            addButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+
+            languageButton.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -8),
+            languageButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor)
         ])
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(languageDidChange), name: .languageDidChange, object: nil)
     }
 
     func setupWebView() {
@@ -196,22 +211,11 @@ class ViewController: UIViewController {
     // MARK: - Project loading
 
     @objc func showAddProjectOptions() {
-        let alert = UIAlertController(title: "Open Project", message: "Choose how to load a game project", preferredStyle: .actionSheet)
+        let alert = UIAlertController(title: "Open Project", message: "Choose a game project folder", preferredStyle: .actionSheet)
 
-        if #available(iOS 14.0, *), ProcessInfo.processInfo.isiOSAppOnMac || ProcessInfo.processInfo.isMacCatalystApp {
-            // On macOS (Designed for iPad or Mac Catalyst), mixing .folder with file types
-            // in UIDocumentPickerViewController breaks folder selection.
-            alert.addAction(UIAlertAction(title: "Open Folder", style: .default) { [weak self] _ in
-                self?.presentFolderPicker()
-            })
-            alert.addAction(UIAlertAction(title: "Open Zip File", style: .default) { [weak self] _ in
-                self?.presentZipPicker()
-            })
-        } else {
-            alert.addAction(UIAlertAction(title: "Browse Files", style: .default) { [weak self] _ in
-                self?.presentFilePicker()
-            })
-        }
+        alert.addAction(UIAlertAction(title: "Open Folder", style: .default) { [weak self] _ in
+            self?.presentFolderPicker()
+        })
 
         alert.addAction(UIAlertAction(title: "Load Default", style: .default) { [weak self] _ in
             self?.loadDefaultGame()
@@ -226,36 +230,9 @@ class ViewController: UIViewController {
     }
 
     func presentFolderPicker() {
-        let picker: UIDocumentPickerViewController
-        if #available(iOS 14.0, *) {
-            picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
-        } else {
-            picker = UIDocumentPickerViewController(documentTypes: [kUTTypeFolder as String], in: .open)
-        }
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
         picker.delegate = self
         picker.allowsMultipleSelection = false
-        present(picker, animated: true)
-    }
-
-    func presentZipPicker() {
-        let contentTypes: [UTType] = [.zip, UTType(filenameExtension: "zip") ?? .data]
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
-        picker.delegate = self
-        picker.allowsMultipleSelection = false
-        picker.shouldShowFileExtensions = true
-        present(picker, animated: true)
-    }
-
-    func presentFilePicker() {
-        let contentTypes: [UTType] = [
-            .folder,
-            .zip,
-            UTType(filenameExtension: "zip") ?? .data
-        ]
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
-        picker.delegate = self
-        picker.allowsMultipleSelection = false
-        picker.shouldShowFileExtensions = true
         present(picker, animated: true)
     }
 
@@ -318,48 +295,17 @@ class ViewController: UIViewController {
     }
 
     func importProject(from selectedURL: URL) {
-        do {
-            let isDirectory = (try? selectedURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-            let isZip = selectedURL.pathExtension == "zip"
+        let isDirectory = (try? selectedURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
 
-            guard isDirectory || isZip else {
-                showError("Please select a folder or zip file containing the game.")
-                return
-            }
-
-            if isDirectory {
-                // Load folder in-place: create a bookmark so we can reload it later
-                _ = saveBookmark(for: selectedURL)
-                startAccessingProject(selectedURL)
-                loadProject(from: selectedURL)
-            } else {
-                // Zip still needs to be copied/extracted into the app's sandbox
-                let shouldStopAccessing = selectedURL.startAccessingSecurityScopedResource()
-                defer {
-                    if shouldStopAccessing { selectedURL.stopAccessingSecurityScopedResource() }
-                }
-
-                let projectName = selectedURL.deletingPathExtension().lastPathComponent
-                let destinationURL = projectManager.projectsDirectory.appendingPathComponent(projectName)
-
-                if FileManager.default.fileExists(atPath: destinationURL.path) {
-                    try FileManager.default.removeItem(at: destinationURL)
-                }
-
-                let zipCopy = projectManager.projectsDirectory.appendingPathComponent(selectedURL.lastPathComponent)
-                try FileManager.default.copyItem(at: selectedURL, to: zipCopy)
-                try projectManager.extractZip(at: zipCopy, to: destinationURL)
-                try? FileManager.default.removeItem(at: zipCopy)
-
-                UserDefaults.standard.removeObject(forKey: "lastProjectBookmark")
-                startAccessingProject(nil)
-                loadProject(from: destinationURL)
-                print("Imported zip project to: \(destinationURL.path)")
-            }
-        } catch {
-            print("Import error: \(error)")
-            showError("Failed to import project: \(error.localizedDescription)")
+        guard isDirectory else {
+            showError("Please select a folder containing the game.")
+            return
         }
+
+        // Load folder in-place: create a bookmark so we can reload it later
+        _ = saveBookmark(for: selectedURL)
+        startAccessingProject(selectedURL)
+        loadProject(from: selectedURL)
     }
 
     @objc func reloadCurrentProject() {
@@ -376,6 +322,39 @@ class ViewController: UIViewController {
         }
     }
 
+    @objc func showLanguageOptions() {
+        let alert = UIAlertController(title: "Language", message: "Choose language for WeChat runtime", preferredStyle: .actionSheet)
+
+        for option in LanguageOption.allCases {
+            let isSelected = LanguageManager.shared.currentOption == option
+            let title = isSelected ? "✓ \(option.displayName)" : option.displayName
+            alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                LanguageManager.shared.currentOption = option
+                self?.languageDidChange()
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            if let languageButton = toolbar.subviews.first(where: { $0.accessibilityIdentifier == "languageButton" }) {
+                popover.sourceView = languageButton
+                popover.sourceRect = languageButton.bounds
+            } else {
+                popover.sourceView = toolbar
+                popover.sourceRect = toolbar.bounds
+            }
+        }
+        present(alert, animated: true)
+    }
+
+    @objc func languageDidChange() {
+        if let languageButton = toolbar.subviews.first(where: { $0.accessibilityIdentifier == "languageButton" }) as? UIButton {
+            languageButton.setTitle(LanguageManager.shared.currentOption.displayName, for: .normal)
+        }
+        reloadCurrentProject()
+    }
+
     func loadLastProject() {
         if let bookmarkURL = resolveBookmark() {
             loadProject(from: bookmarkURL)
@@ -390,7 +369,9 @@ class ViewController: UIViewController {
     func loadDefaultGame() {
         if let gameURL = Bundle.main.url(forResource: "game/index", withExtension: "html") {
             currentProjectURL = gameURL.deletingLastPathComponent()
-            loadProject(from: currentProjectURL!)
+            if let url = currentProjectURL {
+                loadProject(from: url)
+            }
         } else if let gameURL = Bundle.main.url(forResource: "game", withExtension: nil) {
             currentProjectURL = gameURL
             loadProject(from: gameURL)
@@ -651,6 +632,14 @@ class ViewController: UIViewController {
             forMainFrameOnly: false
         )
         webView.configuration.userContentController.addUserScript(cssScript)
+
+        // Inject selected language override before WeChatMock loads
+        let languageScript = WKUserScript(
+            source: "window.__appLanguage = '\(LanguageManager.shared.wechatLanguage)';",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        webView.configuration.userContentController.addUserScript(languageScript)
 
         guard let mockPath = Bundle.main.path(forResource: "WeChatMock", ofType: "js"),
               let mockScript = try? String(contentsOfFile: mockPath, encoding: .utf8) else {

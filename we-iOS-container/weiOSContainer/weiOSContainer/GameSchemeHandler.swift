@@ -62,6 +62,14 @@ class GameSchemeHandler: NSObject, WKURLSchemeHandler {
         let relative = path.hasPrefix("/") ? String(path.dropFirst()) : path
         let fileURL  = projectURL.appendingPathComponent(relative)
 
+        // Prevent path traversal: resolved file must stay inside projectURL
+        let resolvedPath = fileURL.resolvingSymlinksInPath().path
+        let projectPath = projectURL.resolvingSymlinksInPath().path
+        guard resolvedPath.hasPrefix(projectPath) else {
+            fail(urlSchemeTask, message: "Access denied")
+            return
+        }
+
         guard FileManager.default.fileExists(atPath: fileURL.path),
               let data = try? Data(contentsOf: fileURL) else {
             fail(urlSchemeTask, message: "File not found: \(fileURL.path)")
@@ -125,12 +133,15 @@ class GameSchemeHandler: NSObject, WKURLSchemeHandler {
             "Cache-Control":  "no-cache",
             "Access-Control-Allow-Origin": "*"
         ]
-        let response = HTTPURLResponse(
+        guard let response = HTTPURLResponse(
             url: url,
             statusCode: 200,
             httpVersion: "HTTP/1.1",
             headerFields: headers
-        )!
+        ) else {
+            fail(task, message: "Failed to create response")
+            return
+        }
         task.didReceive(response)
         task.didReceive(data)
         task.didFinish()
@@ -148,7 +159,7 @@ class GameSchemeHandler: NSObject, WKURLSchemeHandler {
     private func mimeType(for path: String) -> String {
         switch (path as NSString).pathExtension.lowercased() {
         case "html", "htm": return "text/html"
-        case "js":          return "application/javascript"
+        case "js":          return "text/javascript"
         case "json":        return "application/json"
         case "css":         return "text/css"
         case "png":         return "image/png"

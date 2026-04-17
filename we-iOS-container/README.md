@@ -92,13 +92,12 @@ Resources/game/
 The app includes a file picker to load game projects from anywhere on your device:
 
 1. Tap **"Add Project"** button in the toolbar
-2. Choose **"Browse Files"**
-3. Select a folder containing your game files **or** a `.zip` file
-4. The app will copy the project and load it automatically
+2. Choose **"Open Folder"**
+3. Select a folder containing your game files
+4. The app will load it automatically
 
 **Supported formats:**
 - Folders containing game files
-- `.zip` archives (auto-extracted)
 
 The last loaded project is saved and will reload automatically when you reopen the app.
 
@@ -129,7 +128,7 @@ Set up a file watcher that copies changes to the app bundle and triggers a WebVi
 - **Load Default**: Switch back to the bundled default game
 
 ### Project Storage
-Imported projects are stored in the app's Documents/Projects directory and persist between app launches.
+The last loaded project path is saved and will reload automatically when you reopen the app.
 
 ## Limitations
 
@@ -138,6 +137,7 @@ Imported projects are stored in the app's Documents/Projects directory and persi
 3. **No Native Ads**: Ad APIs not implemented
 4. **File System**: Simplified implementation
 5. **Open Data Context**: Mocked only
+6. **No ZIP Import**: Only folders are supported
 
 ## Adding New APIs
 
