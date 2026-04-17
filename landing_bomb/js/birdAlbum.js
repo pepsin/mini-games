@@ -1,9 +1,9 @@
 // Bird Album Module
 // Manages bird collection, album display, and capture tracking
 
-const { getResource, isResourcesLoaded } = require('./resources.js');
-const { W, H } = require('./config.js');
-const { FlexContainer, FlexItem, flexContainer, flexItem } = require('./flexLayout.js');
+const { getResource } = require('./resources.js');
+const { H } = require('./config.js');
+const { FlexContainer, FlexItem } = require('./flexLayout.js');
 
 // i18n
 const { t } = require('./i18n.js');
@@ -332,7 +332,7 @@ function drawBirdPage(ctx, pageIndex, offsetX, ss, sx, sy, W, H, themeColor, the
           .cornerRadius(8);
         
         // Custom render function for bird cell
-        birdCell.render((ctx, x, y, width, height, scale) => {
+        birdCell.render((ctx, x, y, width, height) => {
           // Calculate image size
           const imageSize = Math.min(width * 0.4, height * 0.45);
           const imageX = x + (width - imageSize) / 2;

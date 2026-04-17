@@ -38,7 +38,7 @@ function getStoredLanguage() {
     if (stored && SUPPORTED_LANGUAGES.includes(stored)) {
       return stored;
     }
-  } catch (e) {
+  } catch {
     console.log('i18n: No stored language preference');
   }
   
@@ -49,7 +49,7 @@ function getStoredLanguage() {
     if (lang && lang.startsWith('en')) {
       return 'en';
     }
-  } catch (e) {
+  } catch {
     // Use default
   }
   
@@ -98,7 +98,6 @@ function getSupportedLanguages() {
 function t(key, params = {}) {
   const keys = key.split('.');
   let value = translations[currentLanguage];
-  
   for (const k of keys) {
     if (value && typeof value === 'object' && k in value) {
       value = value[k];

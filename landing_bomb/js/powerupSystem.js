@@ -13,7 +13,6 @@ const wasteFlashAnimations = new Map(); // waste -> { frame, maxFrames, type }
 
 // Flash animation constants
 const FLASH_MAX_FRAMES = 20;
-const FLASH_COLOR = 'rgba(135, 206, 250, 0.8)'; // Light blue flash
 const FLASH_RADIUS_MULTIPLIER = 1.5;
 
 // Powerup definitions
@@ -221,7 +220,7 @@ function trySpawnPowerup(powerups, frameCount, wasteCount = 0) {
 }
 
 // Update all flying powerups
-function updatePowerups(powerups, frameCount) {
+function updatePowerups(powerups) {
   const types = Object.keys(POWERUP_TYPES);
   
   for (let i = powerups.length - 1; i >= 0; i--) {
@@ -337,7 +336,6 @@ function activatePowerup(type, activePowerups, gameState) {
 function updateActivePowerups(activePowerups) {
   for (let i = activePowerups.length - 1; i >= 0; i--) {
     const ap = activePowerups[i];
-    const def = POWERUP_TYPES[ap.type];
     // Frame-based powerups tick down each frame
     if (ap.type === 'time_slow' || ap.type === 'shield') {
       ap.remaining--;
@@ -415,7 +413,7 @@ function removePowerupBadge(powerup) {
 }
 
 // Draw a flying powerup
-function drawPowerup(ctx, p, frameCount = 0) {
+function drawPowerup(ctx, p) {
   // Use displayType for visual representation (cycles randomly), actual type for collision
   const displayType = p.displayType || p.type;
   const def = POWERUP_TYPES[displayType];

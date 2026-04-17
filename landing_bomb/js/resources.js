@@ -90,7 +90,7 @@ async function scanForAssets(fs, path, prefix = '') {
                 hasParts: false 
               });
             }
-          } catch (e) {
+          } catch {
             // No info.json here, scan deeper
             const subAssets = await scanForAssets(fs, fullPath + '/', folderPath);
             assets.push(...subAssets);

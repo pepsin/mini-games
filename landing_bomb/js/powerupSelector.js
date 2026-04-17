@@ -1,6 +1,6 @@
 // Powerup Selector Module - Slot Machine Style Selection
 
-const { W, H, sx, sy, ss } = require('./config.js');
+const { W, H, sx, sy } = require('./config.js');
 const { getResource } = require('./resources.js');
 const { ElectricBadge } = require('./components/ElectricBadge.js');
 const { POWERUP_TYPES } = require('./powerupSystem.js');
@@ -234,7 +234,6 @@ function drawPowerupSelector(ctx, canvas) {
 
 // Draw the result with buttons
 function drawSelectorResult(ctx, badgeY) {
-  const def = POWERUP_TYPES[selectorState.finalType];
   // Use i18n for description
   const description = t(`powerup.descriptions.${selectorState.finalType}`);
   

@@ -1,6 +1,6 @@
 // Sky, Sun and Rainbow Module
 
-const { W, H, screenHeight, offsetX, offsetY, scale, sx, sy, ss, RESOURCE_COLORS } = require('../config.js');
+const { W, H, offsetX, offsetY, scale, sx, sy, RESOURCE_COLORS } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
 const { drawImageProportional, drawPlaceholder } = require('../renderer.js');
 const { animationLoader } = require('../animationLoader.js');

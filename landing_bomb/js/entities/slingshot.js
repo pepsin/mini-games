@@ -48,7 +48,6 @@ function updateChargeLevel() {
   if (!isDevTools && now - lastVibrationTime > VIBRATION_INTERVAL) {
     // Vibration intensity increases with charge level
     if (chargeLevel > 0.3) {
-      const intensity = Math.floor(chargeLevel * 100);
       wx.vibrateShort({ type: 'light' });
     }
     lastVibrationTime = now;

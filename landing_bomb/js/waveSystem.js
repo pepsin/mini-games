@@ -10,13 +10,11 @@ const { getResource } = require('./resources.js');
 // Wave state
 let currentWave = 1;
 let waveTimer = 0;
-let waveDuration = 600;
 let interWaveTimer = 0;
 let interWaveDuration = 120;
 let isInterWave = false;
 let wastesSpawnedThisWave = 0;
 let totalWastesThisWave = 0;
-let nextSpawnTime = 0;
 let waveSpawnSchedule = [];
 
 // Special waste tracking for waves 5, 10, 15, etc.
@@ -125,7 +123,6 @@ function startWave(waveNum) {
   wastesSpawnedThisWave = 0;
   totalWastesThisWave = config.wastesPerWave;
   waveSpawnSchedule = calculateSpawnTimes(config);
-  nextSpawnTime = waveSpawnSchedule.length > 0 ? waveSpawnSchedule[0] : 0;
 
   // Initialize special waste tracking for waves 5, 10, 15, etc.
   specialWastesSpawned = 0;

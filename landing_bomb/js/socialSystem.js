@@ -1,7 +1,7 @@
 // Social System Module - WeChat Mini Game Social Features
 // Features: Friend Leaderboard, Share to Revive, Daily High Score
 
-const { getScore, getHighScore, setScore } = require('./gameState.js');
+const { getScore, getHighScore } = require('./gameState.js');
 const analytics = require('./analytics.js');
 
 // i18n
@@ -30,7 +30,6 @@ const STORAGE_KEYS = {
 
 // Daily limits
 const MAX_REVIVES_PER_DAY = 3;
-const REVIVE_COOLDOWN_MINUTES = 5;
 
 // Get today's date string (YYYY-MM-DD)
 function getTodayString() {

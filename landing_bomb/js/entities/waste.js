@@ -1,20 +1,14 @@
 // Waste Entity Module
 
-const { W, GROUND_Y, RESOURCE_COLORS, WAVE_DISPLAY_OFFSET } = require('../config.js');
+const { W, RESOURCE_COLORS, WAVE_DISPLAY_OFFSET } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
-const { drawImageProportional, drawPlaceholder } = require('../renderer.js');
+const { drawPlaceholder } = require('../renderer.js');
 const { animationLoader } = require('../animationLoader.js');
 const { Parachute } = require('../parachute.js');
 const { sx, sy, ss } = require('../config.js');
 
 // Store frozen waste images for each waste when time_slow starts
 const wasteFrozenImages = new Map();
-
-// Helper function to get parachute type based on waste type
-// All wastes now use normal parachute (shield and twin removed)
-function getParachuteType(wasteType) {
-  return 'normal';
-}
 
 // Draw waste with waste sprites
 function drawWaste(ctx, waste, frameCount, isTimeSlowActive) {
@@ -48,8 +42,6 @@ function drawWaste(ctx, waste, frameCount, isTimeSlowActive) {
       const imgHeight = isSpriteFrame ? frame.sh : frame.height;
       
       if (imgWidth > 0 && imgHeight > 0) {
-        let result;
-        
         // Save context for rotation
         ctx.save();
         

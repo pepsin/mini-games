@@ -195,9 +195,6 @@ class FlexContainer {
     // Calculate content size
     let contentWidth = 0;
     let contentHeight = 0;
-    let totalFlexGrow = 0;
-    let totalFlexShrink = 0;
-    let nonFlexSize = 0;
     
     // First pass: measure all children
     const childMetrics = this.children.map(child => {
@@ -336,7 +333,7 @@ class FlexContainer {
     }
     
     // Position children
-    childMetrics.forEach((m, i) => {
+    childMetrics.forEach((m) => {
       let x, y, w, h;
       
       // Main axis position

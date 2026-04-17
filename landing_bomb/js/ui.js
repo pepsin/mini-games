@@ -1,7 +1,7 @@
 // UI Rendering Module
 
-const { W, H, GROUND_Y, sx, sy, ss, TOPBAR_CONFIG, WAVE_DISPLAY_OFFSET, INVENTORY_CONFIG } = require('./config.js');
-const { getScore, getHighScore, isGameOver, isGamePaused, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
+const { W, H, sx, sy, ss, TOPBAR_CONFIG, WAVE_DISPLAY_OFFSET, INVENTORY_CONFIG } = require('./config.js');
+const { getScore, getHighScore, isGamePaused, activePowerups, hasDeadFlower, getFrameCount } = require('./gameState.js');
 const { getCurrentWave, isInInterWave, isChallengeAnnouncing, getPendingChallenge, getWaveChangeAnimationProgress } = require('./waveSystem.js');
 const { roundedRect } = require('./roundedRect.js');
 const { POWERUP_TYPES, getPowerupImage } = require('./powerupSystem.js');
@@ -16,7 +16,6 @@ const { t } = require('./i18n.js');
 // Draw score panel using flex layout
 function drawUI(ctx) {
   const score = getScore();
-  const highScore = getHighScore();
   const currentWave = getCurrentWave();
   const inInterWave = isInInterWave();
   const isPaused = isGamePaused();
@@ -251,8 +250,6 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
     console.log('GameOver socialData:', socialData);
   }
   const dailyHigh = socialData ? socialData.dailyHigh : getDailyHighScore();
-  const isNewDailyHigh = socialData ? socialData.isNewDailyHigh : false;
-
   // Game over panel with flex layout - 与开始菜单风格一致
   const gameOverPanel = flexContainer()
     .position((W - 300) / 2, (H - 480) / 2)

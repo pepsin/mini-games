@@ -1,6 +1,6 @@
 // Game State Management Module
 
-const { GROUND_Y, FLOWER_CONFIG } = require('./config.js');
+const { FLOWER_CONFIG } = require('./config.js');
 const { getResource } = require('./resources.js');
 const { resetSpawnTimer } = require('./powerupSystem.js');
 const analytics = require('./analytics.js');

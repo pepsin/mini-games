@@ -2,7 +2,6 @@
 
 const { W, H, sx, sy, ss } = require('../config.js');
 const { isResourcesLoaded, getResource } = require('../resources.js');
-const { animationLoader } = require('../animationLoader.js');
 
 // Get slingshot tips (same logic as in slingshot.js)
 function getSlingshotTips(sling) {

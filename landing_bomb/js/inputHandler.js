@@ -1,12 +1,12 @@
 // Input Handling Module
 
-const { W, H, toGame } = require('./config.js');
+const { W, toGame } = require('./config.js');
 const { isGameStarted, isGameOver, isGamePaused, setGamePaused, isPowerupSelecting, activePowerups } = require('./gameState.js');
 const { createProjectile } = require('./entities/projectile.js');
 const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
 const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
 const { hitTest } = require('./uiState.js');
-const { applySkinToProjectile, isDefaultDualShot, getFireRateMultiplier } = require('./slingshotSkinSystem.js');
+const { applySkinToProjectile, isDefaultDualShot } = require('./slingshotSkinSystem.js');
 const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds, markBirdAsBeingWatched, getUnwatchedBirds } = require('./birdWatchingSystem.js');
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll, handleAlbumSwipeStart, handleAlbumSwipeMove, handleAlbumSwipeEnd } = require('./birdAlbum.js');

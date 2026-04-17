@@ -86,11 +86,11 @@ class BaseAnalyticsAdapter {
     console.log(`[Analytics][${this.name}] ${eventName}`, data);
   }
   
-  trackPerformance(id, value, dimensions) {
+  trackPerformance() {
     // Override in subclass
   }
   
-  setUserProperties(properties) {
+  setUserProperties() {
     // Override in subclass
   }
 }
@@ -140,7 +140,7 @@ class WeChatAnalyticsAdapter extends BaseAnalyticsAdapter {
     }
   }
   
-  setUserProperties(properties) {
+  setUserProperties() {
     // WeChat doesn't support user properties directly
     // Could be implemented via cloud functions if needed
   }

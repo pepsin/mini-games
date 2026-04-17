@@ -1,8 +1,6 @@
 // Slingshot Skin System
 // Manages different slingshot skins with attributes
 
-const { W } = require('./config.js');
-
 // Skin definitions with attributes
 const SLINGSHOT_SKINS = {
   default: {

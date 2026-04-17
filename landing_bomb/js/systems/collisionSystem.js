@@ -5,8 +5,6 @@ const { W, H } = require('../config.js');
 
 // Spatial grid configuration
 const GRID_CELL_SIZE = 100; // Size of each grid cell
-const GRID_COLS = Math.ceil(W / GRID_CELL_SIZE);
-const GRID_ROWS = Math.ceil(H / GRID_CELL_SIZE);
 
 /**
  * SpatialGrid - Uniform grid spatial partitioning for efficient collision detection

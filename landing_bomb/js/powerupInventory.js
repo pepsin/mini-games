@@ -1,8 +1,7 @@
 // Powerup Inventory System - 道具槽系统
 // 管理玩家存储的道具，支持最多3个道具槽
 
-const { W, H, sx, sy, ss, INVENTORY_CONFIG } = require('./config.js');
-const { getResource } = require('./resources.js');
+const { sx, sy, ss, INVENTORY_CONFIG } = require('./config.js');
 const analytics = require('./analytics.js');
 
 // i18n
@@ -270,7 +269,7 @@ function drawEmptySlot(ctx, x, y) {
 }
 
 // 绘制飞行动画中的道具
-function drawFlyingPowerups(ctx, frameCount = 0) {
+function drawFlyingPowerups(ctx) {
   const pSystem = getPowerupSystem();
 
   for (const fp of flyingPowerups) {

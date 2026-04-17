@@ -31,7 +31,7 @@ const CHALLENGE_TYPES = {
     }
   },
   no_flower_loss: {
-    generate: (wave) => ({
+    generate: () => ({
       type: 'no_flower_loss',
       description: t('challenge.types.no_flower_loss.description'),
       target: 1,
@@ -43,7 +43,7 @@ const CHALLENGE_TYPES = {
     })
   },
   kill_streak: {
-    generate: (wave) => {
+    generate: () => {
       const target = 3;
       return {
         type: 'kill_streak',
