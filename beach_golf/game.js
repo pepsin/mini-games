@@ -25,7 +25,7 @@ const animation = new HoleInAnimation();
 const physics = new Physics();
 const camera = new Camera();
 const beach = new Beach();
-const wave = new Wave();
+const wave = new Wave(Date.now(), screenWidth * (2 / 3), 0);
 
 let stopped = true;
 let levelY = 0;
@@ -123,8 +123,10 @@ const input = new InputHandler(
 );
 
 function gameLoop() {
+    const now = Date.now();
+
     beach.draw(ctx, screenWidth, screenHeight);
-    wave.update();
+    wave.update(now);
     wave.draw(ctx, screenWidth, screenHeight);
 
     if (!stopped && !animation.active) {

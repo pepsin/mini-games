@@ -1,20 +1,62 @@
+const { windowWidth, windowHeight, pixelRatio } = wx.getSystemInfoSync();
+
 export class Wave {
-    constructor() {
-        this.time = 0;
-        this.speed = 0.05;
+    constructor(time, x, y) {
+        this.y = y;
+        this.time = time;
 
-        // Base wave parameters
-        this.frequency = 0.1;
+        // X animation range
+        this.minX = x;
+        this.maxX = windowWidth + 10;
+
+        // Animation state: progress 0 ~ 1
+        this.progress = 0;
+        this.speed = 0.005;
+        this.direction = 1; // 1 = forward (0 -> 1), -1 = backward (1 -> 0)
+
+        // Wave parameters
+        this.frequency = 0.05;
         this.baseAmplitude = 0;
-
-        // Amplitude variation parameters
         this.ampFrequency = 0.00001;
-        this.ampModulation = 20;
+        this.ampModulation = 10;
+
+        // Current computed position
+        this.x = this.minX;
+    }
+
+    // --- Easing curves ---
+    easeLinear(t) { return t; }
+    easeQuadIn(t) { return t * t; }
+    easeQuadOut(t) { return 1 - (1 - t) * (1 - t); }
+    easeQuadInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+    easeCubicInOut(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+    // Default easing — swap this for any curve above
+    ease(t) {
+        return this.easeQuadInOut(t);
+    }
+
+    update(_time) {
+        // Advance progress
+        this.progress += this.speed * this.direction;
+
+        // Ping-pong at boundaries
+        if (this.progress >= 1) {
+            this.progress = 1;
+            this.direction = -1;
+        } else if (this.progress <= 0) {
+            this.progress = 0;
+            this.direction = 1;
+        }
+
+        // Map eased progress to x range
+        const eased = this.ease(this.progress);
+        this.x = this.minX + (this.maxX - this.minX) * eased;
     }
 
     // Simple 1D hash: outputs a pseudo-random value in [0, 1) for integer n
     hash(n) {
-        const x = Math.sin(n * 127.1 + 311.7) * 43758.5453123;
+        const x = Math.sin(n * 122.1 + 311.7) * 43758.5453123;
         return x - Math.floor(x);
     }
 
@@ -29,36 +71,50 @@ export class Wave {
         return n0 + (n1 - n0) * u;
     }
 
-    update() {
-        this.time += this.speed;
-    }
-
     draw(ctx, screenWidth, screenHeight) {
         ctx.save();
-        ctx.beginPath();
 
-        const centerX = screenWidth * (2 / 3);
         const step = 2;
+        const points = [];
 
-        for (let y = 0; y <= screenHeight; y += step) {
+        for (let y = this.y; y <= screenHeight; y += step) {
             // Amplitude varies along y using a slower sine wave
             const amp = this.baseAmplitude + this.noise(y) * this.ampModulation;
 
             // Main sine wave, continuous in time, vertical orientation
-            const x = centerX + Math.sin(y * this.frequency + this.time) * amp;
-
-            if (y === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
+            const x = this.x + Math.sin(y * this.frequency + this.time) * amp;
+            points.push({ x, y });
         }
 
+        if (points.length === 0) {
+            ctx.restore();
+            return;
+        }
+
+        // Fill the area to the right of the wave line
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.lineTo(screenWidth, points[points.length - 1].y);
+        ctx.lineTo(screenWidth, points[0].y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(30, 144, 255, 0.35)';
+        ctx.fill();
+
+        // Stroke the wave line
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+        }
         ctx.strokeStyle = 'rgba(30, 144, 255, 0.8)';
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
+
         ctx.restore();
     }
 }
