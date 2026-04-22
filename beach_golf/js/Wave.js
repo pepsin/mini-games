@@ -1,17 +1,18 @@
 const { windowWidth, windowHeight, pixelRatio } = wx.getSystemInfoSync();
 
 export class Wave {
-    constructor(time, x, y) {
+    constructor(time, color, speed, x, y) {
+        this.color = color;
         this.y = y;
         this.time = time;
 
         // X animation range
         this.minX = x;
-        this.maxX = windowWidth + 10;
+        this.maxX = x + windowWidth / 3;
 
         // Animation state: progress 0 ~ 1
         this.progress = 0;
-        this.speed = 0.005;
+        this.speed = speed;
         this.direction = 1; // 1 = forward (0 -> 1), -1 = backward (1 -> 0)
 
         // Wave parameters
@@ -37,8 +38,12 @@ export class Wave {
     }
 
     update(_time) {
+        const wasAtStart = this.progress <= 0;
+
         // Advance progress
         this.progress += this.speed * this.direction;
+
+        let spawned = false;
 
         // Ping-pong at boundaries
         if (this.progress >= 1) {
@@ -47,11 +52,16 @@ export class Wave {
         } else if (this.progress <= 0) {
             this.progress = 0;
             this.direction = 1;
+            if (!wasAtStart) {
+                spawned = true;
+            }
         }
 
         // Map eased progress to x range
         const eased = this.ease(this.progress);
         this.x = this.minX + (this.maxX - this.minX) * eased;
+
+        return spawned;
     }
 
     // Simple 1D hash: outputs a pseudo-random value in [0, 1) for integer n
@@ -100,7 +110,7 @@ export class Wave {
         ctx.lineTo(screenWidth, points[points.length - 1].y);
         ctx.lineTo(screenWidth, points[0].y);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(30, 144, 255, 0.35)';
+        ctx.fillStyle = this.color;
         ctx.fill();
 
         // Stroke the wave line
@@ -109,8 +119,8 @@ export class Wave {
         for (let i = 1; i < points.length; i++) {
             ctx.lineTo(points[i].x, points[i].y);
         }
-        ctx.strokeStyle = 'rgba(30, 144, 255, 0.8)';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 7;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();

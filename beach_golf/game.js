@@ -6,6 +6,7 @@ import { InputHandler } from './js/InputHandler.js';
 import { Camera } from './js/Camera.js';
 import { Beach } from './js/Beach.js';
 import { Wave } from './js/Wave.js';
+import { StaticWave } from './js/StaticWave.js';
 
 const { windowWidth, windowHeight, pixelRatio } = wx.getSystemInfoSync();
 
@@ -25,7 +26,12 @@ const animation = new HoleInAnimation();
 const physics = new Physics();
 const camera = new Camera();
 const beach = new Beach();
-const wave = new Wave(Date.now(), screenWidth * (2 / 3), 0);
+const startFactor = Date.now()
+const firstX = screenWidth * (2 / 3) - 50;
+const firstWave = new Wave(startFactor, '#8baab5', 0.005, firstX, 0);
+const secondWave = new Wave(Date.now() + Math.random() * 10000, 'rgba(59, 192, 187, 0.2)', 0.005, firstX + 50, 0);
+const thirdWave = new Wave(Date.now() + Math.random() * 10000, 'rgba(115, 185, 255, 0.2)', 0.005, firstX + 100, 0);
+const staticWaves = [];
 
 let stopped = true;
 let levelY = 0;
@@ -126,8 +132,28 @@ function gameLoop() {
     const now = Date.now();
 
     beach.draw(ctx, screenWidth, screenHeight);
-    wave.update(now);
-    wave.draw(ctx, screenWidth, screenHeight);
+    const spawned = firstWave.update(now);
+    secondWave.update(now);
+    thirdWave.update(now);
+
+    // Spawn a new static wet mark when firstWave hits minX
+    if (spawned) {
+        staticWaves.push(new StaticWave(firstWave, '#c8b48c'));
+    }
+
+    // Update static waves and remove dead ones
+    for (let i = staticWaves.length - 1; i >= 0; i--) {
+        if (!staticWaves[i].update()) {
+            staticWaves.splice(i, 1);
+        }
+    }
+
+    // Draw static waves behind the moving ones
+    staticWaves.forEach(sw => sw.draw(ctx, screenWidth, screenHeight));
+
+    firstWave.draw(ctx, screenWidth, screenHeight);
+    secondWave.draw(ctx, screenWidth, screenHeight);
+    thirdWave.draw(ctx, screenWidth, screenHeight);
 
     if (!stopped && !animation.active) {
         stopped = physics.update(ball);
