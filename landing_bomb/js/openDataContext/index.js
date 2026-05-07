@@ -51,8 +51,10 @@ function showLeaderboard() {
       userData = res.data || [];
       // Sort by score (descending)
       userData.sort((a, b) => {
-        const scoreA = parseInt(a.KVDataList?.find(kv => kv.key === 'score')?.value || 0);
-        const scoreB = parseInt(b.KVDataList?.find(kv => kv.key === 'score')?.value || 0);
+        const kvA = a.KVDataList && a.KVDataList.find(function(kv) { return kv.key === 'score'; });
+        const kvB = b.KVDataList && b.KVDataList.find(function(kv) { return kv.key === 'score'; });
+        const scoreA = parseInt((kvA && kvA.value) || 0);
+        const scoreB = parseInt((kvB && kvB.value) || 0);
         return scoreB - scoreA;
       });
       drawLeaderboard();
@@ -113,7 +115,8 @@ function drawLeaderboard() {
     ctx.fillStyle = rankColor;
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText(`${i + 1}`, 40, y + 15);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${i + 1}`, 40, y + 25);
     
     // Avatar (emoji if provided, otherwise green circle placeholder)
     if (user.avatarEmoji) {
@@ -135,15 +138,18 @@ function drawLeaderboard() {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '16px Arial';
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
     const nickname = user.nickname || '未知玩家';
-    ctx.fillText(nickname, 120, y + 18);
+    ctx.fillText(nickname, 120, y + 25);
     
     // Score
-    const score = user.KVDataList?.find(kv => kv.key === 'score')?.value || '0';
+    const score = (user.KVDataList && user.KVDataList.find(function(kv) { return kv.key === 'score'; }));
+    const scoreVal = (score && score.value) || '0';
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'right';
-    ctx.fillText(score, W - 40, y + 18);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(scoreVal, W - 40, y + 25);
   }
   
   // Close hint
