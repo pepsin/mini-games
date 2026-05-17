@@ -209,6 +209,37 @@ function updateLeaderboardBirdCount() {
   }
 }
 
+// Batch upload both score and bird count in a single API call
+function updateLeaderboardData(score, birdCount) {
+  if (!openDataContext) {
+    initLeaderboard();
+  }
+
+  const kvList = [];
+  if (lastUploadedScore !== score) {
+    kvList.push({ key: 'score', value: String(score) });
+    lastUploadedScore = score;
+  }
+  if (lastUploadedBirdCount !== birdCount) {
+    kvList.push({ key: 'birdCount', value: String(birdCount) });
+    lastUploadedBirdCount = birdCount;
+  }
+
+  if (kvList.length === 0) {
+    return;
+  }
+
+  try {
+    openDataContext.postMessage({
+      action: 'setUserCloudStorage',
+      KVDataList: kvList
+    });
+    console.log('Leaderboard data updated:', kvList);
+  } catch (e) {
+    console.log('Failed to update leaderboard data:', e);
+  }
+}
+
 let leaderboardVisible = false;
 
 function isLeaderboardVisible() {
@@ -376,9 +407,9 @@ function getGameOverSocialData() {
   // Save scores
   const isNewDailyHigh = saveDailyHighScore(score);
 
-  // Update leaderboard
-  updateLeaderboardScore(score);
-  updateLeaderboardBirdCount();
+  // Update leaderboard (batch upload score + bird count in one call)
+  const birdCount = getAlbumStats().captured;
+  updateLeaderboardData(score, birdCount);
 
   return {
     score,
@@ -418,6 +449,7 @@ module.exports = {
   // Leaderboard
   updateLeaderboardScore,
   updateLeaderboardBirdCount,
+  updateLeaderboardData,
   showFriendRank,
   hideFriendRank,
   isLeaderboardVisible,

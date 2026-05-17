@@ -27,7 +27,7 @@ let albumSwipeInProgress = false;
 function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
 
-  // If leaderboard is visible, handle close button, tab switching, or close
+  // If leaderboard is visible, handle close button or tab switching
   // Note: leaderboard is drawn in open data context using screen pixel coordinates,
   // so we use raw client coordinates (not game coordinates) for hit testing.
   if (isLeaderboardVisible()) {
@@ -61,8 +61,7 @@ function handleTouchStart(e) {
         return;
       }
     }
-    // Not clicking close or a tab - close leaderboard
-    hideFriendRank();
+    // Clicking outside close button / tabs does nothing
     return;
   }
 

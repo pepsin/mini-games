@@ -21,12 +21,23 @@ wx.onMessage((data) => {
   switch (data.action) {
     case 'setUserCloudStorage':
       // Store score/birdCount to cloud
+      // Supports both single key-value (data.key + data.value)
+      // and batch upload (data.KVDataList array)
+      let kvList = [];
+      if (Array.isArray(data.KVDataList)) {
+        kvList = data.KVDataList.map(item => ({
+          key: item.key,
+          value: String(item.value)
+        }));
+      } else if (data.key !== undefined) {
+        kvList = [{ key: data.key, value: String(data.value) }];
+      }
+      if (kvList.length === 0) break;
+
       wx.setUserCloudStorage({
-        KVDataList: [
-          { key: data.key, value: String(data.value) }
-        ],
+        KVDataList: kvList,
         success: () => {
-          console.log('Cloud data saved:', data.key, data.value);
+          console.log('Cloud data saved:', kvList);
         },
         fail: (err) => {
           console.log('Failed to save cloud data:', err);
@@ -118,8 +129,9 @@ function showLeaderboard() {
       userData = res.data || [];
       // Sort by current tab's key (descending)
       userData.sort((a, b) => {
-        const kvA = a.KVDataList && a.KVDataList.find(function(kv) { return kv.key === currentTab; });
-        const kvB = b.KVDataList && b.KVDataList.find(function(kv) { return kv.key === currentTab; });
+        const storageKey = getStorageKey(currentTab);
+        const kvA = a.KVDataList && a.KVDataList.find(function(kv) { return kv.key === storageKey; });
+        const kvB = b.KVDataList && b.KVDataList.find(function(kv) { return kv.key === storageKey; });
         const valA = parseInt((kvA && kvA.value) || 0);
         const valB = parseInt((kvB && kvB.value) || 0);
         return valB - valA;
@@ -152,6 +164,10 @@ function getTabLabel(tab) {
 
 function getTabValueLabel(tab) {
   return tab === 'score' ? '分' : '种';
+}
+
+function getStorageKey(tab) {
+  return tab === 'score' ? 'score' : 'birdCount';
 }
 
 function drawRoundRectPath(ctx, x, y, w, h, r) {
@@ -304,7 +320,8 @@ function drawLeaderboard() {
     ctx.fillText(nickname, 120, y + 25);
     
     // Score / Bird count
-    const kv = user.KVDataList && user.KVDataList.find(function(kv) { return kv.key === currentTab; });
+    const storageKey = getStorageKey(currentTab);
+    const kv = user.KVDataList && user.KVDataList.find(function(kv) { return kv.key === storageKey; });
     const val = (kv && kv.value) || '0';
     const unit = getTabValueLabel(currentTab);
     ctx.fillStyle = '#FFD700';
