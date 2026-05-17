@@ -6,6 +6,7 @@ let ctx = sharedCanvas.getContext('2d');
 
 let isLeaderboardVisible = false;
 let userData = [];
+let safeAreaTop = 0;
 
 // Avatar image cache: openid -> HTMLImageElement
 const avatarCache = {};
@@ -38,6 +39,7 @@ wx.onMessage((data) => {
         sharedCanvas.width = data.width;
         sharedCanvas.height = data.height;
       }
+      safeAreaTop = data.safeAreaTop || 0;
       showLeaderboard();
       break;
       
@@ -117,15 +119,16 @@ function drawLeaderboard() {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
   ctx.fillRect(0, 0, W, H);
   
-  // Title
+  // Title - offset by safe area top
+  const titleY = 40 + safeAreaTop;
   ctx.fillStyle = '#FFD700';
   ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText('🏆 好友排行榜 🏆', W / 2, 40);
+  ctx.fillText('🏆 好友排行榜 🏆', W / 2, titleY);
   
   // Draw user list
-  const startY = 80;
+  const startY = titleY + 40;
   const itemHeight = 50;
   const maxItems = Math.min(userData.length, 10);
   

@@ -187,6 +187,7 @@ function showFriendRank() {
     const sysInfo = wx.getSystemInfoSync();
     const canvasWidth = sysInfo.windowWidth;
     const canvasHeight = sysInfo.windowHeight;
+    const safeArea = sysInfo.safeArea || { top: 0, left: 0, right: canvasWidth, bottom: canvasHeight, width: canvasWidth, height: canvasHeight };
 
     // Ensure sharedCanvas size matches main canvas
     if (openDataContext && openDataContext.canvas) {
@@ -197,7 +198,8 @@ function showFriendRank() {
     openDataContext.postMessage({
       action: 'showFriendRank',
       width: canvasWidth,
-      height: canvasHeight
+      height: canvasHeight,
+      safeAreaTop: safeArea.top
     });
     leaderboardVisible = true;
     console.log('Friend rank display triggered');
