@@ -159,6 +159,8 @@ const zh = {
   // Social Features
   social: {
     leaderboard: '排行榜',
+    scoreRank: '分数排行',
+    birdRank: '观鸟排行',
     share: '分享战绩',
     invite: '邀请好友',
     shareGame: '分享游戏',

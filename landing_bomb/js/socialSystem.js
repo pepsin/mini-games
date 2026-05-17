@@ -3,6 +3,7 @@
 
 const { getScore, getHighScore } = require('./gameState.js');
 const analytics = require('./analytics.js');
+const { getAlbumStats } = require('./birdAlbum.js');
 
 // i18n
 const { t } = require('./i18n.js');
@@ -118,6 +119,7 @@ function recordRevive() {
 function resetReviveStatus() {
   hasRevivedInCurrentGame = false;
   lastUploadedScore = null;
+  lastUploadedBirdCount = null;
   console.log('Revive status reset for new game');
 }
 
@@ -145,6 +147,8 @@ function triggerShareToRevive(onSuccess, onCancel) {
 
 let openDataContext = null;
 let lastUploadedScore = null;
+let lastUploadedBirdCount = null;
+let currentLeaderboardTab = 'score';
 
 function initLeaderboard() {
   try {
@@ -179,16 +183,44 @@ function updateLeaderboardScore(score) {
   }
 }
 
+function updateLeaderboardBirdCount() {
+  if (!openDataContext) {
+    initLeaderboard();
+  }
+
+  const stats = getAlbumStats();
+  const count = stats.captured;
+
+  // Skip redundant uploads
+  if (lastUploadedBirdCount === count) {
+    return;
+  }
+
+  try {
+    openDataContext.postMessage({
+      action: 'setUserCloudStorage',
+      key: 'birdCount',
+      value: count
+    });
+    lastUploadedBirdCount = count;
+    console.log('Leaderboard bird count updated:', count);
+  } catch (e) {
+    console.log('Failed to update bird leaderboard:', e);
+  }
+}
+
 let leaderboardVisible = false;
 
 function isLeaderboardVisible() {
   return leaderboardVisible;
 }
 
-function showFriendRank() {
+function showFriendRank(tab = 'score') {
   if (!openDataContext) {
     initLeaderboard();
   }
+
+  currentLeaderboardTab = tab;
 
   try {
     // Get main canvas size from WeChat system info
@@ -207,10 +239,11 @@ function showFriendRank() {
       action: 'showFriendRank',
       width: canvasWidth,
       height: canvasHeight,
-      safeAreaTop: safeArea.top
+      safeAreaTop: safeArea.top,
+      tab: tab
     });
     leaderboardVisible = true;
-    console.log('Friend rank display triggered');
+    console.log('Friend rank display triggered, tab:', tab);
 
     // Track leaderboard view
     analytics.trackLeaderboardView('friends');
@@ -229,6 +262,52 @@ function hideFriendRank() {
     leaderboardVisible = false;
   } catch (e) {
     console.log('Failed to hide friend rank:', e);
+  }
+}
+
+function getLeaderboardTab() {
+  return currentLeaderboardTab;
+}
+
+function setLeaderboardTab(tab) {
+  currentLeaderboardTab = tab;
+  if (openDataContext) {
+    try {
+      openDataContext.postMessage({
+        action: 'switchTab',
+        tab: tab
+      });
+    } catch (e) {
+      console.log('Failed to switch tab:', e);
+    }
+  }
+}
+
+function getLeaderboardTabBounds() {
+  if (!leaderboardVisible) return null;
+
+  try {
+    const sysInfo = wx.getSystemInfoSync();
+    const W = sysInfo.windowWidth;
+    const safeArea = sysInfo.safeArea || { top: 0 };
+    const titleY = 40 + safeArea.top;
+    const tabY = titleY + 35;
+    const tabHeight = 36;
+    const tabGap = 10;
+    const sideMargin = 40;
+    const tabWidth = (W - sideMargin * 2 - tabGap) / 2;
+    const closeSize = 40;
+    const closeX = 20;
+    const closeY = 20 + safeArea.top;
+
+    return {
+      closeButton: { x: closeX, y: closeY, width: closeSize, height: closeSize },
+      scoreTab: { x: sideMargin, y: tabY, width: tabWidth, height: tabHeight },
+      birdTab: { x: sideMargin + tabWidth + tabGap, y: tabY, width: tabWidth, height: tabHeight }
+    };
+  } catch (e) {
+    console.log('Failed to get tab bounds:', e);
+    return null;
   }
 }
 
@@ -299,6 +378,7 @@ function getGameOverSocialData() {
 
   // Update leaderboard
   updateLeaderboardScore(score);
+  updateLeaderboardBirdCount();
 
   return {
     score,
@@ -337,9 +417,13 @@ module.exports = {
   
   // Leaderboard
   updateLeaderboardScore,
+  updateLeaderboardBirdCount,
   showFriendRank,
   hideFriendRank,
   isLeaderboardVisible,
+  getLeaderboardTab,
+  setLeaderboardTab,
+  getLeaderboardTabBounds,
   
   // Share
   shareGame,

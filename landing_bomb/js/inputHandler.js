@@ -11,7 +11,7 @@ const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capture
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll, handleAlbumSwipeStart, handleAlbumSwipeMove, handleAlbumSwipeEnd } = require('./birdAlbum.js');
 const { hitTestInventory } = require('./powerupInventory.js');
-const { shareGame, triggerShareToRevive, showFriendRank, isLeaderboardVisible, hideFriendRank } = require('./socialSystem.js');
+const { shareGame, triggerShareToRevive, showFriendRank, isLeaderboardVisible, hideFriendRank, getLeaderboardTab, setLeaderboardTab, getLeaderboardTabBounds } = require('./socialSystem.js');
 const { handleSelectorTouch } = require('./powerupSelector.js');
 
 // Game reference for firing
@@ -27,8 +27,41 @@ let albumSwipeInProgress = false;
 function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
 
-  // If leaderboard is visible, close it on any touch and consume the event
+  // If leaderboard is visible, handle close button, tab switching, or close
+  // Note: leaderboard is drawn in open data context using screen pixel coordinates,
+  // so we use raw client coordinates (not game coordinates) for hit testing.
   if (isLeaderboardVisible()) {
+    const screenX = e.touches[0].clientX;
+    const screenY = e.touches[0].clientY;
+    const tabBounds = getLeaderboardTabBounds();
+    if (tabBounds) {
+      // Check close button hit first
+      const closeBtn = tabBounds.closeButton;
+      if (screenX >= closeBtn.x && screenX <= closeBtn.x + closeBtn.width &&
+          screenY >= closeBtn.y && screenY <= closeBtn.y + closeBtn.height) {
+        hideFriendRank();
+        return;
+      }
+      // Check score tab hit
+      const scoreTab = tabBounds.scoreTab;
+      if (screenX >= scoreTab.x && screenX <= scoreTab.x + scoreTab.width &&
+          screenY >= scoreTab.y && screenY <= scoreTab.y + scoreTab.height) {
+        if (getLeaderboardTab() !== 'score') {
+          setLeaderboardTab('score');
+        }
+        return;
+      }
+      // Check bird tab hit
+      const birdTab = tabBounds.birdTab;
+      if (screenX >= birdTab.x && screenX <= birdTab.x + birdTab.width &&
+          screenY >= birdTab.y && screenY <= birdTab.y + birdTab.height) {
+        if (getLeaderboardTab() !== 'bird') {
+          setLeaderboardTab('bird');
+        }
+        return;
+      }
+    }
+    // Not clicking close or a tab - close leaderboard
     hideFriendRank();
     return;
   }

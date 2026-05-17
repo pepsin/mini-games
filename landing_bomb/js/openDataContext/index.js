@@ -7,6 +7,7 @@ let ctx = sharedCanvas.getContext('2d');
 let isLeaderboardVisible = false;
 let userData = [];
 let safeAreaTop = 0;
+let currentTab = 'score'; // 'score' or 'bird'
 
 // Avatar image cache: openid -> HTMLImageElement
 const avatarCache = {};
@@ -19,16 +20,16 @@ wx.onMessage((data) => {
   
   switch (data.action) {
     case 'setUserCloudStorage':
-      // Store score to cloud
+      // Store score/birdCount to cloud
       wx.setUserCloudStorage({
         KVDataList: [
-          { key: 'score', value: String(data.value) }
+          { key: data.key, value: String(data.value) }
         ],
         success: () => {
-          console.log('Score saved to cloud:', data.value);
+          console.log('Cloud data saved:', data.key, data.value);
         },
         fail: (err) => {
-          console.log('Failed to save score:', err);
+          console.log('Failed to save cloud data:', err);
         }
       });
       break;
@@ -40,11 +41,23 @@ wx.onMessage((data) => {
         sharedCanvas.height = data.height;
       }
       safeAreaTop = data.safeAreaTop || 0;
+      if (data.tab) {
+        currentTab = data.tab;
+      }
       showLeaderboard();
       break;
       
     case 'hideFriendRank':
       hideLeaderboard();
+      break;
+
+    case 'switchTab':
+      if (data.tab && data.tab !== currentTab) {
+        currentTab = data.tab;
+        if (isLeaderboardVisible) {
+          showLeaderboard();
+        }
+      }
       break;
       
     default:
@@ -96,20 +109,20 @@ function showLeaderboard() {
     drawError('无法加载排行榜', '请检查隐私授权设置');
   }), TIMEOUT_MS);
 
-  // Get friend data
+  // Get friend data (both score and birdCount)
   wx.getFriendCloudStorage({
-    keyList: ['score'],
+    keyList: ['score', 'birdCount'],
     success: handleResponse((res) => {
       clearTimeout(timeoutId);
       console.log('Friend data:', res);
       userData = res.data || [];
-      // Sort by score (descending)
+      // Sort by current tab's key (descending)
       userData.sort((a, b) => {
-        const kvA = a.KVDataList && a.KVDataList.find(function(kv) { return kv.key === 'score'; });
-        const kvB = b.KVDataList && b.KVDataList.find(function(kv) { return kv.key === 'score'; });
-        const scoreA = parseInt((kvA && kvA.value) || 0);
-        const scoreB = parseInt((kvB && kvB.value) || 0);
-        return scoreB - scoreA;
+        const kvA = a.KVDataList && a.KVDataList.find(function(kv) { return kv.key === currentTab; });
+        const kvB = b.KVDataList && b.KVDataList.find(function(kv) { return kv.key === currentTab; });
+        const valA = parseInt((kvA && kvA.value) || 0);
+        const valB = parseInt((kvB && kvB.value) || 0);
+        return valB - valA;
       });
       // Preload avatars
       userData.forEach(loadAvatar);
@@ -133,6 +146,72 @@ function hideLeaderboard() {
   ctx.clearRect(0, 0, sharedCanvas.width, sharedCanvas.height);
 }
 
+function getTabLabel(tab) {
+  return tab === 'score' ? '分数排行' : '观鸟排行';
+}
+
+function getTabValueLabel(tab) {
+  return tab === 'score' ? '分' : '种';
+}
+
+function drawRoundRectPath(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function drawTabs(W, titleY) {
+  const tabY = titleY + 35;
+  const tabHeight = 36;
+  const tabGap = 10;
+  const sideMargin = 40;
+  const tabWidth = (W - sideMargin * 2 - tabGap) / 2;
+
+  const tabs = [
+    { key: 'score', x: sideMargin, label: getTabLabel('score') },
+    { key: 'bird', x: sideMargin + tabWidth + tabGap, label: getTabLabel('bird') }
+  ];
+
+  tabs.forEach(tab => {
+    const isActive = currentTab === tab.key;
+    const cx = tab.x + tabWidth / 2;
+    const cy = tabY + tabHeight / 2;
+
+    // Tab background
+    if (isActive) {
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+      drawRoundRectPath(ctx, tab.x, tabY, tabWidth, tabHeight, 8);
+      ctx.fill();
+
+      // Active bottom border
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(tab.x + 10, tabY + tabHeight - 3, tabWidth - 20, 3);
+    } else {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      drawRoundRectPath(ctx, tab.x, tabY, tabWidth, tabHeight, 8);
+      ctx.fill();
+    }
+
+    // Tab text
+    ctx.fillStyle = isActive ? '#FFD700' : '#AAAAAA';
+    ctx.font = isActive ? 'bold 16px Arial' : '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tab.label, cx, cy);
+  });
+
+  return tabY + tabHeight;
+}
+
 function drawLeaderboard() {
   if (!isLeaderboardVisible) return;
   
@@ -154,8 +233,11 @@ function drawLeaderboard() {
   ctx.textBaseline = 'top';
   ctx.fillText('🏆 好友排行榜 🏆', W / 2, titleY);
   
+  // Draw tabs
+  const listStartY = drawTabs(W, titleY);
+  
   // Draw user list
-  const startY = titleY + 40;
+  const startY = listStartY + 15;
   const itemHeight = 50;
   const maxItems = Math.min(userData.length, 10);
   
@@ -221,21 +303,32 @@ function drawLeaderboard() {
     const nickname = user.nickname || '未知玩家';
     ctx.fillText(nickname, 120, y + 25);
     
-    // Score
-    const score = (user.KVDataList && user.KVDataList.find(function(kv) { return kv.key === 'score'; }));
-    const scoreVal = (score && score.value) || '0';
+    // Score / Bird count
+    const kv = user.KVDataList && user.KVDataList.find(function(kv) { return kv.key === currentTab; });
+    const val = (kv && kv.value) || '0';
+    const unit = getTabValueLabel(currentTab);
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText(scoreVal, W - 40, y + 25);
+    ctx.fillText(val + unit, W - 40, y + 25);
   }
   
-  // Close hint
+  // Close button (top-left, circular with ×, same style as bird album)
+  const closeSize = 40;
+  const closeX = 20;
+  const closeY = 20 + safeAreaTop;
+
   ctx.fillStyle = '#AAAAAA';
-  ctx.font = '14px Arial';
+  ctx.beginPath();
+  ctx.arc(closeX + closeSize / 2, closeY + closeSize / 2, closeSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#FFF';
+  ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('点击任意处关闭', W / 2, H - 30);
+  ctx.textBaseline = 'middle';
+  ctx.fillText('×', closeX + closeSize / 2, closeY + closeSize / 2 + 2);
 }
 
 function drawLoading() {

@@ -159,6 +159,8 @@ const en = {
   // Social Features
   social: {
     leaderboard: 'Leaderboard',
+    scoreRank: 'Score Rank',
+    birdRank: 'Bird Rank',
     share: 'Share Score',
     invite: 'Invite Friends',
     shareGame: 'Share Game',
