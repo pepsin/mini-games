@@ -1,0 +1,26 @@
+{
+	"desc": "关于本文件的更多信息，请参考文档 代码加固开发者文档: https://developers.weixin.qq.com/miniprogram/dev/devtools/code_obfuscation.html",
+	"switch": true,
+	"configs": [
+		{
+			"path": "js/inputHandler.js",
+			"sub_switch": true
+		},
+		{
+			"path": "js/parachute.js",
+			"sub_switch": true
+		},
+		{
+			"path": "js/ui.js",
+			"sub_switch": true
+		},
+		{
+			"path": "js/birdWatchingSystem.js",
+			"sub_switch": true
+		},
+		{
+			"path": "js/birdAlbum.js",
+			"sub_switch": true
+		}
+	]
+}

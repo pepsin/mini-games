@@ -7,6 +7,11 @@ let ctx = sharedCanvas.getContext('2d');
 let isLeaderboardVisible = false;
 let userData = [];
 
+// Avatar image cache: openid -> HTMLImageElement
+const avatarCache = {};
+// Track which avatars have finished loading
+const avatarLoaded = {};
+
 // Initialize
 wx.onMessage((data) => {
   console.log('Open data context received message:', data);
@@ -28,6 +33,11 @@ wx.onMessage((data) => {
       break;
       
     case 'showFriendRank':
+      // Set shared canvas size from main canvas dimensions
+      if (data.width && data.height) {
+        sharedCanvas.width = data.width;
+        sharedCanvas.height = data.height;
+      }
       showLeaderboard();
       break;
       
@@ -40,9 +50,30 @@ wx.onMessage((data) => {
   }
 });
 
+function loadAvatar(user) {
+  const openid = user.openid;
+  const url = user.avatarUrl;
+  if (!openid || !url) return;
+  if (avatarCache[openid]) return; // Already loading or loaded
+
+  const img = wx.createImage();
+  avatarCache[openid] = img;
+  img.onload = () => {
+    avatarLoaded[openid] = true;
+    if (isLeaderboardVisible) {
+      drawLeaderboard();
+    }
+  };
+  img.onerror = () => {
+    console.log('Failed to load avatar for', openid);
+    // Keep as not loaded; fallback placeholder will be used
+  };
+  img.src = url;
+}
+
 function showLeaderboard() {
   isLeaderboardVisible = true;
-  
+
   // Get friend data
   wx.getFriendCloudStorage({
     keyList: ['score'],
@@ -57,6 +88,8 @@ function showLeaderboard() {
         const scoreB = parseInt((kvB && kvB.value) || 0);
         return scoreB - scoreA;
       });
+      // Preload avatars
+      userData.forEach(loadAvatar);
       drawLeaderboard();
     },
     fail: (err) => {
@@ -118,15 +151,31 @@ function drawLeaderboard() {
     ctx.textBaseline = 'middle';
     ctx.fillText(`${i + 1}`, 40, y + 25);
     
-    // Avatar (emoji if provided, otherwise green circle placeholder)
-    if (user.avatarEmoji) {
-      ctx.font = '24px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(user.avatarEmoji, 90, y + 25);
-    } else {
+    // Avatar (real WeChat avatar, circular clip)
+    const openid = user.openid;
+    const avatarImg = avatarCache[openid];
+    const avatarReady = avatarLoaded[openid];
+    const cx = 90;
+    const cy = y + 25;
+    const r = 15;
+
+    if (avatarImg && avatarReady) {
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(90, y + 25, 15, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(avatarImg, cx - r, cy - r, r * 2, r * 2);
+      ctx.restore();
+      // White border around avatar
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      // Placeholder while loading or if no avatar
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fillStyle = '#4ECDC4';
       ctx.fill();
       ctx.strokeStyle = '#FFFFFF';

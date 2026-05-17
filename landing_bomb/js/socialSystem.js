@@ -171,29 +171,39 @@ function updateLeaderboardScore(score) {
   }
 }
 
-let leaderboardTouchListener = null;
+let leaderboardVisible = false;
+
+function isLeaderboardVisible() {
+  return leaderboardVisible;
+}
 
 function showFriendRank() {
   if (!openDataContext) {
     initLeaderboard();
   }
-  
+
   try {
+    // Get main canvas size from WeChat system info
+    const sysInfo = wx.getSystemInfoSync();
+    const canvasWidth = sysInfo.windowWidth;
+    const canvasHeight = sysInfo.windowHeight;
+
+    // Ensure sharedCanvas size matches main canvas
+    if (openDataContext && openDataContext.canvas) {
+      openDataContext.canvas.width = canvasWidth;
+      openDataContext.canvas.height = canvasHeight;
+    }
+
     openDataContext.postMessage({
-      action: 'showFriendRank'
+      action: 'showFriendRank',
+      width: canvasWidth,
+      height: canvasHeight
     });
+    leaderboardVisible = true;
     console.log('Friend rank display triggered');
-    
+
     // Track leaderboard view
     analytics.trackLeaderboardView('friends');
-    
-    // Add touch listener to close leaderboard
-    if (!leaderboardTouchListener) {
-      leaderboardTouchListener = () => {
-        hideFriendRank();
-      };
-      wx.onTouchStart(leaderboardTouchListener);
-    }
   } catch (e) {
     console.log('Failed to show friend rank:', e);
   }
@@ -201,17 +211,12 @@ function showFriendRank() {
 
 function hideFriendRank() {
   if (!openDataContext) return;
-  
+
   try {
     openDataContext.postMessage({
       action: 'hideFriendRank'
     });
-    
-    // Remove touch listener
-    if (leaderboardTouchListener) {
-      wx.offTouchStart(leaderboardTouchListener);
-      leaderboardTouchListener = null;
-    }
+    leaderboardVisible = false;
   } catch (e) {
     console.log('Failed to hide friend rank:', e);
   }
@@ -219,13 +224,13 @@ function hideFriendRank() {
 
 // ==================== Share Features ====================
 
-function shareGame(from = 'menu') {
+function buildShareData(from = 'menu') {
   const score = getScore();
   const highScore = getHighScore();
   const dailyHigh = getDailyHighScore();
-  
+
   let title = t('social.shareDefaultTitle');
-  
+
   if (score > 0) {
     title = t('social.shareScoreTitle', { score: score });
   } else if (dailyHigh > 0) {
@@ -233,15 +238,40 @@ function shareGame(from = 'menu') {
   } else if (highScore > 0) {
     title = t('social.shareHighScoreTitle', { score: highScore });
   }
-  
-  // Track share event
-  analytics.trackShare(from, score);
-  
-  wx.shareAppMessage({
-    title: title,
+
+  return {
+    title,
     imageUrl: '',
     query: `from=${from}&score=${score}&highScore=${highScore}`
-  });
+  };
+}
+
+function shareGame(from = 'menu') {
+  const shareData = buildShareData(from);
+
+  // Track share event
+  analytics.trackShare(from, getScore());
+
+  wx.shareAppMessage(shareData);
+}
+
+function initShareMenu() {
+  try {
+    // Enable the top-right capsule share button
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
+
+    // Set up share callback for top-right menu forwarding
+    wx.onShareAppMessage(() => {
+      return buildShareData('capsule');
+    });
+
+    console.log('Share menu initialized');
+  } catch (e) {
+    console.log('Failed to init share menu:', e);
+  }
 }
 
 // ==================== Game Over Social Data ====================
@@ -276,6 +306,7 @@ function getGameOverSocialData() {
 function initSocialSystem() {
   resetDailyStatsIfNeeded();
   initLeaderboard();
+  initShareMenu();
   console.log('Social system initialized');
 }
 
@@ -298,6 +329,7 @@ module.exports = {
   updateLeaderboardScore,
   showFriendRank,
   hideFriendRank,
+  isLeaderboardVisible,
   
   // Share
   shareGame,

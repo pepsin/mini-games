@@ -331,6 +331,17 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
     }
   }
 
+  // Leaderboard button
+  buttonContainer.addChild(
+    flexItem()
+      .tag('gameOverLeaderboardButton')
+      .text(t('social.leaderboard'), 16)
+      .textStyle('#FFFFFF', 16, 'Arial', 'bold')
+      .background('#CCAC00')
+      .size(200, 45)
+      .cornerRadius(12)
+  );
+
   // 再来一次按钮 - 主按钮风格，与开始菜单的"开始游戏"按钮一致
   buttonContainer.addChild(
     flexItem()
@@ -350,6 +361,9 @@ function drawGameOver(ctx, canvas, showSocialFeatures = true) {
   // Store button bounds
   const restartBounds = gameOverPanel.getTaggedBounds('restartButton');
   if (restartBounds) setButtonBounds('restartButton', restartBounds.x, restartBounds.y, restartBounds.width, restartBounds.height);
+  
+  const gameOverLeaderboardBounds = gameOverPanel.getTaggedBounds('gameOverLeaderboardButton');
+  if (gameOverLeaderboardBounds) setButtonBounds('gameOverLeaderboardButton', gameOverLeaderboardBounds.x, gameOverLeaderboardBounds.y, gameOverLeaderboardBounds.width, gameOverLeaderboardBounds.height);
   
   if (showSocialFeatures && socialData) {
     const shareBounds = gameOverPanel.getTaggedBounds('shareButton');
@@ -427,23 +441,23 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
             .size(200, 45)
             .cornerRadius(12) : flexItem().size(0, 0),
           
-          // Leaderboard button
-          !isPaused ? flexItem()
+          // Leaderboard button (available in both start and pause menus)
+          flexItem()
             .tag('leaderboardButton')
             .text(t('social.leaderboard'), 16)
             .textStyle('#FFFFFF', 16, 'Arial', 'bold')
             .background('#CCAC00')
             .size(200, 45)
-            .cornerRadius(12) : flexItem().size(0, 0),
+            .cornerRadius(12),
           
-          // Share button
-          !isPaused ? flexItem()
+          // Share button (available in both start and pause menus)
+          flexItem()
             .tag('menuShareButton')
             .text(t('social.invite'), 16)
             .textStyle('#FFFFFF', 16, 'Arial', 'bold')
             .background('#3EA49D')
             .size(200, 45)
-            .cornerRadius(12) : flexItem().size(0, 0),
+            .cornerRadius(12),
           
           // Bird album button
           flexItem()
@@ -460,17 +474,18 @@ function drawStartScreen(ctx, canvas, isPaused = false) {
   const startBounds = panel.getTaggedBounds('startButton');
   if (startBounds) setButtonBounds('startButton', startBounds.x, startBounds.y, startBounds.width, startBounds.height);
   
-  if (!isPaused) {
-    const shareBounds = panel.getTaggedBounds('menuShareButton');
-    if (shareBounds) setButtonBounds('menuShareButton', shareBounds.x, shareBounds.y, shareBounds.width, shareBounds.height);
-    
-    const leaderboardBounds = panel.getTaggedBounds('leaderboardButton');
-    if (leaderboardBounds) setButtonBounds('leaderboardButton', leaderboardBounds.x, leaderboardBounds.y, leaderboardBounds.width, leaderboardBounds.height);
-  } else {
+  const shareBounds = panel.getTaggedBounds('menuShareButton');
+  if (shareBounds) setButtonBounds('menuShareButton', shareBounds.x, shareBounds.y, shareBounds.width, shareBounds.height);
+  
+  if (isPaused) {
     // 暂停菜单中的重新开始按钮
     const restartFromPauseBounds = panel.getTaggedBounds('restartFromPauseButton');
     if (restartFromPauseBounds) setButtonBounds('restartFromPauseButton', restartFromPauseBounds.x, restartFromPauseBounds.y, restartFromPauseBounds.width, restartFromPauseBounds.height);
   }
+  
+  // Leaderboard button bounds (available in both start and pause menus)
+  const leaderboardBounds = panel.getTaggedBounds('leaderboardButton');
+  if (leaderboardBounds) setButtonBounds('leaderboardButton', leaderboardBounds.x, leaderboardBounds.y, leaderboardBounds.width, leaderboardBounds.height);
   
   // Bird album button bounds (available in both start and pause menus)
   const birdAlbumBounds = panel.getTaggedBounds('birdAlbumButton');

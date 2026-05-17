@@ -11,7 +11,7 @@ const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capture
 const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
 const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll, handleAlbumSwipeStart, handleAlbumSwipeMove, handleAlbumSwipeEnd } = require('./birdAlbum.js');
 const { hitTestInventory } = require('./powerupInventory.js');
-const { shareGame, triggerShareToRevive, showFriendRank } = require('./socialSystem.js');
+const { shareGame, triggerShareToRevive, showFriendRank, isLeaderboardVisible, hideFriendRank } = require('./socialSystem.js');
 const { handleSelectorTouch } = require('./powerupSelector.js');
 
 // Game reference for firing
@@ -26,7 +26,13 @@ let albumSwipeInProgress = false;
 
 function handleTouchStart(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
-  
+
+  // If leaderboard is visible, close it on any touch and consume the event
+  if (isLeaderboardVisible()) {
+    hideFriendRank();
+    return;
+  }
+
   // Handle bird album touch first
   if (isBirdAlbumVisible()) {
     // Start swipe tracking
@@ -101,6 +107,11 @@ function handleTouchStart(e) {
       );
       return;
     }
+    // Leaderboard button
+    if (hitTest('gameOverLeaderboardButton', gp.x, gp.y)) {
+      showFriendRank();
+      return;
+    }
     return;
   }
 
@@ -118,6 +129,16 @@ function handleTouchStart(e) {
     // Restart from pause button
     if (hitTest('restartFromPauseButton', gp.x, gp.y)) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();
+      return;
+    }
+    // Leaderboard button in pause menu
+    if (hitTest('leaderboardButton', gp.x, gp.y)) {
+      showFriendRank();
+      return;
+    }
+    // Share button in pause menu
+    if (hitTest('menuShareButton', gp.x, gp.y)) {
+      shareGame('pause');
       return;
     }
     // Bird album button in pause menu

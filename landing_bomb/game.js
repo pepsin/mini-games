@@ -124,7 +124,8 @@ const {
   setGetCurrentWaveFn,
   updateLeaderboardScore,
   shareGame,
-  resetReviveStatus
+  resetReviveStatus,
+  isLeaderboardVisible
 } = require('./js/socialSystem.js');
 
 // Setup canvas size
@@ -917,6 +918,14 @@ function draw() {
   // Skin gallery (drawn on top of everything)
   if (isGalleryVisible()) {
     drawGallery(ctx);
+  }
+
+  // Leaderboard (drawn on top of screens)
+  if (isLeaderboardVisible()) {
+    const sharedCanvas = wx.getOpenDataContext().canvas;
+    if (sharedCanvas && sharedCanvas.width > 0) {
+      ctx.drawImage(sharedCanvas, 0, 0);
+    }
   }
 
   // Bird album (drawn on top of everything)
