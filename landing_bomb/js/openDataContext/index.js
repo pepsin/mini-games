@@ -76,10 +76,31 @@ function loadAvatar(user) {
 function showLeaderboard() {
   isLeaderboardVisible = true;
 
+  // Draw loading state immediately so user sees feedback
+  drawLoading();
+
+  // Guard against API hanging due to privacy permission issues
+  let hasResponded = false;
+  const TIMEOUT_MS = 5000;
+
+  function handleResponse(callback) {
+    return function(...args) {
+      if (hasResponded) return;
+      hasResponded = true;
+      callback.apply(null, args);
+    };
+  }
+
+  const timeoutId = setTimeout(handleResponse(() => {
+    console.log('getFriendCloudStorage timed out - likely privacy permission not granted');
+    drawError('无法加载排行榜', '请检查隐私授权设置');
+  }), TIMEOUT_MS);
+
   // Get friend data
   wx.getFriendCloudStorage({
     keyList: ['score'],
-    success: (res) => {
+    success: handleResponse((res) => {
+      clearTimeout(timeoutId);
       console.log('Friend data:', res);
       userData = res.data || [];
       // Sort by score (descending)
@@ -93,11 +114,17 @@ function showLeaderboard() {
       // Preload avatars
       userData.forEach(loadAvatar);
       drawLeaderboard();
-    },
-    fail: (err) => {
+    }),
+    fail: handleResponse((err) => {
+      clearTimeout(timeoutId);
       console.log('Failed to get friend data:', err);
-      drawError('无法加载排行榜');
-    }
+      const errMsg = (err && err.errMsg) || '';
+      if (errMsg.indexOf('auth') !== -1 || errMsg.indexOf('privacy') !== -1 || errMsg.indexOf('permission') !== -1) {
+        drawError('无法加载排行榜', '请检查隐私授权设置');
+      } else {
+        drawError('无法加载排行榜', '请稍后重试');
+      }
+    })
   });
 }
 
@@ -211,7 +238,22 @@ function drawLeaderboard() {
   ctx.fillText('点击任意处关闭', W / 2, H - 30);
 }
 
-function drawError(message) {
+function drawLoading() {
+  const W = sharedCanvas.width;
+  const H = sharedCanvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 20px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('排行榜加载中...', W / 2, H / 2);
+}
+
+function drawError(message, subMessage) {
   const W = sharedCanvas.width;
   const H = sharedCanvas.height;
   
@@ -223,7 +265,13 @@ function drawError(message) {
   ctx.font = '18px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(message, W / 2, H / 2);
+  ctx.fillText(message, W / 2, H / 2 - 15);
+
+  if (subMessage) {
+    ctx.fillStyle = '#AAAAAA';
+    ctx.font = '14px Arial';
+    ctx.fillText(subMessage, W / 2, H / 2 + 15);
+  }
 }
 
 console.log('Open data context loaded');

@@ -117,6 +117,7 @@ function recordRevive() {
 // Reset revive status for new game
 function resetReviveStatus() {
   hasRevivedInCurrentGame = false;
+  lastUploadedScore = null;
   console.log('Revive status reset for new game');
 }
 
@@ -143,6 +144,7 @@ function triggerShareToRevive(onSuccess, onCancel) {
 // ==================== Friend Leaderboard ====================
 
 let openDataContext = null;
+let lastUploadedScore = null;
 
 function initLeaderboard() {
   try {
@@ -157,7 +159,12 @@ function updateLeaderboardScore(score) {
   if (!openDataContext) {
     initLeaderboard();
   }
-  
+
+  // Skip redundant uploads to avoid flooding the open data context
+  if (lastUploadedScore === score) {
+    return;
+  }
+
   try {
     // Post message to open data context to update score
     openDataContext.postMessage({
@@ -165,6 +172,7 @@ function updateLeaderboardScore(score) {
       key: 'score',
       value: score
     });
+    lastUploadedScore = score;
     console.log('Leaderboard score updated:', score);
   } catch (e) {
     console.log('Failed to update leaderboard:', e);
@@ -340,5 +348,8 @@ module.exports = {
   getGameOverSocialData,
   
   // Constants
-  MAX_REVIVES_PER_DAY
+  MAX_REVIVES_PER_DAY,
+
+  // Open data context reference (for main loop canvas access)
+  getOpenDataContext: () => openDataContext
 };

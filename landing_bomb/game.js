@@ -125,8 +125,12 @@ const {
   updateLeaderboardScore,
   shareGame,
   resetReviveStatus,
-  isLeaderboardVisible
+  isLeaderboardVisible,
+  getOpenDataContext
 } = require('./js/socialSystem.js');
+
+// Cache open data context canvas to avoid repeated lookups in draw loop
+let odCanvas = null;
 
 // Setup canvas size
 const systemInfo = wx.getSystemInfoSync();
@@ -922,9 +926,12 @@ function draw() {
 
   // Leaderboard (drawn on top of screens)
   if (isLeaderboardVisible()) {
-    const sharedCanvas = wx.getOpenDataContext().canvas;
-    if (sharedCanvas && sharedCanvas.width > 0) {
-      ctx.drawImage(sharedCanvas, 0, 0);
+    if (!odCanvas) {
+      const odc = getOpenDataContext();
+      if (odc) odCanvas = odc.canvas;
+    }
+    if (odCanvas && odCanvas.width > 0) {
+      ctx.drawImage(odCanvas, 0, 0);
     }
   }
 
