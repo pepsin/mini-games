@@ -174,7 +174,9 @@ const zh = {
     shareDefaultTitle: '一起来护花 - 保护花朵，消灭垃圾！',
     shareScoreTitle: '我在一起来护花中获得了{{score}}分，你能超过我吗？',
     shareDailyHighTitle: '我今天最高分{{score}}，一起来挑战！',
-    shareHighScoreTitle: '我的最高分是{{score}}，来比比看！'
+    shareHighScoreTitle: '我的最高分是{{score}}，来比比看！',
+    shareBirdAlbum: '分享观鸟进度',
+    shareBirdAlbumTitle: '我已观察到{{captured}}/{{total}}种鸟，来一起护花观鸟吧！'
   },
 
   // Messages

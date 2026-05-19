@@ -174,7 +174,9 @@ const en = {
     shareDefaultTitle: 'Flower Guardians - Protect flowers, destroy wastes!',
     shareScoreTitle: 'I scored {{score}} in Flower Guardians, can you beat me?',
     shareDailyHighTitle: 'My daily high score is {{score}}, challenge me!',
-    shareHighScoreTitle: 'My high score is {{score}}, let\'s compete!'
+    shareHighScoreTitle: 'My high score is {{score}}, let\'s compete!',
+    shareBirdAlbum: 'Share Album',
+    shareBirdAlbumTitle: 'I\'ve spotted {{captured}}/{{total}} birds in Flower Guardians, come watch them all!'
   },
 
   // Messages

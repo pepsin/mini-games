@@ -19,7 +19,7 @@ let cameraButtonIsVisible = false; // Whether button should be visible
 
 // Core modules
 const config = require('./js/config.js');
-const { W, H, updateScale, isDevTools } = config;
+const { W, H, screenWidth, screenHeight, updateScale, isDevTools } = config;
 const { loadResources, getResource } = require('./js/resources.js');
 const { animationLoader } = require('./js/animationLoader.js');
 
@@ -134,8 +134,10 @@ let odCanvas = null;
 
 // Setup canvas size
 const systemInfo = wx.getSystemInfoSync();
-canvas.width = systemInfo.windowWidth;
-canvas.height = systemInfo.windowHeight;
+const dpr = systemInfo.pixelRatio || 1;
+canvas.width = systemInfo.windowWidth * dpr;
+canvas.height = systemInfo.windowHeight * dpr;
+ctx.scale(dpr, dpr);
 updateScale();
 
 // Initialize game
@@ -494,7 +496,7 @@ function drawPolaroidPhoto(ctx) {
 function drawScreenFlash(ctx) {
   ctx.save();
   ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, screenWidth, screenHeight);
   ctx.restore();
 }
 
@@ -811,7 +813,7 @@ function update() {
 
 // Draw everything
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, screenWidth, screenHeight);
   ctx.globalAlpha = 1;
 
   // Get frame count once for the entire draw function
@@ -823,7 +825,7 @@ function draw() {
   // Set up clipping region for game area only (exclude black bars)
   ctx.save();
   ctx.beginPath();
-  ctx.rect(config.offsetX, 0, W * config.scale, canvas.height);
+  ctx.rect(config.offsetX, 0, W * config.scale, screenHeight);
   ctx.clip();
   drawSun(ctx, lastDeltaTime);
   drawRainbow(ctx);

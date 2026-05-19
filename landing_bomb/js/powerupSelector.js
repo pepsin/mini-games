@@ -1,6 +1,6 @@
 // Powerup Selector Module - Slot Machine Style Selection
 
-const { W, H, sx, sy } = require('./config.js');
+const { W, H, screenWidth, screenHeight, sx, sy } = require('./config.js');
 const { getResource } = require('./resources.js');
 const { ElectricBadge } = require('./components/ElectricBadge.js');
 const { POWERUP_TYPES } = require('./powerupSystem.js');
@@ -217,7 +217,7 @@ function drawPowerupSelector(ctx, canvas) {
   
   // Draw semi-transparent black overlay
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, screenWidth, screenHeight);
   
   // Draw the large powerup badge (highest z-index) - at 1/3 of screen height
   const badgeY = H / 3;

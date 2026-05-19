@@ -1,18 +1,66 @@
 // Input Handling Module
 
-const { W, toGame } = require('./config.js');
-const { isGameStarted, isGameOver, isGamePaused, setGamePaused, isPowerupSelecting, activePowerups } = require('./gameState.js');
-const { createProjectile } = require('./entities/projectile.js');
-const { getSlingshot, SLING_CONFIG, isDragging, setDragging, setDragStart, setDragCurrent, clearDrag, getDragStart } = require('./entities/slingshot.js');
-const { consumePowerupUse, isPowerupActive } = require('./powerupSystem.js');
-const { hitTest } = require('./uiState.js');
-const { applySkinToProjectile, isDefaultDualShot } = require('./slingshotSkinSystem.js');
-const { getCameraButtonBounds, recordAllCurrentBirdsWatched, startFlash, capturePolaroidPhoto, getCurrentWaveBirds, markBirdAsBeingWatched, getUnwatchedBirds } = require('./birdWatchingSystem.js');
-const { isGalleryVisible, handleGalleryTouch, openGallery } = require('./skinGallery.js');
-const { isBirdAlbumVisible, handleAlbumTouch, openBirdAlbum, handleAlbumScroll, handleAlbumSwipeStart, handleAlbumSwipeMove, handleAlbumSwipeEnd } = require('./birdAlbum.js');
-const { hitTestInventory } = require('./powerupInventory.js');
-const { shareGame, triggerShareToRevive, showFriendRank, isLeaderboardVisible, hideFriendRank, getLeaderboardTab, setLeaderboardTab, getLeaderboardTabBounds } = require('./socialSystem.js');
-const { handleSelectorTouch } = require('./powerupSelector.js');
+const { W, toGame } = require("./config.js");
+const {
+  isGameStarted,
+  isGameOver,
+  isGamePaused,
+  setGamePaused,
+  isPowerupSelecting,
+  activePowerups,
+} = require("./gameState.js");
+const { createProjectile } = require("./entities/projectile.js");
+const {
+  getSlingshot,
+  SLING_CONFIG,
+  isDragging,
+  setDragging,
+  setDragStart,
+  setDragCurrent,
+  clearDrag,
+  getDragStart,
+} = require("./entities/slingshot.js");
+const { consumePowerupUse, isPowerupActive } = require("./powerupSystem.js");
+const { hitTest } = require("./uiState.js");
+const {
+  applySkinToProjectile,
+  isDefaultDualShot,
+} = require("./slingshotSkinSystem.js");
+const {
+  getCameraButtonBounds,
+  recordAllCurrentBirdsWatched,
+  startFlash,
+  capturePolaroidPhoto,
+  getCurrentWaveBirds,
+  markBirdAsBeingWatched,
+  getUnwatchedBirds,
+} = require("./birdWatchingSystem.js");
+const {
+  isGalleryVisible,
+  handleGalleryTouch,
+  openGallery,
+} = require("./skinGallery.js");
+const {
+  isBirdAlbumVisible,
+  handleAlbumTouch,
+  openBirdAlbum,
+  handleAlbumScroll,
+  handleAlbumSwipeStart,
+  handleAlbumSwipeMove,
+  handleAlbumSwipeEnd,
+} = require("./birdAlbum.js");
+const { hitTestInventory } = require("./powerupInventory.js");
+const {
+  shareGame,
+  triggerShareToRevive,
+  showFriendRank,
+  isLeaderboardVisible,
+  hideFriendRank,
+  getLeaderboardTab,
+  setLeaderboardTab,
+  getLeaderboardTabBounds,
+} = require("./socialSystem.js");
+const { handleSelectorTouch } = require("./powerupSelector.js");
 
 // Game reference for firing
 let gameCallbacks = {};
@@ -37,26 +85,38 @@ function handleTouchStart(e) {
     if (tabBounds) {
       // Check close button hit first
       const closeBtn = tabBounds.closeButton;
-      if (screenX >= closeBtn.x && screenX <= closeBtn.x + closeBtn.width &&
-          screenY >= closeBtn.y && screenY <= closeBtn.y + closeBtn.height) {
+      if (
+        screenX >= closeBtn.x &&
+        screenX <= closeBtn.x + closeBtn.width &&
+        screenY >= closeBtn.y &&
+        screenY <= closeBtn.y + closeBtn.height
+      ) {
         hideFriendRank();
         return;
       }
       // Check score tab hit
       const scoreTab = tabBounds.scoreTab;
-      if (screenX >= scoreTab.x && screenX <= scoreTab.x + scoreTab.width &&
-          screenY >= scoreTab.y && screenY <= scoreTab.y + scoreTab.height) {
-        if (getLeaderboardTab() !== 'score') {
-          setLeaderboardTab('score');
+      if (
+        screenX >= scoreTab.x &&
+        screenX <= scoreTab.x + scoreTab.width &&
+        screenY >= scoreTab.y &&
+        screenY <= scoreTab.y + scoreTab.height
+      ) {
+        if (getLeaderboardTab() !== "score") {
+          setLeaderboardTab("score");
         }
         return;
       }
       // Check bird tab hit
       const birdTab = tabBounds.birdTab;
-      if (screenX >= birdTab.x && screenX <= birdTab.x + birdTab.width &&
-          screenY >= birdTab.y && screenY <= birdTab.y + birdTab.height) {
-        if (getLeaderboardTab() !== 'bird') {
-          setLeaderboardTab('bird');
+      if (
+        screenX >= birdTab.x &&
+        screenX <= birdTab.x + birdTab.width &&
+        screenY >= birdTab.y &&
+        screenY <= birdTab.y + birdTab.height
+      ) {
+        if (getLeaderboardTab() !== "bird") {
+          setLeaderboardTab("bird");
         }
         return;
       }
@@ -70,7 +130,7 @@ function handleTouchStart(e) {
     // Start swipe tracking
     handleAlbumSwipeStart(gp.x, gp.y);
     albumSwipeInProgress = false;
-    
+
     // Check for button clicks
     const handled = handleAlbumTouch(gp.x, gp.y);
     if (handled) {
@@ -87,27 +147,27 @@ function handleTouchStart(e) {
 
   if (!isGameStarted()) {
     // Start button - use bounds from flex layout
-    if (hitTest('startButton', gp.x, gp.y)) {
+    if (hitTest("startButton", gp.x, gp.y)) {
       gameCallbacks.onGameStart && gameCallbacks.onGameStart();
       return;
     }
     // Menu share button
-    if (hitTest('menuShareButton', gp.x, gp.y)) {
-      shareGame('menu');
+    if (hitTest("menuShareButton", gp.x, gp.y)) {
+      shareGame("menu");
       return;
     }
     // Leaderboard button
-    if (hitTest('leaderboardButton', gp.x, gp.y)) {
+    if (hitTest("leaderboardButton", gp.x, gp.y)) {
       showFriendRank();
       return;
     }
     // Skin gallery button
-    if (hitTest('skinGalleryButton', gp.x, gp.y)) {
+    if (hitTest("skinGalleryButton", gp.x, gp.y)) {
       openGallery();
       return;
     }
     // Bird album button
-    if (hitTest('birdAlbumButton', gp.x, gp.y)) {
+    if (hitTest("birdAlbumButton", gp.x, gp.y)) {
       openBirdAlbum();
       return;
     }
@@ -116,17 +176,17 @@ function handleTouchStart(e) {
 
   if (isGameOver()) {
     // Play again button - use bounds from flex layout
-    if (hitTest('restartButton', gp.x, gp.y)) {
+    if (hitTest("restartButton", gp.x, gp.y)) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();
       return;
     }
     // Share button
-    if (hitTest('shareButton', gp.x, gp.y)) {
-      shareGame('gameover');
+    if (hitTest("shareButton", gp.x, gp.y)) {
+      shareGame("gameover");
       return;
     }
     // Revive button
-    if (hitTest('reviveButton', gp.x, gp.y)) {
+    if (hitTest("reviveButton", gp.x, gp.y)) {
       triggerShareToRevive(
         () => {
           // On success - revive the player
@@ -134,13 +194,13 @@ function handleTouchStart(e) {
         },
         (reason) => {
           // On failure - show reason
-          console.log('Cannot revive:', reason);
-        }
+          console.log("Cannot revive:", reason);
+        },
       );
       return;
     }
     // Leaderboard button
-    if (hitTest('gameOverLeaderboardButton', gp.x, gp.y)) {
+    if (hitTest("gameOverLeaderboardButton", gp.x, gp.y)) {
       showFriendRank();
       return;
     }
@@ -150,7 +210,7 @@ function handleTouchStart(e) {
   // Check if game is paused - handle resume button click
   if (isGamePaused()) {
     // Resume button
-    if (hitTest('startButton', gp.x, gp.y)) {
+    if (hitTest("startButton", gp.x, gp.y)) {
       setGamePaused(false);
       // Call resume callback if registered
       if (gameCallbacks.onResume) {
@@ -159,22 +219,22 @@ function handleTouchStart(e) {
       return;
     }
     // Restart from pause button
-    if (hitTest('restartFromPauseButton', gp.x, gp.y)) {
+    if (hitTest("restartFromPauseButton", gp.x, gp.y)) {
       gameCallbacks.onGameReset && gameCallbacks.onGameReset();
       return;
     }
     // Leaderboard button in pause menu
-    if (hitTest('leaderboardButton', gp.x, gp.y)) {
+    if (hitTest("leaderboardButton", gp.x, gp.y)) {
       showFriendRank();
       return;
     }
     // Share button in pause menu
-    if (hitTest('menuShareButton', gp.x, gp.y)) {
-      shareGame('pause');
+    if (hitTest("menuShareButton", gp.x, gp.y)) {
+      shareGame("pause");
       return;
     }
     // Bird album button in pause menu
-    if (hitTest('birdAlbumButton', gp.x, gp.y)) {
+    if (hitTest("birdAlbumButton", gp.x, gp.y)) {
       openBirdAlbum();
       return;
     }
@@ -186,10 +246,11 @@ function handleTouchStart(e) {
     // First check inventory click (so users can free up space when full)
     const inventorySlot = hitTestInventory(gp.x, gp.y);
     if (inventorySlot >= 0) {
-      gameCallbacks.onInventoryClick && gameCallbacks.onInventoryClick(inventorySlot);
+      gameCallbacks.onInventoryClick &&
+        gameCallbacks.onInventoryClick(inventorySlot);
       return;
     }
-    
+
     // Then handle selector button clicks
     if (handleSelectorTouch(gp.x, gp.y)) {
       return;
@@ -198,7 +259,7 @@ function handleTouchStart(e) {
   }
 
   // Check pause button click
-  if (hitTest('pauseButton', gp.x, gp.y)) {
+  if (hitTest("pauseButton", gp.x, gp.y)) {
     setGamePaused(!isGamePaused());
     return;
   }
@@ -206,7 +267,8 @@ function handleTouchStart(e) {
   // Check powerup inventory click
   const inventorySlot = hitTestInventory(gp.x, gp.y);
   if (inventorySlot >= 0) {
-    gameCallbacks.onInventoryClick && gameCallbacks.onInventoryClick(inventorySlot);
+    gameCallbacks.onInventoryClick &&
+      gameCallbacks.onInventoryClick(inventorySlot);
     return;
   }
 
@@ -218,34 +280,42 @@ function handleTouchStart(e) {
       // Get all current birds and unwatched birds
       const allBirds = getCurrentWaveBirds();
       const unwatchedBirds = getUnwatchedBirds();
-      
+
       if (allBirds.length > 0) {
         // Start screen flash effect
         startFlash();
-        
+
         if (unwatchedBirds.length > 0) {
           // Mark all unwatched birds as being watched (start fade-out)
-          unwatchedBirds.forEach(bird => {
+          unwatchedBirds.forEach((bird) => {
             markBirdAsBeingWatched(bird.id);
           });
-          
+
           // Record all unwatched birds in the album
           const recordedCount = recordAllCurrentBirdsWatched();
           console.log(`Camera clicked! Recording ${recordedCount} new birds.`);
-          
+
           // Capture polaroid photo of the first unwatched bird (normal tint)
           const firstBird = unwatchedBirds[0];
           capturePolaroidPhoto(firstBird, x + width / 2, y + height / 2);
         } else {
           // All birds are already watched - show yellow tinted polaroid
-          console.log('Camera clicked! All birds already watched - showing yellow tint.');
-          
+          console.log(
+            "Camera clicked! All birds already watched - showing yellow tint.",
+          );
+
           // Pick a random bird for the polaroid
-          const randomBird = allBirds[Math.floor(Math.random() * allBirds.length)];
-          capturePolaroidPhoto(randomBird, x + width / 2, y + height / 2, 'yellow');
+          const randomBird =
+            allBirds[Math.floor(Math.random() * allBirds.length)];
+          capturePolaroidPhoto(
+            randomBird,
+            x + width / 2,
+            y + height / 2,
+            "yellow",
+          );
         }
       }
-      
+
       return;
     }
   }
@@ -259,7 +329,7 @@ function handleTouchStart(e) {
 // Handle touch move
 function handleTouchMove(e) {
   const gp = toGame(e.touches[0].clientX, e.touches[0].clientY);
-  
+
   // Handle bird album swipe detection
   if (isBirdAlbumVisible()) {
     // Check if this is a horizontal swipe
@@ -269,12 +339,12 @@ function handleTouchMove(e) {
         albumSwipeInProgress = true;
       }
     }
-    
+
     // If swipe is in progress, don't handle scroll
     if (albumSwipeInProgress) {
       return;
     }
-    
+
     // Otherwise, handle scroll
     const touch = e.touches[0];
     if (touch.lastY !== undefined) {
@@ -284,7 +354,7 @@ function handleTouchMove(e) {
     touch.lastY = touch.clientY;
     return;
   }
-  
+
   if (!isDragging()) return;
   setDragCurrent(gp);
 }
@@ -299,18 +369,18 @@ function handleTouchEnd(e) {
     albumSwipeInProgress = false;
     return;
   }
-  
+
   if (!isDragging()) return;
 
   const sling = getSlingshot();
   const dragStart = getDragStart();
   const dragCurrent = setDragCurrent();
-  
+
   // Calculate actual drag distance (from touch start to release)
   const dx = dragCurrent.x - dragStart.x;
   const dy = dragCurrent.y - dragStart.y;
   const dragDistance = Math.sqrt(dx * dx + dy * dy);
-  
+
   // Minimum drag distance required to shoot (prevents simple taps/clicks)
   const minDragDistance = 30;
   if (dragDistance < minDragDistance) {
@@ -324,17 +394,17 @@ function handleTouchEnd(e) {
     applySkinToProjectile(proj);
 
     // Dragon bullet: large radius projectile (1/3 screen width)
-    if (isPowerupActive(activePowerups, 'dragon_bullet')) {
+    if (isPowerupActive(activePowerups, "dragon_bullet")) {
       proj.radius = W / 3; // 1/3 screen width hit range
       proj.isDragonBullet = true;
-      consumePowerupUse(activePowerups, 'dragon_bullet');
+      consumePowerupUse(activePowerups, "dragon_bullet");
     }
 
     gameCallbacks.onFire(proj);
 
     // Multi-shot: create two extra projectiles at ±8°
-    if (isPowerupActive(activePowerups, 'multi_shot')) {
-      const spreadAngle = 8 * Math.PI / 180;
+    if (isPowerupActive(activePowerups, "multi_shot")) {
+      const spreadAngle = (8 * Math.PI) / 180;
       for (const sign of [-1, 1]) {
         const angle = Math.atan2(proj.vy, proj.vx) + sign * spreadAngle;
         const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy);
@@ -347,16 +417,16 @@ function handleTouchEnd(e) {
           gravity: proj.gravity,
           hits: 0,
           isDragonBullet: proj.isDragonBullet || false,
-          id: Date.now() + Math.random() + sign // Unique ID for each projectile
+          id: Date.now() + Math.random() + sign, // Unique ID for each projectile
         };
         gameCallbacks.onFire(extraProj);
       }
-      consumePowerupUse(activePowerups, 'multi_shot');
+      consumePowerupUse(activePowerups, "multi_shot");
     }
 
     // Default dual shot from skin
     if (isDefaultDualShot()) {
-      const dualAngle = 5 * Math.PI / 180;
+      const dualAngle = (5 * Math.PI) / 180;
       for (const sign of [-1, 1]) {
         const angle = Math.atan2(proj.vy, proj.vx) + sign * dualAngle;
         const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy);
@@ -369,7 +439,7 @@ function handleTouchEnd(e) {
           gravity: proj.gravity,
           hits: 0,
           isDragonBullet: proj.isDragonBullet || false,
-          id: Date.now() + Math.random() + sign * 2 // Unique ID for each projectile
+          id: Date.now() + Math.random() + sign * 2, // Unique ID for each projectile
         };
         gameCallbacks.onFire(dualProj);
       }
@@ -391,5 +461,5 @@ module.exports = {
   registerCallbacks,
   handleTouchStart,
   handleTouchMove,
-  handleTouchEnd
+  handleTouchEnd,
 };

@@ -120,7 +120,7 @@ export class Wave {
             ctx.lineTo(points[i].x, points[i].y);
         }
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 7;
+        ctx.lineWidth = 7 * (1 - this.progress);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();

@@ -14,6 +14,7 @@ const ALBUM_STORAGE_KEY = 'bowaste_bird_album';
 let isAlbumVisible = false;
 let albumScrollOffset = 0;
 let albumCloseBounds = null;
+let albumShareBounds = null;
 let currentPage = 0;
 let totalPages = 1;
 let prevButtonBounds = null;
@@ -175,6 +176,20 @@ function handleAlbumTouch(x, y) {
     if (x >= albumCloseBounds.x - padding && x <= albumCloseBounds.x + albumCloseBounds.width + padding &&
         y >= albumCloseBounds.y - padding && y <= albumCloseBounds.y + albumCloseBounds.height + padding) {
       closeBirdAlbum();
+      return true;
+    }
+  }
+  
+  // Check share button
+  if (albumShareBounds) {
+    const padding = 10;
+    if (x >= albumShareBounds.x - padding && x <= albumShareBounds.x + albumShareBounds.width + padding &&
+        y >= albumShareBounds.y - padding && y <= albumShareBounds.y + albumShareBounds.height + padding) {
+      const stats = getAlbumStats();
+      wx.shareAppMessage({
+        title: t('social.shareBirdAlbumTitle', { captured: stats.captured, total: stats.total }),
+        imageUrl: ''
+      });
       return true;
     }
   }
@@ -396,7 +411,7 @@ function drawBirdPage(ctx, pageIndex, offsetX, ss, sx, sy, W, H, themeColor, the
 function drawBirdAlbum(ctx, canvas) {
   if (!isAlbumVisible) return;
 
-  const { W, H, sx, sy, ss } = require('./config.js');
+  const { W, H, screenWidth, screenHeight, sx, sy, ss } = require('./config.js');
   
   // Theme color
   const themeColor = '#FF6B35';
@@ -405,7 +420,7 @@ function drawBirdAlbum(ctx, canvas) {
   // Semi-transparent background overlay
   ctx.save();
   ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, screenWidth, screenHeight);
   
   // Title
   const stats = getAlbumStats();
@@ -436,6 +451,7 @@ function drawBirdAlbum(ctx, canvas) {
   ctx.fillText('×', sx(closeX + closeSize/2), sy(closeY + closeSize/2) + ss(2));
   
   albumCloseBounds = { x: closeX, y: closeY, width: closeSize, height: closeSize };
+  albumShareBounds = null; // will be set after paging buttons are drawn
   
   // Calculate grid dimensions
   const allBirds = getAllBirdsData();
@@ -622,6 +638,41 @@ function drawBirdAlbum(ctx, canvas) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(`${currentPage + 1} / ${totalPages}`, sx(W / 2), sy(buttonY - buttonRadius - 15));
+  
+  // Share button - rounded rect below paging buttons
+  const shareBtnW = 200;
+  const shareBtnH = 40;
+  const shareBtnX = (W - shareBtnW) / 2;
+  const shareBtnY = buttonY + buttonRadius + 20;
+  const shareBtnR = 12;
+  
+  const sbx = sx(shareBtnX);
+  const sby = sy(shareBtnY);
+  const sbw = ss(shareBtnW);
+  const sbh = ss(shareBtnH);
+  const sbr = ss(shareBtnR);
+  
+  ctx.fillStyle = '#3EA49D';
+  ctx.beginPath();
+  ctx.moveTo(sbx + sbr, sby);
+  ctx.lineTo(sbx + sbw - sbr, sby);
+  ctx.arcTo(sbx + sbw, sby, sbx + sbw, sby + sbr, sbr);
+  ctx.lineTo(sbx + sbw, sby + sbh - sbr);
+  ctx.arcTo(sbx + sbw, sby + sbh, sbx + sbw - sbr, sby + sbh, sbr);
+  ctx.lineTo(sbx + sbr, sby + sbh);
+  ctx.arcTo(sbx, sby + sbh, sbx, sby + sbh - sbr, sbr);
+  ctx.lineTo(sbx, sby + sbr);
+  ctx.arcTo(sbx, sby, sbx + sbr, sby, sbr);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.fillStyle = '#FFF';
+  ctx.font = `bold ${ss(15)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(t('social.shareBirdAlbum'), sx(W / 2), sy(shareBtnY + shareBtnH / 2));
+  
+  albumShareBounds = { x: shareBtnX, y: shareBtnY, width: shareBtnW, height: shareBtnH };
   
   ctx.restore();
 }
