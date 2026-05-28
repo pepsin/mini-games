@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>One Line 关卡生成器</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #16213e;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+  header h1 { font-size: 18px; color: #e94560; white-space: nowrap; }
+  .control-group {
+    display: flex; align-items: center; gap: 6px;
+  }
+  label { font-size: 13px; color: #aaa; }
+  input[type="number"] {
+    width: 52px; padding: 4px 6px; border: 1px solid #0f3460;
+    background: #0f3460; color: #fff; border-radius: 4px; font-size: 13px;
+  }
+  button {
+    padding: 6px 14px; border: none; border-radius: 6px;
+    font-size: 13px; cursor: pointer; transition: background 0.2s;
+    background: #0f3460; color: #fff;
+  }
+  button:hover { background: #1a4a7a; }
+  button.primary { background: #e94560; }
+  button.primary:hover { background: #ff6b81; }
+  button.success { background: #4ecdc4; color: #1a1a2e; }
+  button.success:hover { background: #6ee7df; }
+  button.warning { background: #ffd700; color: #1a1a2e; }
+  button.warning:hover { background: #ffe135; }
+  .status {
+    font-size: 13px; color: #4ecdc4; margin-left: auto;
+    min-width: 140px; text-align: right;
+  }
+  .status.error { color: #e94560; }
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+  #mazeContainer {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    background: #0f0f23;
+    position: relative;
+  }
+  #mazeCanvas {
+    touch-action: none;
+    cursor: crosshair;
+  }
+  #sidebar {
+    width: 260px;
+    background: #16213e;
+    padding: 16px;
+    overflow-y: auto;
+    border-left: 1px solid #0f3460;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .panel {
+    background: #0f3460;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .panel h3 {
+    font-size: 14px; color: #e94560; margin-bottom: 10px;
+    border-bottom: 1px solid #1a4a7a; padding-bottom: 6px;
+  }
+  .panel-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; font-size: 13px;
+  }
+  .panel-row:last-child { margin-bottom: 0; }
+  .score-value { font-size: 24px; color: #ffd700; font-weight: bold; }
+  .legend {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 4px; font-size: 12px;
+  }
+  .legend-box {
+    width: 16px; height: 16px; border-radius: 3px; border: 1px solid #444;
+  }
+  .export-area {
+    width: 100%; min-height: 80px;
+    background: #0a192f; color: #4ecdc4;
+    border: 1px solid #1a4a7a; border-radius: 6px;
+    padding: 8px; font-size: 12px; font-family: monospace;
+    resize: vertical; word-break: break-all;
+  }
+  .hint {
+    font-size: 11px; color: #888; line-height: 1.4;
+  }
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none; justify-content: center; align-items: center;
+    z-index: 100;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #16213e; border-radius: 12px;
+    padding: 24px; max-width: 400px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .modal h2 { color: #e94560; margin-bottom: 12px; font-size: 18px; }
+  .modal p { font-size: 13px; color: #ccc; margin-bottom: 8px; line-height: 1.5; }
+  .modal-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>One Line 关卡生成器</h1>
+  <div class="control-group">
+    <label>宽</label>
+    <input type="number" id="widthInput" value="6" min="3" max="15">
+  </div>
+  <div class="control-group">
+    <label>高</label>
+    <input type="number" id="heightInput" value="6" min="3" max="15">
+  </div>
+  <button class="primary" id="btnGenerate">生成随机关卡</button>
+  <button id="btnClearWalls">清空墙壁</button>
+  <button id="btnFillWalls">填满墙壁</button>
+  <button class="success" id="btnSolve">求解</button>
+  <button class="warning" id="btnScore">评分</button>
+  <button id="btnExport">导出JSON</button>
+  <button id="btnImport">导入</button>
+  <div class="status" id="status">就绪</div>
+</header>
+
+<main>
+  <div id="mazeContainer">
+    <canvas id="mazeCanvas"></canvas>
+  </div>
+  <aside id="sidebar">
+    <div class="panel">
+      <h3>图例</h3>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box" style="background:#1a1a2e;"></div>墙壁</div>
+        <div class="legend-item"><div class="legend-box" style="background:#4ecdc4;"></div>道路</div>
+        <div class="legend-item"><div class="legend-box" style="background:#ffd700;"></div>路径(解)</div>
+        <div class="legend-item"><div class="legend-box" style="background:#e94560;"></div>起点/终点</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>关卡信息</h3>
+      <div class="panel-row"><span>总格子数</span><span id="infoTotal">0</span></div>
+      <div class="panel-row"><span>道路格子数</span><span id="infoPath">0</span></div>
+      <div class="panel-row"><span>墙壁格子数</span><span id="infoWall">0</span></div>
+      <div class="panel-row"><span>解数量</span><span id="infoSolutions">-</span></div>
+    </div>
+    <div class="panel">
+      <h3>评分</h3>
+      <div class="panel-row" style="justify-content:center; padding: 8px 0;">
+        <span class="score-value" id="scoreValue">--</span>
+      </div>
+      <div class="panel-row"><span>难度系数</span><span id="scoreDifficulty">--</span></div>
+      <div class="panel-row"><span>覆盖率</span><span id="scoreCoverage">--</span></div>
+      <div class="panel-row"><span>路径长度</span><span id="scoreLength">--</span></div>
+      <div class="panel-row"><span>分支复杂度</span><span id="scoreBranch">--</span></div>
+    </div>
+    <div class="panel">
+      <h3>导出 / 导入</h3>
+      <textarea class="export-area" id="exportArea" placeholder="点击导出JSON会在此显示数据，或粘贴JSON点击导入..."></textarea>
+      <p class="hint" style="margin-top:8px;">点击格子切换墙壁/道路。外圈始终为墙壁。点击求解查看一笔画路径。</p>
+    </div>
+  </aside>
+</main>
+
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <h2>导入关卡</h2>
+    <p>将JSON数据粘贴到下方文本框：</p>
+    <textarea class="export-area" id="importArea" style="min-height:120px;"></textarea>
+    <div class="modal-buttons">
+      <button onclick="closeImportModal()">取消</button>
+      <button class="primary" onclick="doImport()">导入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== Maze Core =====================
+const CELL_SIZE = 40;
+const GAP = 2;
+
+class Maze {
+  constructor(w, h) {
+    this.w = w;
+    this.h = h;
+    this.grid = new Uint8Array(w * h);
+    this.clear();
+  }
+
+  clear() {
+    // Outer ring is wall (1), inner is path (0)
+    for (let y = 0; y < this.h; y++) {
+      for (let x = 0; x < this.w; x++) {
+        if (x === 0 || y === 0 || x === this.w - 1 || y === this.h - 1) {
+          this.grid[y * this.w + x] = 1;
+        } else {
+          this.grid[y * this.w + x] = 0;
+        }
+      }
+    }
+  }
+
+  fillWalls() {
+    for (let i = 0; i < this.grid.length; i++) this.grid[i] = 1;
+  }
+
+  get(x, y) { return this.grid[y * this.w + x]; }
+  set(x, y, v) { this.grid[y * this.w + x] = v; }
+  isWall(x, y) { return this.get(x, y) === 1; }
+  isPath(x, y) { return this.get(x, y) === 0; }
+  inBounds(x, y) { return x >= 0 && x < this.w && y >= 0 && y < this.h; }
+
+  pathCells() {
+    const cells = [];
+    for (let y = 0; y < this.h; y++)
+      for (let x = 0; x < this.w; x++)
+        if (this.isPath(x, y)) cells.push({x, y});
+    return cells;
+  }
+
+  fillWalls() {
+    for (let i = 0; i < this.grid.length; i++) this.grid[i] = 1;
+  }
+
+  clone() {
+    const m = new Maze(this.w, this.h);
+    m.grid.set(this.grid);
+    return m;
+  }
+
+  toJSON() {
+    return { w: this.w, h: this.h, grid: Array.from(this.grid) };
+  }
+
+  static fromJSON(data) {
+    const m = new Maze(data.w, data.h);
+    if (data.grid && data.grid.length === m.grid.length) {
+      m.grid.set(data.grid);
+    }
+    return m;
+  }
+}
+
+// ===================== Solver =====================
+const DIRS = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+
+function solveMaze(maze, maxSolutions = 1, timeLimitMs = 5000) {
+  const cells = maze.pathCells();
+  const total = cells.length;
+  if (total === 0) return { solutions: [], hasSolution: false, time: 0 };
+
+  // Map from x,y to index
+  const idxMap = new Map();
+  cells.forEach((c, i) => idxMap.set(c.x + ',' + c.y, i));
+
+  // Precompute neighbors for each path cell
+  const neighbors = cells.map(c => {
+    const n = [];
+    for (const d of DIRS) {
+      const nx = c.x + d.dx, ny = c.y + d.dy;
+      if (maze.inBounds(nx, ny) && maze.isPath(nx, ny)) {
+        n.push(idxMap.get(nx + ',' + ny));
+      }
+    }
+    return n;
+  });
+
+  const visited = new Uint8Array(total);
+  const path = [];
+  const solutions = [];
+  const startTime = performance.now();
+
+  function isConnected(startIdx, visitedMask) {
+    // BFS to check all unvisited cells are reachable
+    const queue = [startIdx];
+    const seen = new Uint8Array(total);
+    seen[startIdx] = 1;
+    let count = 1;
+    let head = 0;
+    while (head < queue.length) {
+      const u = queue[head++];
+      for (const v of neighbors[u]) {
+        if (!visitedMask[v] && !seen[v]) {
+          seen[v] = 1;
+          queue.push(v);
+          count++;
+        }
+      }
+    }
+    // Count unvisited
+    let unvisitedCount = 0;
+    for (let i = 0; i < total; i++) if (!visitedMask[i]) unvisitedCount++;
+    return count === unvisitedCount;
+  }
+
+  function dfs(u, depth) {
+    if (performance.now() - startTime > timeLimitMs) return true; // timeout
+    if (solutions.length >= maxSolutions) return true;
+
+    visited[u] = 1;
+    path.push(u);
+
+    if (depth === total) {
+      solutions.push(path.slice());
+      visited[u] = 0;
+      path.pop();
+      return false;
+    }
+
+    // Try neighbors, prioritize those with fewer free neighbors (Warnsdorff-like)
+    const nexts = [];
+    for (const v of neighbors[u]) {
+      if (!visited[v]) {
+        let free = 0;
+        for (const w of neighbors[v]) if (!visited[w]) free++;
+        nexts.push({ v, free });
+      }
+    }
+    nexts.sort((a, b) => a.free - b.free);
+
+    for (const {v} of nexts) {
+      if (!isConnected(v, visited)) continue;
+      if (dfs(v, depth + 1)) {
+        visited[u] = 0;
+        path.pop();
+        return true; // timeout
+      }
+    }
+
+    visited[u] = 0;
+    path.pop();
+    return false;
+  }
+
+  // Try starting from every path cell (or a subset for speed)
+  for (let start = 0; start < total && solutions.length < maxSolutions; start++) {
+    if (dfs(start, 1)) break;
+    if (performance.now() - startTime > timeLimitMs) break;
+  }
+
+  const time = performance.now() - startTime;
+  const hasSolution = solutions.length > 0;
+
+  // Convert solution indices back to coordinates
+  const coordSolutions = solutions.map(sol => sol.map(i => cells[i]));
+
+  return { solutions: coordSolutions, hasSolution, time };
+}
+
+// ===================== Generator =====================
+function generateMaze(w, h, density = 0.65) {
+  const maze = new Maze(w, h);
+  const innerW = w - 2, innerH = h - 2;
+  if (innerW < 1 || innerH < 1) return maze;
+
+  // Random walk to create a self-avoiding path covering target cells
+  const targetCells = Math.max(1, Math.round(innerW * innerH * density));
+  let bestMaze = null;
+  let bestScore = -1;
+
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const m = new Maze(w, h);
+    m.fillWalls();
+
+    // Start at random inner position
+    let cx = 1 + Math.floor(Math.random() * innerW);
+    let cy = 1 + Math.floor(Math.random() * innerH);
+    m.set(cx, cy, 0);
+    const path = [{x: cx, y: cy}];
+
+    while (path.length < targetCells) {
+      // Find valid moves
+      const moves = [];
+      const last = path[path.length - 1];
+      for (const d of DIRS) {
+        const nx = last.x + d.dx, ny = last.y + d.dy;
+        if (nx >= 1 && nx < w - 1 && ny >= 1 && ny < h - 1 && m.isWall(nx, ny)) {
+          moves.push({x: nx, y: ny});
+        }
+      }
+      if (moves.length === 0) break;
+      const pick = moves[Math.floor(Math.random() * moves.length)];
+      m.set(pick.x, pick.y, 0);
+      path.push(pick);
+    }
+
+    if (path.length < Math.max(2, targetCells * 0.5)) continue;
+
+    // Verify it has a solution
+    const result = solveMaze(m, 1, 800);
+    if (result.hasSolution) {
+      // Score it (higher path count = better, but not too easy)
+      const score = path.length + Math.random() * 5;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMaze = m;
+      }
+    }
+  }
+
+  if (bestMaze) return bestMaze;
+
+  // Fallback: all inner cells as paths
+  const m = new Maze(w, h);
+  m.fillWalls();
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      m.set(x, y, 0);
+    }
+  }
+  return m;
+}
+
+// ===================== Scorer =====================
+function scoreMaze(maze) {
+  const cells = maze.pathCells();
+  const totalInner = (maze.w - 2) * (maze.h - 2);
+  const pathCount = cells.length;
+  const coverage = totalInner > 0 ? pathCount / totalInner : 0;
+
+  // Solve for solutions (bounded)
+  const solResult = solveMaze(maze, 10, 3000);
+  const solutionCount = solResult.solutions.length;
+  const hasSolution = solResult.hasSolution;
+
+  if (!hasSolution) {
+    return {
+      total: 0, difficulty: 0, coverage: 0, length: 0,
+      branch: 0, valid: false, solutionCount: 0
+    };
+  }
+
+  // Branching factor: average number of path neighbors per path cell
+  let totalNeighbors = 0;
+  for (const c of cells) {
+    let n = 0;
+    for (const d of DIRS) {
+      if (maze.inBounds(c.x + d.dx, c.y + d.dy) && maze.isPath(c.x + d.dx, c.y + d.dy)) n++;
+    }
+    totalNeighbors += n;
+  }
+  const avgNeighbors = pathCount > 0 ? totalNeighbors / pathCount : 0;
+  const branchScore = Math.min(10, avgNeighbors * 2);
+
+  // Difficulty: more cells, fewer solutions, more branching = harder
+  const lengthScore = Math.min(50, pathCount * 2);
+  const coverageScore = Math.min(20, coverage * 30);
+  const uniquenessScore = solutionCount === 1 ? 30 : solutionCount <= 3 ? 15 : 5;
+  const difficulty = Math.round(lengthScore + coverageScore + uniquenessScore + branchScore);
+  const total = Math.round(difficulty * (0.8 + coverage * 0.4));
+
+  return {
+    total: Math.min(9999, total),
+    difficulty: Math.min(100, difficulty),
+    coverage: Math.round(coverage * 100),
+    length: pathCount,
+    branch: Math.round(branchScore * 10) / 10,
+    valid: true,
+    solutionCount
+  };
+}
+
+// ===================== Renderer =====================
+class MazeRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.solutionPath = null;
+    this.scale = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.isDragging = false;
+    this.lastX = 0;
+    this.lastY = 0;
+  }
+
+  resize(maze) {
+    const cs = CELL_SIZE;
+    const pad = 20;
+    const naturalW = maze.w * cs + (maze.w - 1) * GAP + pad * 2;
+    const naturalH = maze.h * cs + (maze.h - 1) * GAP + pad * 2;
+
+    const container = document.getElementById('mazeContainer');
+    const availW = container.clientWidth;
+    const availH = container.clientHeight;
+
+    this.scale = Math.min(1, availW / naturalW, availH / naturalH);
+    this.canvas.width = naturalW * this.scale;
+    this.canvas.height = naturalH * this.scale;
+    this.offsetX = pad * this.scale;
+    this.offsetY = pad * this.scale;
+    this.cellSize = cs * this.scale;
+    this.gap = GAP * this.scale;
+  }
+
+  render(maze) {
+    const ctx = this.ctx;
+    const cs = this.cellSize;
+    const g = this.gap;
+
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    for (let y = 0; y < maze.h; y++) {
+      for (let x = 0; x < maze.w; x++) {
+        const px = this.offsetX + x * (cs + g);
+        const py = this.offsetY + y * (cs + g);
+        const isPath = maze.isPath(x, y);
+
+        ctx.fillStyle = isPath ? '#4ecdc4' : '#1a1a2e';
+        ctx.fillRect(px, py, cs, cs);
+
+        if (!isPath) {
+          ctx.strokeStyle = '#2a2a4e';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(px, py, cs, cs);
+        }
+      }
+    }
+
+    // Draw solution path
+    if (this.solutionPath && this.solutionPath.length > 1) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Draw connecting lines
+      ctx.beginPath();
+      for (let i = 0; i < this.solutionPath.length; i++) {
+        const c = this.solutionPath[i];
+        const px = this.offsetX + c.x * (cs + g) + cs / 2;
+        const py = this.offsetY + c.y * (cs + g) + cs / 2;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+      ctx.lineWidth = cs * 0.35;
+      ctx.stroke();
+
+      // Draw endpoints
+      const start = this.solutionPath[0];
+      const end = this.solutionPath[this.solutionPath.length - 1];
+      ctx.fillStyle = '#e94560';
+      ctx.beginPath();
+      ctx.arc(
+        this.offsetX + start.x * (cs + g) + cs / 2,
+        this.offsetY + start.y * (cs + g) + cs / 2,
+        cs * 0.25, 0, Math.PI * 2
+      );
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(
+        this.offsetX + end.x * (cs + g) + cs / 2,
+        this.offsetY + end.y * (cs + g) + cs / 2,
+        cs * 0.25, 0, Math.PI * 2
+      );
+      ctx.fill();
+
+      // Draw order numbers for small grids
+      if (maze.w <= 10 && maze.h <= 10) {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.font = `bold ${Math.max(8, cs * 0.3)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < this.solutionPath.length; i++) {
+          const c = this.solutionPath[i];
+          const px = this.offsetX + c.x * (cs + g) + cs / 2;
+          const py = this.offsetY + c.y * (cs + g) + cs / 2;
+          ctx.fillText(i + 1, px, py);
+        }
+      }
+    }
+  }
+
+  cellAt(maze, clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const mx = (clientX - rect.left) * (this.canvas.width / rect.width);
+    const my = (clientY - rect.top) * (this.canvas.height / rect.height);
+    const cs = this.cellSize;
+    const g = this.gap;
+
+    const x = Math.floor((mx - this.offsetX) / (cs + g));
+    const y = Math.floor((my - this.offsetY) / (cs + g));
+    if (maze.inBounds(x, y)) return {x, y};
+    return null;
+  }
+}
+
+// ===================== UI =====================
+let maze = new Maze(6, 6);
+let renderer = new MazeRenderer(document.getElementById('mazeCanvas'));
+let isDrawingSolution = false;
+
+function updateInfo() {
+  const total = maze.w * maze.h;
+  const paths = maze.pathCells().length;
+  document.getElementById('infoTotal').textContent = total;
+  document.getElementById('infoPath').textContent = paths;
+  document.getElementById('infoWall').textContent = total - paths;
+}
+
+function setStatus(msg, isError) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (isError ? ' error' : '');
+}
+
+function refresh() {
+  renderer.resize(maze);
+  renderer.render(maze);
+  updateInfo();
+}
+
+// Generate
+function doGenerate() {
+  const w = parseInt(document.getElementById('widthInput').value) || 6;
+  const h = parseInt(document.getElementById('heightInput').value) || 6;
+  setStatus('生成中...');
+  renderer.solutionPath = null;
+  document.getElementById('infoSolutions').textContent = '-';
+
+  // Run in timeout to allow UI update
+  setTimeout(() => {
+    maze = generateMaze(w, h, 0.55 + Math.random() * 0.25);
+    refresh();
+    setStatus('生成完成');
+  }, 10);
+}
+
+// Solve
+function doSolve() {
+  if (isDrawingSolution) return;
+  isDrawingSolution = true;
+  setStatus('求解中...');
+  renderer.solutionPath = null;
+  renderer.render(maze);
+
+  setTimeout(() => {
+    const result = solveMaze(maze, 1, 5000);
+    if (result.hasSolution) {
+      renderer.solutionPath = result.solutions[0];
+      document.getElementById('infoSolutions').textContent = '≥1';
+      setStatus('找到解 (' + Math.round(result.time) + 'ms)');
+    } else {
+      document.getElementById('infoSolutions').textContent = '0';
+      setStatus('无解', true);
+    }
+    renderer.render(maze);
+    isDrawingSolution = false;
+  }, 10);
+}
+
+// Score
+function doScore() {
+  setStatus('评分中...');
+  setTimeout(() => {
+    const sc = scoreMaze(maze);
+    if (!sc.valid) {
+      setStatus('关卡无效（无解）', true);
+      document.getElementById('scoreValue').textContent = '无效';
+      document.getElementById('scoreDifficulty').textContent = '--';
+      document.getElementById('scoreCoverage').textContent = '--';
+      document.getElementById('scoreLength').textContent = '--';
+      document.getElementById('scoreBranch').textContent = '--';
+      return;
+    }
+    document.getElementById('scoreValue').textContent = sc.total;
+    document.getElementById('scoreDifficulty').textContent = sc.difficulty + '/100';
+    document.getElementById('scoreCoverage').textContent = sc.coverage + '%';
+    document.getElementById('scoreLength').textContent = sc.length;
+    document.getElementById('scoreBranch').textContent = sc.branch;
+    document.getElementById('infoSolutions').textContent = sc.solutionCount + (sc.solutionCount >= 10 ? '+' : '');
+    setStatus('评分完成');
+  }, 10);
+}
+
+// Export
+function doExport() {
+  const sc = scoreMaze(maze);
+  const data = {
+    ...maze.toJSON(),
+    score: sc.total,
+    difficulty: sc.difficulty,
+    coverage: sc.coverage,
+    valid: sc.valid,
+    createdAt: new Date().toISOString()
+  };
+  const json = JSON.stringify(data, null, 2);
+  document.getElementById('exportArea').value = json;
+  navigator.clipboard?.writeText(json).catch(()=>{});
+  setStatus('已导出到剪贴板');
+}
+
+// Import modal
+function openImportModal() {
+  document.getElementById('importModal').classList.add('active');
+  document.getElementById('importArea').value = '';
+  document.getElementById('importArea').focus();
+}
+function closeImportModal() {
+  document.getElementById('importModal').classList.remove('active');
+}
+function doImport() {
+  try {
+    const text = document.getElementById('importArea').value.trim();
+    if (!text) return;
+    const data = JSON.parse(text);
+    if (!data.w || !data.h || !data.grid) throw new Error('格式错误');
+    maze = Maze.fromJSON(data);
+    document.getElementById('widthInput').value = maze.w;
+    document.getElementById('heightInput').value = maze.h;
+    renderer.solutionPath = null;
+    refresh();
+    setStatus('导入成功');
+    closeImportModal();
+  } catch (e) {
+    alert('导入失败: ' + e.message);
+  }
+}
+
+// Events
+document.getElementById('btnGenerate').addEventListener('click', doGenerate);
+document.getElementById('btnSolve').addEventListener('click', doSolve);
+document.getElementById('btnScore').addEventListener('click', doScore);
+document.getElementById('btnExport').addEventListener('click', doExport);
+document.getElementById('btnImport').addEventListener('click', openImportModal);
+document.getElementById('btnClearWalls').addEventListener('click', () => {
+  maze.clear();
+  renderer.solutionPath = null;
+  refresh();
+  setStatus('已清空内部墙壁');
+});
+document.getElementById('btnFillWalls').addEventListener('click', () => {
+  maze.fillWalls();
+  // Keep outer walls, inner becomes walls too
+  refresh();
+  renderer.solutionPath = null;
+  setStatus('已填满墙壁');
+});
+document.getElementById('widthInput').addEventListener('change', () => {
+  const w = parseInt(document.getElementById('widthInput').value) || 6;
+  const h = parseInt(document.getElementById('heightInput').value) || 6;
+  maze = new Maze(w, h);
+  renderer.solutionPath = null;
+  refresh();
+});
+document.getElementById('heightInput').addEventListener('change', () => {
+  const w = parseInt(document.getElementById('widthInput').value) || 6;
+  const h = parseInt(document.getElementById('heightInput').value) || 6;
+  maze = new Maze(w, h);
+  renderer.solutionPath = null;
+  refresh();
+});
+
+// Canvas interaction
+const canvas = document.getElementById('mazeCanvas');
+let mouseDown = false;
+let drawMode = null; // true = wall, false = path
+
+canvas.addEventListener('mousedown', e => {
+  mouseDown = true;
+  const c = renderer.cellAt(maze, e.clientX, e.clientY);
+  if (!c) return;
+  if (c.x === 0 || c.y === 0 || c.x === maze.w - 1 || c.y === maze.h - 1) return; // outer wall
+  drawMode = maze.isPath(c.x, c.y) ? 1 : 0;
+  maze.set(c.x, c.y, drawMode);
+  renderer.solutionPath = null;
+  renderer.render(maze);
+  updateInfo();
+});
+window.addEventListener('mouseup', () => { mouseDown = false; });
+canvas.addEventListener('mousemove', e => {
+  if (!mouseDown) return;
+  const c = renderer.cellAt(maze, e.clientX, e.clientY);
+  if (!c) return;
+  if (c.x === 0 || c.y === 0 || c.x === maze.w - 1 || c.y === maze.h - 1) return;
+  if (maze.get(c.x, c.y) !== drawMode) {
+    maze.set(c.x, c.y, drawMode);
+    renderer.solutionPath = null;
+    renderer.render(maze);
+    updateInfo();
+  }
+});
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const c = renderer.cellAt(maze, t.clientX, t.clientY);
+  if (!c) return;
+  if (c.x === 0 || c.y === 0 || c.x === maze.w - 1 || c.y === maze.h - 1) return;
+  drawMode = maze.isPath(c.x, c.y) ? 1 : 0;
+  maze.set(c.x, c.y, drawMode);
+  renderer.solutionPath = null;
+  renderer.render(maze);
+  updateInfo();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const c = renderer.cellAt(maze, t.clientX, t.clientY);
+  if (!c) return;
+  if (c.x === 0 || c.y === 0 || c.x === maze.w - 1 || c.y === maze.h - 1) return;
+  if (maze.get(c.x, c.y) !== drawMode) {
+    maze.set(c.x, c.y, drawMode);
+    renderer.solutionPath = null;
+    renderer.render(maze);
+    updateInfo();
+  }
+}, { passive: false });
+
+window.addEventListener('resize', refresh);
+window.addEventListener('keydown', e => {
+  if (e.key === 'g' || e.key === 'G') doGenerate();
+  if (e.key === 's' || e.key === 'S') doSolve();
+  if (e.key === 'e' || e.key === 'E') doExport();
+});
+
+// Init
+refresh();
+</script>
+</body>
+</html>

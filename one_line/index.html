@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>One Line</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: #1a1a2e;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  #gameCanvas {
+    display: block; width: 100%; height: 100%;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<script>
+// Browser wx mock
+window.wx = window.wx || {
+  createCanvas: () => document.getElementById('gameCanvas'),
+  getSystemInfoSync: () => ({
+    windowWidth: window.innerWidth,
+    windowHeight: window.innerHeight,
+    pixelRatio: window.devicePixelRatio || 1,
+    safeArea: { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth }
+  }),
+  onTouchStart: (cb) => {
+    const canvas = document.getElementById('gameCanvas');
+    canvas.addEventListener('touchstart', e => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cb({ touches: Array.from(e.touches).map(t => ({
+        identifier: t.identifier,
+        clientX: (t.clientX - rect.left),
+        clientY: (t.clientY - rect.top)
+      })), changedTouches: Array.from(e.changedTouches).map(t => ({
+        identifier: t.identifier,
+        clientX: (t.clientX - rect.left),
+        clientY: (t.clientY - rect.top)
+      })) });
+    }, { passive: false });
+  },
+  onTouchMove: (cb) => {
+    const canvas = document.getElementById('gameCanvas');
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cb({ touches: Array.from(e.touches).map(t => ({
+        identifier: t.identifier,
+        clientX: (t.clientX - rect.left),
+        clientY: (t.clientY - rect.top)
+      })), changedTouches: Array.from(e.changedTouches).map(t => ({
+        identifier: t.identifier,
+        clientX: (t.clientX - rect.left),
+        clientY: (t.clientY - rect.top)
+      })) });
+    }, { passive: false });
+  },
+  onTouchEnd: (cb) => {
+    const canvas = document.getElementById('gameCanvas');
+    const handler = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cb({ touches: Array.from(e.touches).map(t => ({
+        identifier: t.identifier,
+        clientX: (t.clientX - rect.left),
+        clientY: (t.clientY - rect.top)
+      })), changedTouches: Array.from(e.changedTouches).map(t => ({
+        identifier: t.identifier,
+        clientX: (t.clientX - rect.left),
+        clientY: (t.clientY - rect.top)
+      })) });
+    };
+    canvas.addEventListener('touchend', handler, { passive: false });
+    canvas.addEventListener('touchcancel', handler, { passive: false });
+  },
+  getStorageSync: (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch(e) { return undefined; } },
+  setStorageSync: (k, v) => { localStorage.setItem(k, JSON.stringify(v)); },
+  getOpenDataContext: () => ({
+    postMessage: () => {},
+    canvas: { width: 0, height: 0 }
+  }),
+  shareAppMessage: () => {},
+  getLaunchOptionsSync: () => ({ scene: 0 }),
+  onShow: () => {},
+  onHide: () => {},
+  createInnerAudioContext: () => ({ play() {}, stop() {}, destroy() {}, onEnded() {}, onError() {} }),
+  showModal: (opts) => { if (opts.confirm) opts.confirm(); },
+  showToast: () => {},
+  triggerGC: () => {},
+};
+window.require = (path) => {
+  path = path.replace(/^\.\//, '');
+  if (!path.endsWith('.js')) path += '.js';
+  if (!window.__modules) window.__modules = {};
+  if (window.__modules[path]) return window.__modules[path];
+  // Fallback: try with 'js/' prefix for modules loaded from js/ directory
+  const prefixed = 'js/' + path;
+  if (window.__modules[prefixed]) return window.__modules[prefixed];
+  throw new Error('Module not loaded: ' + path + ' (tried ' + prefixed + ')');
+};
+
+// Load all modules via fetch+eval to avoid script tag issues in some browser contexts
+(async function() {
+  const scripts = [
+    'js/config.js',
+    'js/maze.js',
+    'js/levels.js',
+    'js/renderer.js',
+    'js/input.js',
+    'js/ui.js',
+    'js/social.js',
+    'game.js'
+  ];
+  for (const src of scripts) {
+    try {
+      const res = await fetch(src);
+      const text = await res.text();
+      (0, eval)(text);
+    } catch (e) {
+      console.error('Failed to load ' + src + ':', e);
+    }
+  }
+})();
+</script>
+</body>
+</html>
